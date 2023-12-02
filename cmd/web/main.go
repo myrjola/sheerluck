@@ -16,6 +16,7 @@ func main() {
 	// register the questionPeople function as the handler for the "/" URL pattern.
 	mux := http.NewServeMux()
 	mux.HandleFunc("/question-people", questionPeople)
+	mux.HandleFunc("/question-people/stream", streamChat)
 	mux.HandleFunc("/investigate-scenes", investigateScenes)
 
 	// Create a file server which serves files out of the "./ui/static" directory.

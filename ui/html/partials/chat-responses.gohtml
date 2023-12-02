@@ -7,11 +7,23 @@
         {{ .Question }}
       </span>
     </div>
-    <div class="prose">
-      <span class="font-semibold">Adolphe:</span>
-      <span>
-        {{ .Answer }}
-      </span>
-    </div>
+    {{ if .Answer }}
+      <div class="prose">
+        <span class="font-semibold">Adolphe:</span>
+        <span>
+          {{ .Answer }}
+        </span>
+      </div>
+    {{ else }}
+      <div id="chat-streaming-content"></div>
+      <div
+        id="chat-listener"
+        hx-ext="sse"
+        sse-connect="/question-people/stream"
+        sse-swap="message"
+        hx-swap="beforeend"
+        hx-target="#chat-streaming-content"
+      ></div>
+    {{ end }}
   {{ end }}
 {{ end }}

@@ -8,10 +8,11 @@
       <link rel="stylesheet" href="/static/main.css" />
       <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
       <title>Sheerluck</title>
+      <script src="/static/htmx-1.9.9.js"></script>
+      <script src="/static/sse-1.9.9.js"></script>
     </head>
     <body class="h-full" hx-boost="true">
       {{ block "body" . }}
-        <script src="/static/htmx-1.9.9.js"></script>
         <div>
           <!-- Static sidebar for desktop -->
           <div

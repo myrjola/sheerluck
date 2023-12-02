@@ -1,10 +1,15 @@
 {{- /*gotype:github.com/myrjola/sheerluck/cmd/web.questionPeopleData */ -}}
 {{ define "main" }}
   <h2 class="mb-1 text-lg font-bold">Question people</h2>
-  <div id="answers">
+  <div id="answers" class="mx-auto max-w-md text-justify">
     {{ template "chat-responses" . }}
   </div>
-  <form action="/question-people" method="post">
+
+  <form
+    action="/question-people"
+    method="post"
+    class="mx-auto max-w-md text-justify"
+  >
     <label>
       <span> Question: </span>
       <input name="question" type="text" />
