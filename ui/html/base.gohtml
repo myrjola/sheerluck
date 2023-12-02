@@ -1,17 +1,42 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta http-equiv="x-ua-compatible" content="ie=edge"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <link rel="stylesheet" href="/static/main.css"/>
-    <title>Sheerluck</title>
-</head>
-<body>
-<script src="/static/htmx-1.9.9.js"></script>
-<h1>Sheerluck</h1>
-{{ block "button" .}}
-    <button hx-get="/swap" hx-swap="outerHTML" type="button" class="bg-red-200">Try me</button>
+{{ define "base" }}
+  <!doctype html>
+  <html lang="en" class="h-full">
+    <head>
+      <meta charset="utf-8" />
+      <meta http-equiv="x-ua-compatible" content="ie=edge" />
+      <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <link rel="stylesheet" href="/static/main.css" />
+      <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
+      <title>Sheerluck</title>
+    </head>
+    <body class="h-full">
+      <script src="/static/htmx-1.9.9.js"></script>
+      <div>
+        <!-- Static sidebar for desktop -->
+        <div
+          class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col"
+        >
+          <!-- Sidebar component, swap this element with another sidebar if you like -->
+          <div
+            class="flex grow flex-col gap-y-5 overflow-y-auto bg-indigo-600 px-6"
+          >
+            <div class="flex h-16 shrink-0 items-center">
+              <img
+                class="h-8 w-auto"
+                src="https://tailwindui.com/img/logos/mark.svg?color=white"
+                alt="Your Company"
+              />
+            </div>
+            {{ template "nav" }}
+          </div>
+        </div>
+
+        <main class="py-10 lg:pl-72">
+          <div class="px-4 sm:px-6 lg:px-8">
+            <!-- Your content -->
+          </div>
+        </main>
+      </div>
+    </body>
+  </html>
 {{ end }}
-</body>
-</html>
