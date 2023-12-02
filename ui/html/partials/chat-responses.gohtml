@@ -15,7 +15,9 @@
         </span>
       </div>
     {{ else }}
-      <div id="chat-streaming-content"></div>
+      <div id="chat-streaming-content" class="prose">
+        <span class="font-semibold">Adolphe:</span>
+      </div>
       <div
         id="chat-listener"
         hx-ext="sse"
@@ -23,6 +25,7 @@
         sse-swap="message"
         hx-swap="beforeend"
         hx-target="#chat-streaming-content"
+        hx-on::after-settle="window.scrollTo(0, document.body.scrollHeight);"
       ></div>
     {{ end }}
   {{ end }}
