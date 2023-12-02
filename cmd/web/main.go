@@ -1,11 +1,17 @@
 package main
 
 import (
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	// Use the http.NewServeMux() function to initialize a new servemux, then
 	// register the questionPeople function as the handler for the "/" URL pattern.
 	mux := http.NewServeMux()
@@ -30,6 +36,6 @@ func main() {
 	// and the servemux we just created. If http.ListenAndServe() returns an error
 	// we use the log.Fatal() function to log the error message and exit. Note
 	// that any error returned by http.ListenAndServe() is always non-nil.
-	err := http.ListenAndServe(":3003", mux)
+	err = http.ListenAndServe(":3003", mux)
 	log.Fatal(err)
 }

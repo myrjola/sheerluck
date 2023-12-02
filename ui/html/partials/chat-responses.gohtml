@@ -1,0 +1,17 @@
+{{- /*gotype:github.com/myrjola/sheerluck/cmd/web.questionPeopleData*/ -}}
+{{ define "chat-responses" }}
+  {{ range .ChatResponses }}
+    <div class="prose">
+      <span class="font-semibold">Detective:</span>
+      <span>
+        {{ .Question }}
+      </span>
+    </div>
+    <div class="prose">
+      <span class="font-semibold">Adolphe:</span>
+      <span>
+        {{ .Answer }}
+      </span>
+    </div>
+  {{ end }}
+{{ end }}

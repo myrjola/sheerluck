@@ -1,4 +1,14 @@
-{{- /*gotype: github.com/myrjola/sheerluck/cmd/web.baseData */ -}}
+{{- /*gotype:github.com/myrjola/sheerluck/cmd/web.questionPeopleData */ -}}
 {{ define "main" }}
-  <div>Question people</div>
+  <h2 class="mb-1 text-lg font-bold">Question people</h2>
+  <div id="answers">
+    {{ template "chat-responses" . }}
+  </div>
+  <form action="/question-people" method="post">
+    <label>
+      <span> Question: </span>
+      <input name="question" type="text" />
+    </label>
+    <button type="submit">Submit</button>
+  </form>
 {{ end }}
