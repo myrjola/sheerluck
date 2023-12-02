@@ -25,3 +25,4 @@ go.work
 
 # External executables
 /tailwindcss
+node_modules
