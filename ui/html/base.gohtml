@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta http-equiv="x-ua-compatible" content="ie=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <link rel="stylesheet" href="/static/main.css"/>
+    <title>Sheerluck</title>
+</head>
+<body>
+<script src="/static/htmx-1.9.9.js"></script>
+<h1>Sheerluck</h1>
+{{ block "button" .}}
+    <button hx-get="/swap" hx-swap="outerHTML" type="button" class="bg-red-200">Try me</button>
+{{ end }}
+</body>
+</html>
