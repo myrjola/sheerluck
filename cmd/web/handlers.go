@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -8,33 +9,55 @@ import (
 
 const internalServerError = "Internal Server Error"
 
-func home(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/" {
-		http.NotFound(w, r)
-		return
+type route struct {
+	Href    string
+	Title   string
+	Current bool
+}
+
+type baseData struct {
+	Routes []route
+}
+
+func resolveRoutes(currentPath string) []route {
+	routes := []route{
+		{
+			Href:  "/question-people",
+			Title: "Question people",
+		},
+		{
+			Href:  "/investigate-scenes",
+			Title: "Investigate scenes",
+		},
 	}
 
-	// Use the template.ParseFiles() function to read the template file into a
-	// template set. If there's an error, we log the detailed error message and use
-	// the http.Error() function to send a generic 500 Internal Server Error
-	// response to the user. Note that we use the net/http constant
-	// http.StatusInternalServerError here instead of the integer 500 directly.
-	ts, err := template.ParseFiles("./ui/html/base.gohtml", "./ui/html/nav.gohtml")
-	if err != nil {
-		log.Print(err.Error())
-		http.Error(w, internalServerError, http.StatusInternalServerError)
-		return
+	for i := range routes {
+		routes[i].Current = currentPath == routes[i].Href
+	}
+	return routes
+}
+
+// compileTemplates parses the base templates and adds a templates based on path
+func compileTemplates(templateFileNames ...string) (*template.Template, error) {
+	templates := []string{
+		"./ui/html/base.gohtml",
+		"./ui/html/nav/nav.gohtml",
 	}
 
-	// Detect htmx header and render partial template
-	if r.Header.Get("Hx-Request") == "true" {
-		err = ts.ExecuteTemplate(w, "button", nil)
+	for _, templateFilename := range templateFileNames {
+		templates = append(templates, fmt.Sprintf("./ui/html/%s.gohtml", templateFilename))
+	}
+
+	return template.ParseFiles(templates...)
+}
+
+func renderPage(w http.ResponseWriter, r *http.Request, template *template.Template, data any) {
+	var err error
+	// Detect htmx header and render only the body because that's what's replaced with hx-boost="true"
+	if r.Header.Get("Hx-Boosted") == "true" {
+		err = template.ExecuteTemplate(w, "body", data)
 	} else {
-		// Then we use the Execute() method on the template set to write the
-		// template content as the response body. The last parameter to Execute()
-		// represents any dynamic data that we want to pass in, which for now we'll
-		// leave as nil.
-		err = ts.ExecuteTemplate(w, "base", nil)
+		err = template.ExecuteTemplate(w, "base", data)
 	}
 
 	if err != nil {
@@ -43,26 +66,38 @@ func home(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func swap(w http.ResponseWriter, _ *http.Request) {
-	// Use the template.ParseFiles() function to read the template file into a
-	// template set. If there's an error, we log the detailed error message and use
-	// the http.Error() function to send a generic 500 Internal Server Error
-	// response to the user. Note that we use the net/http constant
-	// http.StatusInternalServerError here instead of the integer 500 directly.
-	ts, err := template.ParseFiles("./ui/html/swap.gohtml")
+func questionPeople(w http.ResponseWriter, r *http.Request) {
+	t, err := compileTemplates("question-people")
+
 	if err != nil {
 		log.Print(err.Error())
 		http.Error(w, internalServerError, http.StatusInternalServerError)
 		return
 	}
 
-	// Then we use the Execute() method on the template set to write the
-	// template content as the response body. The last parameter to Execute()
-	// represents any dynamic data that we want to pass in, which for now we'll
-	// leave as nil.
-	err = ts.Execute(w, nil)
+	routes := resolveRoutes(r.URL.Path)
+
+	data := baseData{
+		Routes: routes,
+	}
+
+	renderPage(w, r, t, data)
+}
+
+func investigateScenes(w http.ResponseWriter, r *http.Request) {
+	t, err := compileTemplates("investigate-scenes")
+
 	if err != nil {
 		log.Print(err.Error())
 		http.Error(w, internalServerError, http.StatusInternalServerError)
+		return
 	}
+
+	routes := resolveRoutes(r.URL.Path)
+
+	data := baseData{
+		Routes: routes,
+	}
+
+	renderPage(w, r, t, data)
 }

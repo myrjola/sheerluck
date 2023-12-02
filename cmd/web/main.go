@@ -7,13 +7,13 @@ import (
 
 func main() {
 	// Use the http.NewServeMux() function to initialize a new servemux, then
-	// register the home function as the handler for the "/" URL pattern.
+	// register the questionPeople function as the handler for the "/" URL pattern.
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/swap", swap)
+	mux.HandleFunc("/question-people", questionPeople)
+	mux.HandleFunc("/investigate-scenes", investigateScenes)
 
 	// Create a file server which serves files out of the "./ui/static" directory.
-	// Note that the path given to the http.Dir function is relative to the project
+	// Note that the Href given to the http.Dir function is relative to the project
 	// directory root.
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 
