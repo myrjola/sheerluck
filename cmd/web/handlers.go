@@ -9,7 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 )
@@ -156,8 +155,6 @@ func (app *application) postQuestion(r *http.Request) error {
 		return nil
 	}
 
-	client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
-
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role: openai.ChatMessageRoleSystem,
@@ -180,38 +177,18 @@ func (app *application) postQuestion(r *http.Request) error {
 
 	messages = append(messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: question})
 
-	stream, err := client.CreateChatCompletionStream(
-		context.TODO(),
-		openai.ChatCompletionRequest{
-			Model:    openai.GPT3Dot5Turbo,
-			Messages: messages,
-			Stream:   true,
-		},
+	var (
+		resp openai.ChatCompletionResponse
+		err  error
 	)
 
-	if err != nil {
-		app.logger.Error(err.Error())
+	if resp, err = app.aiClient.SyncCompletion(messages); err != nil {
 		return err
 	}
-	defer stream.Close()
 
 	cr := chatResponse{
 		Question: question,
-		Answer:   "",
-	}
-	for {
-		response, err := stream.Recv()
-		if errors.Is(err, io.EOF) {
-			break
-		}
-
-		if err != nil {
-			break
-		}
-
-		delta := response.Choices[0].Delta.Content
-
-		cr.Answer += delta
+		Answer:   resp.Choices[0].Message.Content,
 	}
 
 	chatResponses = append(chatResponses, cr)
@@ -245,8 +222,6 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	client := openai.NewClient(os.Getenv("OPENAI_API_KEY"))
-
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role: openai.ChatMessageRoleSystem,
@@ -271,17 +246,10 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 	messages = messages[:len(messages)-1]
 	question := messages[len(messages)-1].Content
 
-	stream, err := client.CreateChatCompletionStream(
-		context.TODO(),
-		openai.ChatCompletionRequest{
-			Model:    openai.GPT3Dot5Turbo,
-			Messages: messages,
-			Stream:   true,
-		},
-	)
-
+	stream, err := app.aiClient.StreamCompletion(messages)
 	if err != nil {
 		app.serverError(w, r, err)
+		return
 	}
 	defer stream.Close()
 
@@ -307,6 +275,7 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 		cr.Answer += delta
 		dataCh <- fmt.Sprintf("<span>%s</span>", strings.ReplaceAll(delta, "\n", "<br>"))
 	}
+
 	chatResponses[len(chatResponses)-1] = cr
 	wg.Wait()
 }

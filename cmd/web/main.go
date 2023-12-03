@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"github.com/joho/godotenv"
+	"github.com/myrjola/sheerluck/internal/ai"
 	"log"
 	"log/slog"
 	"net/http"
@@ -10,7 +11,8 @@ import (
 )
 
 type application struct {
-	logger *slog.Logger
+	logger   *slog.Logger
+	aiClient ai.Client
 }
 
 func main() {
@@ -29,7 +31,8 @@ func main() {
 	logger := slog.New(loggerHandler)
 
 	app := application{
-		logger: logger,
+		logger:   logger,
+		aiClient: ai.NewClient(),
 	}
 
 	logger.Info("starting server", slog.Any("addr", ":4000"))
