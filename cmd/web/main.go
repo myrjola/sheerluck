@@ -4,7 +4,9 @@ import (
 	"flag"
 	"github.com/joho/godotenv"
 	"log"
+	"log/slog"
 	"net/http"
+	"os"
 )
 
 func main() {
@@ -15,6 +17,12 @@ func main() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	loggerHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		Level:     slog.LevelDebug,
+		AddSource: true,
+	})
+	logger := slog.New(loggerHandler)
 
 	// Use the http.NewServeMux() function to initialize a new servemux, then
 	// register the questionPeople function as the handler for the "/" URL pattern.
@@ -34,7 +42,7 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
 	// Print a log a message to say that the server is starting.
-	log.Printf("starting server on %s", *addr)
+	logger.Info("starting server", slog.Any("addr", ":4000"))
 
 	// Use the http.ListenAndServe() function to start a new web server. We pass in
 	// two parameters: the TCP network address to listen on (in this case ":4000")
@@ -42,5 +50,6 @@ func main() {
 	// we use the log.Fatal() function to log the error message and exit. Note
 	// that any error returned by http.ListenAndServe() is always non-nil.
 	err = http.ListenAndServe(*addr, mux)
-	log.Fatal(err)
+	logger.Error(err.Error())
+	os.Exit(1)
 }
