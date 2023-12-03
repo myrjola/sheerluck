@@ -9,6 +9,10 @@ import (
 	"os"
 )
 
+type application struct {
+	logger *slog.Logger
+}
+
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
 	flag.Parse()
@@ -24,12 +28,16 @@ func main() {
 	})
 	logger := slog.New(loggerHandler)
 
+	app := application{
+		logger: logger,
+	}
+
 	// Use the http.NewServeMux() function to initialize a new servemux, then
 	// register the questionPeople function as the handler for the "/" URL pattern.
 	mux := http.NewServeMux()
-	mux.HandleFunc("/question-people", questionPeople)
-	mux.HandleFunc("/question-people/stream", streamChat)
-	mux.HandleFunc("/investigate-scenes", investigateScenes)
+	mux.HandleFunc("/question-people", app.questionPeople)
+	mux.HandleFunc("/question-people/stream", app.streamChat)
+	mux.HandleFunc("/investigate-scenes", app.investigateScenes)
 
 	// Create a file server which serves files out of the "./ui/static" directory.
 	// Note that the Href given to the http.Dir function is relative to the project

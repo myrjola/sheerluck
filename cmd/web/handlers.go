@@ -7,7 +7,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"html/template"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -26,7 +26,7 @@ type baseData struct {
 	Routes []route
 }
 
-func resolveRoutes(currentPath string) []route {
+func (app *application) resolveRoutes(currentPath string) []route {
 	routes := []route{
 		{
 			Href:  "/question-people",
@@ -45,7 +45,7 @@ func resolveRoutes(currentPath string) []route {
 }
 
 // compileTemplates parses the base templates and adds a templates based on path
-func compileTemplates(templateFileNames ...string) (*template.Template, error) {
+func (app *application) compileTemplates(templateFileNames ...string) (*template.Template, error) {
 	templates := []string{
 		"./ui/html/base.gohtml",
 		"./ui/html/nav/nav.gohtml",
@@ -58,7 +58,7 @@ func compileTemplates(templateFileNames ...string) (*template.Template, error) {
 	return template.ParseFiles(templates...)
 }
 
-func renderPage(w http.ResponseWriter, r *http.Request, t *template.Template, data any) {
+func (app *application) renderPage(w http.ResponseWriter, r *http.Request, t *template.Template, data any) {
 	var err error
 	// Detect htmx header and render only the body because that's what's replaced with hx-boost="true"
 	if r.Header.Get("Hx-Boosted") == "true" {
@@ -68,7 +68,7 @@ func renderPage(w http.ResponseWriter, r *http.Request, t *template.Template, da
 	}
 
 	if err != nil {
-		log.Print(err.Error())
+		app.logger.Error(err.Error())
 		http.Error(w, internalServerError, http.StatusInternalServerError)
 	}
 }
@@ -78,50 +78,50 @@ type questionPeopleData struct {
 	ChatResponses []chatResponse
 }
 
-func questionPeople(w http.ResponseWriter, r *http.Request) {
+func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
-		err := postQuestion(r)
+		err := app.postQuestion(r)
 		if err != nil {
-			log.Print(err.Error())
+			app.logger.Error(err.Error())
 			http.Error(w, internalServerError, http.StatusInternalServerError)
 			return
 		}
 	}
 
-	t, err := compileTemplates("question-people", "partials/chat-responses")
+	t, err := app.compileTemplates("question-people", "partials/chat-responses")
 
 	if err != nil {
-		log.Print(err.Error())
+		app.logger.Error(err.Error())
 		http.Error(w, internalServerError, http.StatusInternalServerError)
 		return
 	}
 
-	routes := resolveRoutes(r.URL.Path)
+	routes := app.resolveRoutes(r.URL.Path)
 
 	data := questionPeopleData{
 		Routes:        routes,
 		ChatResponses: chatResponses,
 	}
 
-	renderPage(w, r, t, data)
+	app.renderPage(w, r, t, data)
 }
 
-func investigateScenes(w http.ResponseWriter, r *http.Request) {
-	t, err := compileTemplates("investigate-scenes")
+func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request) {
+	t, err := app.compileTemplates("investigate-scenes")
 
 	if err != nil {
-		log.Print(err.Error())
+		app.logger.Error(err.Error())
 		http.Error(w, internalServerError, http.StatusInternalServerError)
 		return
 	}
 
-	routes := resolveRoutes(r.URL.Path)
+	routes := app.resolveRoutes(r.URL.Path)
 
 	data := baseData{
 		Routes: routes,
 	}
 
-	renderPage(w, r, t, data)
+	app.renderPage(w, r, t, data)
 }
 
 type chatResponse struct {
@@ -131,7 +131,7 @@ type chatResponse struct {
 
 var chatResponses = []chatResponse{}
 
-func postQuestion(r *http.Request) error {
+func (app *application) postQuestion(r *http.Request) error {
 	err := r.ParseForm()
 	if err != nil {
 		return err
@@ -181,12 +181,11 @@ func postQuestion(r *http.Request) error {
 	)
 
 	if err != nil {
-		log.Print(err.Error())
+		app.logger.Error(err.Error())
 		return err
 	}
 	defer stream.Close()
 
-	fmt.Printf("Stream response: ")
 	cr := chatResponse{
 		Question: question,
 		Answer:   "",
@@ -194,19 +193,16 @@ func postQuestion(r *http.Request) error {
 	for {
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
-			fmt.Println("\nStream finished")
 			break
 		}
 
 		if err != nil {
-			fmt.Printf("\nStream error: %v\n", err)
 			break
 		}
 
 		delta := response.Choices[0].Delta.Content
 
 		cr.Answer += delta
-		fmt.Print(delta)
 	}
 
 	chatResponses = append(chatResponses, cr)
@@ -215,7 +211,7 @@ func postQuestion(r *http.Request) error {
 }
 
 // streamChat sends server side events (SSE) to the client.
-func streamChat(w http.ResponseWriter, r *http.Request) {
+func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 	// Set headers for SSE
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -234,7 +230,7 @@ func streamChat(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		defer wg.Done()
 		for data := range dataCh {
-			log.Printf("Sending data: %s", data)
+			app.logger.Debug("Sending data", slog.Any("data", data))
 			fmt.Fprintf(w, "data: %s\n\n", data)
 			w.(http.Flusher).Flush()
 		}
@@ -276,12 +272,11 @@ func streamChat(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		log.Print(err.Error())
+		app.logger.Error(err.Error())
 		http.Error(w, internalServerError, http.StatusInternalServerError)
 	}
 	defer stream.Close()
 
-	fmt.Printf("Stream response: ")
 	cr := chatResponse{
 		Question: question,
 		Answer:   "",
@@ -289,20 +284,19 @@ func streamChat(w http.ResponseWriter, r *http.Request) {
 	for {
 		response, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
-			fmt.Println("\nStream finished")
+			app.logger.Debug("stream finished")
 			dataCh <- "<div id='chat-listener' hx-swap-oob='true'></div>"
 			break
 		}
 
 		if err != nil {
-			fmt.Printf("\nStream error: %v\n", err)
+			app.logger.Error("stream error", slog.Any("err", err))
 			break
 		}
 
 		delta := response.Choices[0].Delta.Content
 
 		cr.Answer += delta
-		fmt.Print(delta)
 		dataCh <- fmt.Sprintf("<span>%s</span>", strings.ReplaceAll(delta, "\n", "<br>"))
 	}
 	chatResponses[len(chatResponses)-1] = cr
