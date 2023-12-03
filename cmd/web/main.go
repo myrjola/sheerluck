@@ -1,12 +1,16 @@
 package main
 
 import (
+	"flag"
 	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 )
 
 func main() {
+	addr := flag.String("addr", ":4000", "HTTP network address")
+	flag.Parse()
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
@@ -30,13 +34,13 @@ func main() {
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
 	// Print a log a message to say that the server is starting.
-	log.Print("starting server on :3003")
+	log.Printf("starting server on %s", *addr)
 
 	// Use the http.ListenAndServe() function to start a new web server. We pass in
 	// two parameters: the TCP network address to listen on (in this case ":4000")
 	// and the servemux we just created. If http.ListenAndServe() returns an error
 	// we use the log.Fatal() function to log the error message and exit. Note
 	// that any error returned by http.ListenAndServe() is always non-nil.
-	err = http.ListenAndServe(":3003", mux)
+	err = http.ListenAndServe(*addr, mux)
 	log.Fatal(err)
 }
