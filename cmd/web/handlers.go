@@ -58,7 +58,7 @@ func (app *application) compileTemplates(templateFileNames ...string) (*template
 	return template.ParseFiles(templates...)
 }
 
-func (app *application) renderPage(w http.ResponseWriter, r *http.Request, t *template.Template, data any) {
+func (app *application) renderPage(w http.ResponseWriter, r *http.Request, t *template.Template, data any) error {
 	var err error
 	// Detect htmx header and render only the body because that's what's replaced with hx-boost="true"
 	if r.Header.Get("Hx-Boosted") == "true" {
@@ -68,9 +68,11 @@ func (app *application) renderPage(w http.ResponseWriter, r *http.Request, t *te
 	}
 
 	if err != nil {
-		app.logger.Error(err.Error())
-		http.Error(w, internalServerError, http.StatusInternalServerError)
+		app.serverError(w, r, err)
+		return err
 	}
+
+	return nil
 }
 
 type questionPeopleData struct {
@@ -82,17 +84,18 @@ func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
 		err := app.postQuestion(r)
 		if err != nil {
-			app.logger.Error(err.Error())
-			http.Error(w, internalServerError, http.StatusInternalServerError)
+			app.serverError(w, r, err)
 			return
 		}
 	}
 
-	t, err := app.compileTemplates("question-people", "partials/chat-responses")
+	var (
+		t   *template.Template
+		err error
+	)
 
-	if err != nil {
-		app.logger.Error(err.Error())
-		http.Error(w, internalServerError, http.StatusInternalServerError)
+	if t, err = app.compileTemplates("question-people", "partials/chat-responses"); err != nil {
+		app.serverError(w, r, err)
 		return
 	}
 
@@ -103,15 +106,19 @@ func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
 		ChatResponses: chatResponses,
 	}
 
-	app.renderPage(w, r, t, data)
+	if err = app.renderPage(w, r, t, data); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 }
 
 func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request) {
-	t, err := app.compileTemplates("investigate-scenes")
-
-	if err != nil {
-		app.logger.Error(err.Error())
-		http.Error(w, internalServerError, http.StatusInternalServerError)
+	var (
+		t   *template.Template
+		err error
+	)
+	if t, err = app.compileTemplates("investigate-scenes"); err != nil {
+		app.serverError(w, r, err)
 		return
 	}
 
@@ -121,7 +128,10 @@ func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request
 		Routes: routes,
 	}
 
-	app.renderPage(w, r, t, data)
+	if err = app.renderPage(w, r, t, data); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 }
 
 type chatResponse struct {
@@ -132,8 +142,7 @@ type chatResponse struct {
 var chatResponses = []chatResponse{}
 
 func (app *application) postQuestion(r *http.Request) error {
-	err := r.ParseForm()
-	if err != nil {
+	if err := r.ParseForm(); err != nil {
 		return err
 	}
 	question := r.PostForm.Get("question")
@@ -272,8 +281,7 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if err != nil {
-		app.logger.Error(err.Error())
-		http.Error(w, internalServerError, http.StatusInternalServerError)
+		app.serverError(w, r, err)
 	}
 	defer stream.Close()
 
