@@ -12,5 +12,5 @@ func (app *application) routes() http.Handler {
 	mux.HandleFunc("/question-people/stream", app.streamChat)
 	mux.HandleFunc("/investigate-scenes", app.investigateScenes)
 
-	return secureHeaders(mux)
+	return app.recoverPanic(app.logRequest(secureHeaders(mux)))
 }
