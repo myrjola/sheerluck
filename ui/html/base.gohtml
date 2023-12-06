@@ -10,6 +10,8 @@
       <title>Sheerluck</title>
       <script src="/static/htmx-1.9.9.js"></script>
       <script src="/static/sse-1.9.9.js"></script>
+      <script type="module" src="/static/webauthn-login.js"></script>
+      <script type="module" src="/static/webauthn-register.js"></script>
     </head>
     <body class="h-full" hx-boost="true">
       {{ block "body" . }}
@@ -24,6 +26,7 @@
             >
               <h1 class="flex h-16 items-center text-white">Sheerluck</h1>
               {{ template "nav" . }}
+              <webauthn-register no-username></webauthn-register>
             </div>
           </div>
 

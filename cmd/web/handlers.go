@@ -1,9 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-webauthn/webauthn/protocol"
+	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/sashabaranov/go-openai"
 	"html/template"
 	"io"
@@ -11,6 +15,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 )
 
 const internalServerError = "Internal Server Error"
@@ -278,4 +283,129 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 
 	chatResponses[len(chatResponses)-1] = cr
 	wg.Wait()
+}
+
+type User struct {
+	DisplayName string
+	credential  webauthn.Credential
+}
+
+var user = User{}
+var session *webauthn.SessionData
+
+// WebAuthnID provides the user handle of the user account. A user handle is an opaque byte sequence with a maximum
+// size of 64 bytes, and is not meant to be displayed to the user.
+//
+// To ensure secure operation, authentication and authorization decisions MUST be made on the basis of this id
+// member, not the displayName nor name members. See Section 6.1 of [RFC8266].
+//
+// It's recommended this value is completely random and uses the entire 64 bytes.
+//
+// Specification: §5.4.3. User Account Parameters for Credential Generation (https://w3c.github.io/webauthn/#dom-publickeycredentialuserentity-id)
+func (u User) WebAuthnID() []byte {
+	return []byte{}
+}
+
+// WebAuthnName provides the name attribute of the user account during registration and is a human-palatable name for the user
+// account, intended only for display. For example, "Alex Müller" or "田中倫". The Relying Party SHOULD let the user
+// choose this, and SHOULD NOT restrict the choice more than necessary.
+//
+// Specification: §5.4.3. User Account Parameters for Credential Generation (https://w3c.github.io/webauthn/#dictdef-publickeycredentialuserentity)
+func (u User) WebAuthnName() string {
+	return u.DisplayName
+}
+
+// WebAuthnDisplayName provides the name attribute of the user account during registration and is a human-palatable
+// name for the user account, intended only for display. For example, "Alex Müller" or "田中倫". The Relying Party
+// SHOULD let the user choose this, and SHOULD NOT restrict the choice more than necessary.
+//
+// Specification: §5.4.3. User Account Parameters for Credential Generation (https://www.w3.org/TR/webauthn/#dom-publickeycredentialuserentity-displayname)
+func (u User) WebAuthnDisplayName() string {
+	return u.DisplayName
+}
+
+// WebAuthnCredentials provides the list of Credentials owned by the user.
+func (u User) WebAuthnCredentials() []webauthn.Credential {
+	return []webauthn.Credential{u.credential}
+}
+
+// AddWebAuthnCredentials adds Credential to the user.
+func (u User) AddWebAuthnCredential(credential webauthn.Credential) {
+	u.credential = credential
+}
+
+// WebAuthnIcon is a deprecated option.
+// Deprecated: this has been removed from the specification recommendation. Suggest a blank string.
+func (u User) WebAuthnIcon() string {
+	return ""
+}
+
+func (app *application) BeginRegistration(w http.ResponseWriter, r *http.Request) {
+	user = User{
+		DisplayName: fmt.Sprintf("Anonymous user created at %s", time.Now().Format(time.RFC3339)),
+	}
+
+	authSelect := protocol.AuthenticatorSelection{
+		AuthenticatorAttachment: protocol.AuthenticatorAttachment("platform"),
+		RequireResidentKey:      protocol.ResidentKeyNotRequired(),
+		UserVerification:        protocol.VerificationDiscouraged,
+	}
+
+	opts, sess, err := app.webAuthn.BeginRegistration(user, webauthn.WithAuthenticatorSelection(authSelect))
+	if err != nil {
+		app.serverError(w, r, err)
+	}
+
+	// store the sessionData values
+	session = sess
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(opts)
+}
+
+func (app *application) FinishRegistration(w http.ResponseWriter, r *http.Request) {
+	credential, err := app.webAuthn.FinishRegistration(user, *session, r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	user.AddWebAuthnCredential(*credential)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode("Registration Success")
+}
+
+func (app *application) BeginLogin(w http.ResponseWriter, r *http.Request) {
+	options, sess, err := app.webAuthn.BeginDiscoverableLogin()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	session = sess
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(options)
+}
+func findUserHandler(rawID, userHandle []byte) (user webauthn.User, err error) {
+	if !bytes.Equal(userHandle, user.WebAuthnID()) {
+		return user, nil
+	}
+	return User{}, errors.New("no user found")
+}
+
+func (app *application) FinishLogin(w http.ResponseWriter, r *http.Request) {
+	credential, err := app.webAuthn.FinishDiscoverableLogin(findUserHandler, *session, r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// If login was successful, update the credential object
+	// Pseudocode to update the user credential.
+	user.AddWebAuthnCredential(*credential)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode("Login Success")
 }
