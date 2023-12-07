@@ -8,7 +8,7 @@ import (
 func secureHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy",
-			"default-src 'self'; style-src 'self' 'unsafe-inline' rsms.me; font-src rsms.me")
+			"default-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' rsms.me; font-src rsms.me")
 
 		w.Header().Set("Referrer-Policy", "origin-when-cross-origin")
 		w.Header().Set("X-Content-Type-Options", "nosniff")

@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -287,7 +288,8 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 
 type User struct {
 	DisplayName string
-	credential  webauthn.Credential
+	ID          []byte
+	credentials []webauthn.Credential
 }
 
 var user = User{}
@@ -303,7 +305,7 @@ var session *webauthn.SessionData
 //
 // Specification: §5.4.3. User Account Parameters for Credential Generation (https://w3c.github.io/webauthn/#dom-publickeycredentialuserentity-id)
 func (u User) WebAuthnID() []byte {
-	return []byte{}
+	return u.ID
 }
 
 // WebAuthnName provides the name attribute of the user account during registration and is a human-palatable name for the user
@@ -326,12 +328,12 @@ func (u User) WebAuthnDisplayName() string {
 
 // WebAuthnCredentials provides the list of Credentials owned by the user.
 func (u User) WebAuthnCredentials() []webauthn.Credential {
-	return []webauthn.Credential{u.credential}
+	return u.credentials
 }
 
 // AddWebAuthnCredentials adds Credential to the user.
-func (u User) AddWebAuthnCredential(credential webauthn.Credential) {
-	u.credential = credential
+func (u *User) AddWebAuthnCredential(credential webauthn.Credential) {
+	u.credentials = append(u.credentials, credential)
 }
 
 // WebAuthnIcon is a deprecated option.
@@ -341,8 +343,13 @@ func (u User) WebAuthnIcon() string {
 }
 
 func (app *application) BeginRegistration(w http.ResponseWriter, r *http.Request) {
+	id := make([]byte, 64)
+	if _, err := rand.Read(make([]byte, 64)); err != nil {
+		app.serverError(w, r, err)
+	}
 	user = User{
 		DisplayName: fmt.Sprintf("Anonymous user created at %s", time.Now().Format(time.RFC3339)),
+		ID:          id,
 	}
 
 	authSelect := protocol.AuthenticatorSelection{
@@ -388,8 +395,8 @@ func (app *application) BeginLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(options)
 }
-func findUserHandler(rawID, userHandle []byte) (user webauthn.User, err error) {
-	if !bytes.Equal(userHandle, user.WebAuthnID()) {
+func findUserHandler(rawID, userHandle []byte) (webauthn.User, error) {
+	if bytes.Equal(userHandle, user.WebAuthnID()) {
 		return user, nil
 	}
 	return User{}, errors.New("no user found")
