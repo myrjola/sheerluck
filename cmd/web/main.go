@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/jackc/pgx/v5"
 	"github.com/joho/godotenv"
 	"github.com/myrjola/sheerluck/internal/ai"
 	"log/slog"
@@ -16,6 +18,8 @@ type application struct {
 	aiClient ai.Client
 	webAuthn *webauthn.WebAuthn
 }
+
+var pgConnStr = ""
 
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
@@ -45,6 +49,16 @@ func main() {
 		logger.Error(err.Error())
 		os.Exit(1)
 	}
+
+	var conn *pgx.Conn
+	ctx := context.Background()
+	if conn, err = pgx.Connect(ctx, pgConnStr); err != nil {
+		panic(err)
+	}
+	if err = conn.Close(ctx); err != nil {
+		panic(err)
+	}
+	logger.Info("connected to db")
 
 	app := application{
 		logger:   logger,
