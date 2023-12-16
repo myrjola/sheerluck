@@ -1,6 +1,9 @@
 package main
 
-import "net/http"
+import (
+	"github.com/justinas/alice"
+	"net/http"
+)
 
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
@@ -8,14 +11,16 @@ func (app *application) routes() http.Handler {
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
-	mux.HandleFunc("/question-people", app.questionPeople)
-	mux.HandleFunc("/question-people/stream", app.streamChat)
-	mux.HandleFunc("/investigate-scenes", app.investigateScenes)
+	session := alice.New(app.sessionManager.LoadAndSave)
 
-	mux.HandleFunc("/api/registration/start", app.BeginRegistration)
-	mux.HandleFunc("/api/registration/finish", app.FinishRegistration)
-	mux.HandleFunc("/api/login/start", app.BeginLogin)
-	mux.HandleFunc("/api/login/finish", app.FinishLogin)
+	mux.Handle("/question-people", session.ThenFunc(app.questionPeople))
+	mux.Handle("/question-people/stream", session.ThenFunc(app.streamChat))
+	mux.Handle("/investigate-scenes", session.ThenFunc(app.investigateScenes))
+
+	mux.Handle("/api/registration/start", session.ThenFunc(app.BeginRegistration))
+	mux.Handle("/api/registration/finish", session.ThenFunc(app.FinishRegistration))
+	mux.Handle("/api/login/start", session.ThenFunc(app.BeginLogin))
+	mux.Handle("/api/login/finish", session.ThenFunc(app.FinishLogin))
 
 	return app.recoverPanic(app.logRequest(secureHeaders(mux)))
 }
