@@ -31,4 +31,4 @@ node_modules
 /.env
 
 # Database files
-/sheerluck.sqlite
+/sheerluck.sqlite*
