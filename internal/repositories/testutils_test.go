@@ -1,46 +1,28 @@
 package repositories
 
 import (
-	"context"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/myrjola/sheerluck/internal/util"
-	"github.com/testcontainers/testcontainers-go/modules/postgres"
-	"os"
+	"github.com/jmoiron/sqlx"
+	"github.com/myrjola/sheerluck/sqlite"
 	"testing"
 )
 
-func newTestDB(t *testing.T) *pgxpool.Pool {
+func newTestDB(t *testing.T) *sqlx.DB {
 	var (
-		db      *pgxpool.Pool
-		err     error
-		c       *postgres.PostgresContainer
-		connStr string
-		ctx     = context.Background()
+		db  *sqlx.DB
+		err error
 	)
 
-	if c, err = util.CreateTestDB(ctx); err != nil {
-		t.Fatal(err)
-	}
-
-	if connStr, err = c.ConnectionString(ctx, "sslmode=disable"); err != nil {
-		t.Fatal(err)
-	}
-
-	if db, err = pgxpool.New(ctx, connStr); err != nil {
+	if db, err = sqlite.NewDB(":memory:"); err != nil {
 		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
-		defer db.Close()
-
-		script, err := os.ReadFile("./testdata/teardown.sql")
-		if err != nil {
-			t.Fatal(err)
-		}
-		_, err = db.Exec(ctx, string(script))
-		if err != nil {
-			t.Fatal(err)
-		}
+		defer func() {
+			err := db.Close()
+			if err != nil {
+				t.Fatal(err)
+			}
+		}()
 	})
 
 	return db

@@ -8,14 +8,14 @@ import (
 )
 
 type User struct {
-	DisplayName string
-	ID          []byte
+	ID          []byte `db:"id"`
+	DisplayName string `db:"display_name"`
 	Credentials []webauthn.Credential
 }
 
 func NewUser() (*User, error) {
 	id := make([]byte, 64)
-	if _, err := rand.Read(make([]byte, 64)); err != nil {
+	if _, err := rand.Read(id); err != nil {
 		return nil, err
 	}
 	user := User{

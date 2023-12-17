@@ -14,6 +14,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Microsoft/hcsshim v0.11.1 // indirect
 	github.com/alexedwards/scs/pgxstore v0.0.0-20231113091146-cef4b05350c8 // indirect
+	github.com/alexedwards/scs/sqlite3store v0.0.0-20231113091146-cef4b05350c8 // indirect
 	github.com/alexedwards/scs/v2 v2.7.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.1 // indirect
 	github.com/containerd/containerd v1.7.7 // indirect
@@ -36,10 +37,12 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx/v5 v5.5.1 // indirect
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/jmoiron/sqlx v1.3.5 // indirect
 	github.com/justinas/alice v1.2.0 // indirect
 	github.com/klauspost/compress v1.16.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
+	github.com/mattn/go-sqlite3 v1.14.19 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/patternmatcher v0.6.0 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect

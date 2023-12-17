@@ -29,3 +29,6 @@ node_modules
 
 # Local secrets
 /.env
+
+# Database files
+/sheerluck.sqlite

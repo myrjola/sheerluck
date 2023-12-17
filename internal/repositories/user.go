@@ -2,19 +2,19 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jmoiron/sqlx"
 	"github.com/myrjola/sheerluck/internal/models"
 	"log/slog"
 )
 
 type UserRepository struct {
-	db     *pgxpool.Pool
+	db     *sqlx.DB
 	logger *slog.Logger
 }
 
-func NewUserRepository(db *pgxpool.Pool, logger *slog.Logger) *UserRepository {
+func NewUserRepository(db *sqlx.DB, logger *slog.Logger) *UserRepository {
 	return &UserRepository{
 		db:     db,
 		logger: logger,
@@ -22,88 +22,102 @@ func NewUserRepository(db *pgxpool.Pool, logger *slog.Logger) *UserRepository {
 }
 
 func (r *UserRepository) Get(id []byte) (*models.User, error) {
-	var user models.User
-	stmt := `SELECT 
-    u.id,
-    u.display_name,
-    c.id,
-    c.public_key,
-    c.attestation_type,
-    c.transport,
-    c.flag_user_present,
-    c.flag_user_verified,
-    c.flag_backup_eligible,
-    c.flag_backup_state,
-    c.authenticator_aaguid,
-    c.authenticator_sign_count,
-    c.authenticator_clone_warning,
-    c.authenticator_attachment
-FROM users u
-LEFT JOIN credentials c ON u.id = c.user_id
-WHERE u.id = $1`
-	rows, err := r.db.Query(context.Background(), stmt, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
+	var (
+		user models.User
+		err  error
+		rows *sqlx.Rows
+	)
 
-	if !rows.Next() {
-		return nil, nil
-	}
+	user.Credentials = make([]webauthn.Credential, 0)
 
-	if err = rows.Scan(&user.ID, &user.DisplayName, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil); err != nil {
+	stmt := `SELECT id, display_name FROM users WHERE id = ?`
+	if err = r.db.Get(&user, stmt, id); err != nil {
 		return nil, err
 	}
 
-	for {
-		var c webauthn.Credential
-		err = rows.Scan(nil, nil, &c.ID, &c.PublicKey, &c.AttestationType, &c.Transport, &c.Flags.UserPresent, &c.Flags.UserVerified, &c.Flags.BackupEligible, &c.Flags.BackupState, &c.Authenticator.AAGUID, &c.Authenticator.SignCount, &c.Authenticator.CloneWarning, &c.Authenticator.Attachment)
+	// scan credentials
+	stmt = `SELECT id,
+       public_key,
+       attestation_type,
+       transport,
+       flag_user_present,
+       flag_user_verified,
+       flag_backup_eligible,
+       flag_backup_state,
+       authenticator_aaguid,
+       authenticator_sign_count,
+       authenticator_clone_warning,
+       authenticator_attachment
+FROM credentials
+WHERE user_id = ?`
+	if rows, err = r.db.Queryx(stmt, id); err != nil {
+		return nil, err
+	}
+	defer func() {
+		err := rows.Close()
 		if err != nil {
+			r.logger.Error("could not close rows", "err", err)
+		}
+	}()
+
+	for rows.Next() {
+		var (
+			credential webauthn.Credential
+			transport  []byte
+		)
+		if err = rows.Scan(&credential.ID, &credential.PublicKey, &credential.AttestationType, &transport, &credential.Flags.UserPresent, &credential.Flags.UserVerified, &credential.Flags.BackupEligible, &credential.Flags.BackupState, &credential.Authenticator.AAGUID, &credential.Authenticator.SignCount, &credential.Authenticator.CloneWarning, &credential.Authenticator.Attachment); err != nil {
 			return nil, err
 		}
-		if !rows.Next() {
-			break
+		if err = json.Unmarshal(transport, &credential.Transport); err != nil {
+			return nil, err
 		}
+		user.AddWebAuthnCredential(credential)
 	}
 
 	return &user, nil
 }
 
-func (r *UserRepository) Create(user models.User) error {
-	tx, err := r.db.BeginTx(context.Background(), pgx.TxOptions{})
+func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
+	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
 
 	}
-	defer tx.Rollback(context.Background())
-	stmt := `INSERT INTO users (id, display_name) VALUES ($1, $2)`
-	_, err = tx.Exec(context.Background(), stmt, user.ID, user.DisplayName)
+	defer func() {
+		_ = tx.Rollback()
+	}()
+	stmt := `INSERT INTO users (id, display_name) VALUES (:id, :display_name)`
+	_, err = tx.NamedExecContext(ctx, stmt, user)
 	if err != nil {
 		return err
 	}
 
-	// upsert credentials
+	// Upsert credentials
 	stmt = `INSERT INTO credentials (
-    id,
-    user_id,
-    public_key,
-    attestation_type,
-    transport,
-    flag_user_present,
-    flag_user_verified,
-    flag_backup_eligible,
-    flag_backup_state,
-    authenticator_aaguid,
-    authenticator_sign_count,
-    authenticator_clone_warning,
-    authenticator_attachment
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-    $11, $12, $13) ON CONFLICT DO NOTHING`
-	for _, c := range user.Credentials {
-		_, err = tx.Exec(context.Background(), stmt, c.ID, user.ID, c.PublicKey, c.AttestationType, c.Transport, c.Flags.UserPresent, c.Flags.UserVerified, c.Flags.BackupEligible, c.Flags.BackupState, c.Authenticator.AAGUID, c.Authenticator.SignCount, c.Authenticator.CloneWarning, c.Authenticator.Attachment)
+	   id,
+	   user_id,
+	   public_key,
+	   attestation_type,
+	   transport,
+	   flag_user_present,
+	   flag_user_verified,
+	   flag_backup_eligible,
+	   flag_backup_state,
+	   authenticator_aaguid,
+	   authenticator_sign_count,
+	   authenticator_clone_warning,
+	   authenticator_attachment
+	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+	   $11, $12, $13) ON CONFLICT DO NOTHING`
+	for _, c := range user.WebAuthnCredentials() {
+		encodedTransport, err := json.Marshal(c.Transport)
+		if err != nil {
+			return err
+		}
+		_, err = tx.Exec(stmt, c.ID, user.ID, c.PublicKey, c.AttestationType, string(encodedTransport), c.Flags.UserPresent, c.Flags.UserVerified, c.Flags.BackupEligible, c.Flags.BackupState, c.Authenticator.AAGUID, c.Authenticator.SignCount, c.Authenticator.CloneWarning, c.Authenticator.Attachment)
 		if err != nil {
 			return err
 		}
 	}
 
-	return tx.Commit(context.Background())
+	return tx.Commit()
 }
