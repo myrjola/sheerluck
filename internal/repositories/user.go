@@ -77,7 +77,7 @@ WHERE user_id = ?`
 	return &user, nil
 }
 
-func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
+func (r *UserRepository) Upsert(ctx context.Context, user *models.User) error {
 	tx, err := r.db.BeginTxx(ctx, nil)
 	if err != nil {
 
@@ -85,29 +85,40 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 	defer func() {
 		_ = tx.Rollback()
 	}()
-	stmt := `INSERT INTO users (id, display_name) VALUES (:id, :display_name)`
+	stmt := `INSERT INTO users (id, display_name) VALUES (:id, :display_name) ON CONFLICT DO NOTHING`
 	_, err = tx.NamedExecContext(ctx, stmt, user)
 	if err != nil {
 		return err
 	}
 
 	// Upsert credentials
-	stmt = `INSERT INTO credentials (
-	   id,
-	   user_id,
-	   public_key,
-	   attestation_type,
-	   transport,
-	   flag_user_present,
-	   flag_user_verified,
-	   flag_backup_eligible,
-	   flag_backup_state,
-	   authenticator_aaguid,
-	   authenticator_sign_count,
-	   authenticator_clone_warning,
-	   authenticator_attachment
-	) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
-	   $11, $12, $13) ON CONFLICT DO NOTHING`
+	stmt = `INSERT INTO credentials (id,
+                         user_id,
+                         public_key,
+                         attestation_type,
+                         transport,
+                         flag_user_present,
+                         flag_user_verified,
+                         flag_backup_eligible,
+                         flag_backup_state,
+                         authenticator_aaguid,
+                         authenticator_sign_count,
+                         authenticator_clone_warning,
+                         authenticator_attachment)
+VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
+        $11, $12, $13)
+ON CONFLICT (id) DO UPDATE SET attestation_type            = EXCLUDED.attestation_type,
+                               transport                   = EXCLUDED.transport,
+                               flag_user_present           = EXCLUDED.flag_user_present,
+                               flag_user_verified          = EXCLUDED.flag_user_verified,
+                               flag_backup_eligible        = EXCLUDED.flag_backup_eligible,
+                               flag_backup_state           = EXCLUDED.flag_backup_state,
+                               authenticator_aaguid        = EXCLUDED.authenticator_aaguid,
+                               authenticator_sign_count    = EXCLUDED.authenticator_sign_count,
+                               authenticator_clone_warning = EXCLUDED.authenticator_clone_warning,
+                               authenticator_attachment    = EXCLUDED.authenticator_attachment;
+                                 
+                                   `
 	for _, c := range user.WebAuthnCredentials() {
 		encodedTransport, err := json.Marshal(c.Transport)
 		if err != nil {
@@ -120,4 +131,23 @@ func (r *UserRepository) Create(ctx context.Context, user *models.User) error {
 	}
 
 	return tx.Commit()
+}
+
+func (r *UserRepository) Exists(id []byte) (bool, error) {
+	var (
+		err error
+		row *sqlx.Row
+	)
+
+	stmt := `SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)`
+	if row = r.db.QueryRowx(stmt, id); err != nil {
+		return false, err
+	}
+
+	var exists bool
+	if err = row.Scan(&exists); err != nil {
+		return false, err
+	}
+
+	return exists, nil
 }

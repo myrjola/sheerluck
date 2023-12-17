@@ -72,7 +72,7 @@ function registerUser() {
       });
     })
     .then((success) => {
-      alert("successfully registered!");
+      window.location.reload();
     })
     .catch((error) => {
       console.log(error);
@@ -117,7 +117,7 @@ function loginUser() {
         if (!resp.ok) {
           throw new Error(`failed response: ${resp.status} ${resp.statusText}`);
         }
-        alert("successfully logged in!");
+        window.location.reload();
         return;
       });
     })

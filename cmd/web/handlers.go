@@ -27,7 +27,8 @@ type route struct {
 }
 
 type baseData struct {
-	Routes []route
+	IsAuthenticated bool
+	Routes          []route
 }
 
 func init() {
@@ -293,6 +294,7 @@ func (app *application) BeginRegistration(w http.ResponseWriter, r *http.Request
 	var (
 		user *models.User
 		err  error
+		ctx  = r.Context()
 	)
 	if user, err = models.NewUser(); err != nil {
 		app.serverError(w, r, err)
@@ -311,10 +313,18 @@ func (app *application) BeginRegistration(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "webauthn", *session)
+	app.sessionManager.Put(ctx, string(webAuthnSessionKey), *session)
+	if err = app.users.Upsert(ctx, user); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(opts)
+	err = json.NewEncoder(w).Encode(opts)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 }
 
 func (app *application) parseWebauthnSession(r *http.Request) (webauthn.SessionData, error) {
@@ -323,7 +333,7 @@ func (app *application) parseWebauthnSession(r *http.Request) (webauthn.SessionD
 		ok      bool
 		err     error
 	)
-	if session, ok = app.sessionManager.Get(r.Context(), "webauthn").(webauthn.SessionData); !ok {
+	if session, ok = app.sessionManager.Get(r.Context(), string(webAuthnSessionKey)).(webauthn.SessionData); !ok {
 		err = errors.New("could not parse webauthn.SessionData")
 	}
 	return session, err
@@ -333,8 +343,9 @@ func (app *application) FinishRegistration(w http.ResponseWriter, r *http.Reques
 	var (
 		session    webauthn.SessionData
 		credential *webauthn.Credential
-		user       models.User
+		user       *models.User
 		err        error
+		ctx        = r.Context()
 	)
 
 	if session, err = app.parseWebauthnSession(r); err != nil {
@@ -354,9 +365,24 @@ func (app *application) FinishRegistration(w http.ResponseWriter, r *http.Reques
 	}
 
 	user.AddWebAuthnCredential(*credential)
+	if err = app.users.Upsert(ctx, user); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// Log in the newly registered user
+	if err = app.sessionManager.RenewToken(r.Context()); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	app.sessionManager.Put(r.Context(), string(userIDSessionKey), user.ID)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode("Registration Success")
+	err = json.NewEncoder(w).Encode("Registration Success")
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 }
 
 func (app *application) BeginLogin(w http.ResponseWriter, r *http.Request) {
@@ -366,12 +392,17 @@ func (app *application) BeginLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	app.sessionManager.Put(r.Context(), "webauthn", *session)
+	app.sessionManager.Put(r.Context(), string(webAuthnSessionKey), *session)
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(options)
+	err = json.NewEncoder(w).Encode(options)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 }
-func (app *application) findUserHandler(rawID, userHandle []byte) (webauthn.User, error) {
+
+func (app *application) findUserHandler(_, userHandle []byte) (webauthn.User, error) {
 	return app.users.Get(userHandle)
 }
 
@@ -379,21 +410,81 @@ func (app *application) FinishLogin(w http.ResponseWriter, r *http.Request) {
 	var (
 		session webauthn.SessionData
 		err     error
+		user    *models.User
 	)
 	if session, err = app.parseWebauthnSession(r); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
-	credential, err := app.webAuthn.FinishDiscoverableLogin(app.findUserHandler, session, r)
+
+	// Validate login
+
+	parsedResponse, err := protocol.ParseCredentialRequestResponse(r)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	credential, err := app.webAuthn.ValidateDiscoverableLogin(app.findUserHandler, session, parsedResponse)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
 	// If login was successful, update the credential object
-	// Pseudocode to update the user credential.
+	if user, err = app.users.Get(parsedResponse.Response.UserHandle); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	// TODO: would be good to do additional security check on signCount and cloneWarning.
 	user.AddWebAuthnCredential(*credential)
 
+	if err = app.users.Upsert(r.Context(), user); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	// Set userID in session
+	if err = app.sessionManager.RenewToken(r.Context()); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	app.sessionManager.Put(r.Context(), string(userIDSessionKey), user.ID)
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode("Login Success")
+	err = json.NewEncoder(w).Encode("Login Success")
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+}
+
+func (app *application) Logout(w http.ResponseWriter, r *http.Request) {
+	if err := app.sessionManager.RenewToken(r.Context()); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	app.sessionManager.Remove(r.Context(), string(userIDSessionKey))
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (app *application) Home(w http.ResponseWriter, r *http.Request) {
+	var (
+		t   *template.Template
+		err error
+	)
+	if t, err = app.compileTemplates("home"); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	routes := app.resolveRoutes(r.URL.Path)
+	data := baseData{
+		IsAuthenticated: app.isAuthenticated(r),
+		Routes:          routes,
+	}
+
+	if err = app.renderPage(w, r, t, data); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 }

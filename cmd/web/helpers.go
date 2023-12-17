@@ -30,3 +30,21 @@ func (app *application) clientError(w http.ResponseWriter, r *http.Request, stat
 func (app *application) notFound(w http.ResponseWriter, r *http.Request) {
 	app.clientError(w, r, http.StatusNotFound)
 }
+
+func (app *application) isAuthenticated(r *http.Request) bool {
+	isAuthenticated, ok := r.Context().Value(isAuthenticatedContextKey).(bool)
+	if !ok {
+		return false
+	}
+
+	return isAuthenticated
+}
+
+func (app *application) getAuthenticatedUserID(r *http.Request) []byte {
+	userID, ok := r.Context().Value(authenticatedUserIDContextKey).([]byte)
+	if !ok {
+		return nil
+	}
+
+	return userID
+}

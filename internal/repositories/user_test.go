@@ -64,7 +64,7 @@ func TestUserRepository(t *testing.T) {
 				err      error
 				ctx      = context.Background()
 			)
-			err = repo.Create(ctx, tt.user)
+			err = repo.Upsert(ctx, tt.user)
 			require.NoError(t, err, "failed to create user")
 
 			readUser, err = repo.Get(tt.user.ID)

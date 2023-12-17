@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 )
@@ -41,6 +42,34 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 				app.serverError(w, r, fmt.Errorf("%s", err))
 			}
 		}()
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (app *application) authenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID := app.sessionManager.GetBytes(r.Context(), "userID")
+
+		// User has not yet authenticated
+		if userID == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		// If user exists, set context values
+
+		exists, err := app.users.Exists(userID)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		if exists {
+			ctx := context.WithValue(r.Context(), isAuthenticatedContextKey, true)
+			ctx = context.WithValue(ctx, authenticatedUserIDContextKey, userID)
+			r = r.WithContext(ctx)
+		}
 
 		next.ServeHTTP(w, r)
 	})

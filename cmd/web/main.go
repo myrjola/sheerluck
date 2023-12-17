@@ -1,16 +1,15 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"fmt"
-	"github.com/alexedwards/scs/pgxstore"
+	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/myrjola/sheerluck/internal/ai"
 	"github.com/myrjola/sheerluck/internal/repositories"
+	"github.com/myrjola/sheerluck/sqlite"
 	"log/slog"
 	"net/http"
 	"os"
@@ -25,10 +24,9 @@ type application struct {
 	users          *repositories.UserRepository
 }
 
-var pgConnStr = ""
-
 func main() {
 	addr := flag.String("addr", ":4000", "HTTP network address")
+	dbUrl := flag.String("sqlite-url", "./sheerluck.sqlite", "SQLite URL")
 	flag.Parse()
 
 	loggerHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -56,17 +54,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	var db *pgxpool.Pool
-	ctx := context.Background()
-	if db, err = pgxpool.New(ctx, pgConnStr); err != nil {
-		logger.Error(err.Error())
-		os.Exit(1)
-	}
-	defer db.Close()
+	db, err := sqlite.NewDB(*dbUrl)
+
 	logger.Info("connected to db")
 
 	sessionManager := scs.New()
-	sessionManager.Store = pgxstore.NewWithCleanupInterval(db, 24*time.Hour)
+	sessionManager.Store = sqlite3store.NewWithCleanupInterval(db.DB, 24*time.Hour)
 	sessionManager.Lifetime = 12 * time.Hour
 
 	users := repositories.NewUserRepository(db, logger)
@@ -79,7 +72,7 @@ func main() {
 		users:          users,
 	}
 
-	logger.Info("starting server", slog.Any("addr", ":4000"))
+	logger.Info("starting server", slog.Any("addr", *addr))
 
 	err = http.ListenAndServe(*addr, app.routes())
 	logger.Error(err.Error())
