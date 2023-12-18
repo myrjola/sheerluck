@@ -13,6 +13,7 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/Microsoft/hcsshim v0.11.1 // indirect
+	github.com/a-h/templ v0.2.476 // indirect
 	github.com/alexedwards/scs/pgxstore v0.0.0-20231113091146-cef4b05350c8 // indirect
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20231113091146-cef4b05350c8 // indirect
 	github.com/alexedwards/scs/v2 v2.7.0 // indirect

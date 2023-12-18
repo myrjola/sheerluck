@@ -7,6 +7,8 @@ github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migc
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
 github.com/Microsoft/hcsshim v0.11.1 h1:hJ3s7GbWlGK4YVV92sO88BQSyF4ZLVy7/awqOlPxFbA=
 github.com/Microsoft/hcsshim v0.11.1/go.mod h1:nFJmaO4Zr5Y7eADdFOpYswDDlNVbvcIJJNJLECr5JQg=
+github.com/a-h/templ v0.2.476 h1:+H4hP4CwK4kfJwXsE6kHeFWMGtcVOVoOm/I64uzARBk=
+github.com/a-h/templ v0.2.476/go.mod h1:zQ95mSyadNTGHv6k5Fm+wQU8zkBMMbHCHg7eAvUZKNM=
 github.com/alexedwards/scs/pgxstore v0.0.0-20231113091146-cef4b05350c8 h1:VBv3gVMztXFdn4L1ExHuOKmK9q5I6UimljFwmssU7z0=
 github.com/alexedwards/scs/pgxstore v0.0.0-20231113091146-cef4b05350c8/go.mod h1:KTB1slYgIU/BBa4MWA5IdET31OsbPQBM7dqDw5klIt4=
 github.com/alexedwards/scs/sqlite3store v0.0.0-20231113091146-cef4b05350c8 h1:mnXnnXEjn8QIyv4KCN0+IjDlXA64qdq2hIVOmfNFeuY=

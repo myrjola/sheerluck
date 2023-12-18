@@ -1,8 +1,8 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"net/http"
 )
 
@@ -66,11 +66,36 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 		}
 
 		if exists {
-			ctx := context.WithValue(r.Context(), isAuthenticatedContextKey, true)
-			ctx = context.WithValue(ctx, authenticatedUserIDContextKey, userID)
-			r = r.WithContext(ctx)
+			r = contexthelpers.AuthenticateContext(r, userID)
 		}
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+// serverSentMiddleware makes our session library scs work with Server Sent Events (SSE).
+// Use this instead of app.sessionManager.LoadAndSave.
+// See https://github.com/alexedwards/scs/issues/141#issuecomment-1807075358
+func (app *application) serverSentEventMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var token string
+		cookie, err := r.Cookie(app.sessionManager.Cookie.Name)
+		if err == nil {
+			token = cookie.Value
+		}
+		ctx, err := app.sessionManager.Load(r.Context(), token)
+		if err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func (app *application) commonContext(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r = contexthelpers.SetCurrentPath(r, r.URL.Path)
 		next.ServeHTTP(w, r)
 	})
 }

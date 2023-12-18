@@ -27,7 +27,15 @@ nvm use
 pnpm i
 ```
 
-To have prettier 
+## Generate templ code
+
+This project uses [Templ](https://templ.guide/) for the HTML templates.
+
+When you do changes to the `.templ` files, you need to run the following:
+
+```
+
+```
 
 
 ## Start go server

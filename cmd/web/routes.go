@@ -12,10 +12,11 @@ func (app *application) routes() http.Handler {
 	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
 
 	session := alice.New(app.sessionManager.LoadAndSave, app.authenticate)
+	sessionSSE := alice.New(app.serverSentEventMiddleware, app.authenticate)
 
 	mux.Handle("/", session.ThenFunc(app.Home))
 	mux.Handle("/question-people", session.ThenFunc(app.questionPeople))
-	mux.Handle("/question-people/stream", session.ThenFunc(app.streamChat))
+	mux.Handle("/question-people/stream", sessionSSE.ThenFunc(app.streamChat))
 	mux.Handle("/investigate-scenes", session.ThenFunc(app.investigateScenes))
 
 	mux.Handle("/api/registration/start", session.ThenFunc(app.BeginRegistration))

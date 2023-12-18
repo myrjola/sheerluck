@@ -1,6 +1,8 @@
 package main
 
 import (
+	"github.com/a-h/templ"
+	"github.com/myrjola/sheerluck/ui/html/layout"
 	"log/slog"
 	"net/http"
 	"runtime/debug"
@@ -31,20 +33,16 @@ func (app *application) notFound(w http.ResponseWriter, r *http.Request) {
 	app.clientError(w, r, http.StatusNotFound)
 }
 
-func (app *application) isAuthenticated(r *http.Request) bool {
-	isAuthenticated, ok := r.Context().Value(isAuthenticatedContextKey).(bool)
-	if !ok {
-		return false
+func (app *application) renderPage(c templ.Component, w http.ResponseWriter, r *http.Request) error {
+	var (
+		component = c
+	)
+
+	// If this is not a HTMX boosted request, wrap the component with the base.
+	// See https://htmx.org/attributes/hx-boost/
+	if r.Header.Get("Hx-Boosted") != "true" {
+		component = layout.Base(component)
 	}
 
-	return isAuthenticated
-}
-
-func (app *application) getAuthenticatedUserID(r *http.Request) []byte {
-	userID, ok := r.Context().Value(authenticatedUserIDContextKey).([]byte)
-	if !ok {
-		return nil
-	}
-
-	return userID
+	return component.Render(r.Context(), w)
 }

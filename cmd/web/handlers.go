@@ -9,6 +9,8 @@ import (
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/myrjola/sheerluck/internal/models"
+	"github.com/myrjola/sheerluck/ui/html/layout"
+	"github.com/myrjola/sheerluck/ui/html/views"
 	"github.com/sashabaranov/go-openai"
 	"html/template"
 	"io"
@@ -67,7 +69,7 @@ func (app *application) compileTemplates(templateFileNames ...string) (*template
 	return template.ParseFiles(templates...)
 }
 
-func (app *application) renderPage(w http.ResponseWriter, r *http.Request, t *template.Template, data any) error {
+func (app *application) renderHtmxPage(w http.ResponseWriter, r *http.Request, t *template.Template, data any) error {
 	var err error
 	// Detect htmx header and render only the body because that's what's replaced with hx-boost="true"
 	if r.Header.Get("Hx-Boosted") == "true" {
@@ -115,7 +117,7 @@ func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
 		ChatResponses: chatResponses,
 	}
 
-	if err = app.renderPage(w, r, t, data); err != nil {
+	if err = app.renderHtmxPage(w, r, t, data); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
@@ -137,7 +139,7 @@ func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request
 		Routes: routes,
 	}
 
-	if err = app.renderPage(w, r, t, data); err != nil {
+	if err = app.renderHtmxPage(w, r, t, data); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
@@ -469,21 +471,10 @@ func (app *application) Logout(w http.ResponseWriter, r *http.Request) {
 
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
 	var (
-		t   *template.Template
 		err error
 	)
-	if t, err = app.compileTemplates("home"); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
 
-	routes := app.resolveRoutes(r.URL.Path)
-	data := baseData{
-		IsAuthenticated: app.isAuthenticated(r),
-		Routes:          routes,
-	}
-
-	if err = app.renderPage(w, r, t, data); err != nil {
+	if err = layout.Base(views.Home()).Render(r.Context(), w); err != nil {
 		app.serverError(w, r, err)
 		return
 	}

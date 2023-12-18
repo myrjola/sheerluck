@@ -32,3 +32,6 @@ node_modules
 
 # Database files
 /sheerluck.sqlite*
+
+# Temporary files
+/tmp
