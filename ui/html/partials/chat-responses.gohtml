@@ -1,21 +1,21 @@
 {{- /*gotype:github.com/myrjola/sheerluck/cmd/web.questionPeopleData*/ -}}
 {{ define "chat-responses" }}
   {{ range .ChatResponses }}
-    <div class="prose">
+    <div class="prose prose-invert">
       <span class="font-semibold">Detective:</span>
       <span>
         {{ .Question }}
       </span>
     </div>
     {{ if .Answer }}
-      <div class="prose">
+      <div class="prose prose-invert">
         <span class="font-semibold">Adolphe:</span>
         <span>
           {{ .Answer }}
         </span>
       </div>
     {{ else }}
-      <div id="chat-streaming-content" class="prose">
+      <div id="chat-streaming-content" class="prose prose-invert">
         <span class="font-semibold">Adolphe:</span>
       </div>
       <div

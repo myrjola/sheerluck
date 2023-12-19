@@ -13,6 +13,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -25,7 +26,7 @@ type application struct {
 }
 
 func main() {
-	addr := flag.String("addr", ":4000", "HTTP network address")
+	addr := flag.String("addr", "localhost:4000", "HTTP network address")
 	dbUrl := flag.String("sqlite-url", "./sheerluck.sqlite", "SQLite URL")
 	flag.Parse()
 
@@ -41,11 +42,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	origin := "localhost"
+	origin := strings.Split(*addr, ":")[0]
+
 	var wconfig = &webauthn.Config{
 		RPDisplayName: "Sheerluck",
 		RPID:          origin,
-		RPOrigins:     []string{fmt.Sprintf("http://%s%s", origin, *addr)},
+		RPOrigins:     []string{fmt.Sprintf("http://%s", *addr)},
 	}
 
 	var webAuthn *webauthn.WebAuthn
