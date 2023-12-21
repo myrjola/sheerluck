@@ -4,7 +4,7 @@ tmp_dir = "tmp"
 [build]
 bin = "./tmp/main"
 pre_cmd = ["templ fmt ."]
-cmd = "templ generate && go build -o ./tmp/main ./cmd/web"
+cmd = "templ generate && go1.22rc1 build -o ./tmp/main ./cmd/web"
 delay = 1000
 exclude_dir = ["assets", "tmp", "vendor"]
 exclude_file = []

@@ -14,16 +14,16 @@ func (app *application) routes() http.Handler {
 	session := alice.New(app.sessionManager.LoadAndSave, app.authenticate)
 	sessionSSE := alice.New(app.serverSentEventMiddleware, app.authenticate)
 
-	mux.Handle("/", session.ThenFunc(app.Home))
+	mux.Handle("GET /{$}", session.ThenFunc(app.Home))
 	mux.Handle("/question-people", session.ThenFunc(app.questionPeople))
-	mux.Handle("/question-people/stream", sessionSSE.ThenFunc(app.streamChat))
-	mux.Handle("/investigate-scenes", session.ThenFunc(app.investigateScenes))
+	mux.Handle("PUT /question-people/stream", sessionSSE.ThenFunc(app.streamChat))
+	mux.Handle("GET /investigate-scenes", session.ThenFunc(app.investigateScenes))
 
-	mux.Handle("/api/registration/start", session.ThenFunc(app.BeginRegistration))
-	mux.Handle("/api/registration/finish", session.ThenFunc(app.FinishRegistration))
-	mux.Handle("/api/login/start", session.ThenFunc(app.BeginLogin))
-	mux.Handle("/api/login/finish", session.ThenFunc(app.FinishLogin))
-	mux.Handle("/api/logout", session.ThenFunc(app.Logout))
+	mux.Handle("GET /api/registration/start", session.ThenFunc(app.BeginRegistration))
+	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.FinishRegistration))
+	mux.Handle("GET /api/login/start", session.ThenFunc(app.BeginLogin))
+	mux.Handle("POST /api/login/finish", session.ThenFunc(app.FinishLogin))
+	mux.Handle("POST /api/logout", session.ThenFunc(app.Logout))
 
 	common := alice.New(app.recoverPanic, app.logRequest, secureHeaders)
 
