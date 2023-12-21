@@ -16,7 +16,7 @@ func (app *application) routes() http.Handler {
 
 	mux.Handle("GET /{$}", session.ThenFunc(app.Home))
 	mux.Handle("/question-people", session.ThenFunc(app.questionPeople))
-	mux.Handle("PUT /question-people/stream", sessionSSE.ThenFunc(app.streamChat))
+	mux.Handle("GET /question-people/stream", sessionSSE.ThenFunc(app.streamChat))
 	mux.Handle("GET /investigate-scenes", session.ThenFunc(app.investigateScenes))
 
 	mux.Handle("GET /api/registration/start", session.ThenFunc(app.BeginRegistration))
