@@ -48,3 +48,6 @@ go run ./cmd/web/
 
 Navigate to http://localhost:3003 to see the service in action.
 
+### Acknowledgements
+
+Images was created with the assistance of DALL·E 2

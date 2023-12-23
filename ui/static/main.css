@@ -1448,6 +1448,10 @@ a:focus-visible {
   display: none;
 }
 
+.h-10 {
+  height: 2.5rem;
+}
+
 .h-16 {
   height: 4rem;
 }
@@ -1462,6 +1466,34 @@ a:focus-visible {
 
 .h-full {
   height: 100%;
+}
+
+.h-\[512px\] {
+  height: 512px;
+}
+
+.h-\[256px\] {
+  height: 256px;
+}
+
+.h-96 {
+  height: 24rem;
+}
+
+.h-64 {
+  height: 16rem;
+}
+
+.h-48 {
+  height: 12rem;
+}
+
+.h-24 {
+  height: 6rem;
+}
+
+.h-36 {
+  height: 9rem;
 }
 
 .min-h-full {
@@ -1630,11 +1662,6 @@ a:focus-visible {
   background-color: rgb(67 56 202 / var(--tw-bg-opacity));
 }
 
-.bg-white {
-  --tw-bg-opacity: 1;
-  background-color: rgb(255 255 255 / var(--tw-bg-opacity));
-}
-
 .bg-white\/5 {
   background-color: rgb(255 255 255 / 0.05);
 }
@@ -1685,11 +1712,6 @@ a:focus-visible {
 .py-10 {
   padding-top: 2.5rem;
   padding-bottom: 2.5rem;
-}
-
-.py-12 {
-  padding-top: 3rem;
-  padding-bottom: 3rem;
 }
 
 .py-24 {
@@ -1969,6 +1991,12 @@ a:focus-visible {
 
   .sm\:leading-6 {
     line-height: 1.5rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .md\:h-48 {
+    height: 12rem;
   }
 }
 

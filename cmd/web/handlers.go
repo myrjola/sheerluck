@@ -8,9 +8,8 @@ import (
 	"fmt"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/internal/models"
-	"github.com/myrjola/sheerluck/ui/html/layout"
-	"github.com/myrjola/sheerluck/ui/html/views"
 	"github.com/sashabaranov/go-openai"
 	"html/template"
 	"io"
@@ -472,9 +471,20 @@ func (app *application) Logout(w http.ResponseWriter, r *http.Request) {
 func (app *application) Home(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
+		t   *template.Template
 	)
+	routes := app.resolveRoutes(r.URL.Path)
+	if t, err = app.compileTemplates("home"); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 
-	if err = layout.Base(views.Home()).Render(r.Context(), w); err != nil {
+	data := baseData{
+		Routes:          routes,
+		IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
+	}
+
+	if err = app.renderHtmxPage(w, r, t, data); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
