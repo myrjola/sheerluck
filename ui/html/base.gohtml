@@ -1,64 +1,101 @@
 {{- /*gotype:github.com/myrjola/sheerluck/cmd/web.baseData*/ -}}
 {{ define "base" }}
-  <!doctype html>
-  <html lang="en" class="h-full bg-gray-900 text-white">
+    <!doctype html>
+    <html lang="en" class="h-full bg-gray-900 text-white">
     <head>
-      <meta charset="utf-8" />
-      <meta http-equiv="x-ua-compatible" content="ie=edge" />
-      <meta name="viewport" content="width=device-width, initial-scale=1" />
-      <title>Sheerluck</title>
-      <link rel="stylesheet" href="/main.css" />
-      <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-      <link rel="icon" href="favicon.svg">
-      <link rel="mask-icon" href="mask-icon.svg" color="#f1febe">
-      <link rel="apple-touch-icon" href="apple-touch-icon.png">
-      <meta name="theme-color" content="#111827">
-      <script src="/htmx-1.9.9.js"></script>
-      <script src="/sse-1.9.9.js"></script>
-      <script src="/webauthn.js"></script>
+        <meta charset="utf-8"/>
+        <meta http-equiv="x-ua-compatible" content="ie=edge"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title>Sheerluck</title>
+        <link rel="stylesheet" href="/main.css"/>
+        <link rel="stylesheet" href="https://rsms.me/inter/inter.css"/>
+        <link rel="icon" href="favicon.svg">
+        <link rel="mask-icon" href="mask-icon.svg" color="#f1febe">
+        <link rel="apple-touch-icon" href="apple-touch-icon.png">
+        <link rel="manifest" href="manifest.json">
+        <meta name="theme-color" content="#111827">
+        <script defer src="/htmx-1.9.9.js"></script>
+        <script defer src="/sse-1.9.9.js"></script>
+        <script defer src="/webauthn.js"></script>
+        <script defer src="/@alpinejs/focus.js"></script>
+        <script defer src="/alpinejs.js"></script>
     </head>
     <body class="h-full" hx-boost="true">
-      {{ block "body" . }}
-        <div>
-          <!-- Off-canvas menu for mobile, show/hide based on off-canvas menu state. -->
-          <div id="open-sidebar" class="target:visible invisible relative z-50 duration-300 motion-reduce:duration-0 transition-[visibility] group lg:hidden" role="dialog" aria-modal="true">
-            <div class="fixed inset-0 bg-gray-900/80 opacity-0 group-target:opacity-100 transition-opacity duration-300 ease-linear"></div>
-            <div class="fixed inset-0 flex">
-              <div class="relative mr-16 flex w-full max-w-xs flex-1 group-target:translate-x-0 -translate-x-full transform transition duration-300 ease-in-out motion-reduce:duration-0">
-                <a href="#" class="absolute top-0 left-full flex h-full w-16 justify-center pt-5 group focus-visible:ring-0">
-                  <div class="-m-2.5 p-2.5">
-                    <span class="sr-only">Close sidebar</span>
-                    <svg class="h-6 w-6 rounded-md text-white group-focus-visible:ring group-focus-visible:ring-white" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                  </div>
-                </a>
+    {{ block "body" . }}
+        <div x-data="{ menuOpen: false }">
+            <!-- Off-canvas menu for mobile, show/hide based on off-canvas menu state. -->
+            <div class="relative isolate z-50 lg:hidden"
+                 role="dialog" aria-modal="true" x-trap="menuOpen" x-show="menuOpen" x-cloak
+            >
+                <div class="fixed inset-0 bg-gray-900/80" x-show="menuOpen"
+                     x-transition:enter="transition-opacity ease-linear duration-300"
+                     x-transition:enter-start="opacity-0"
+                     x-transition:enter-end="opacity-100"
+                     x-transition:leave="transition-opacity ease-linear duration-300"
+                     x-transition:leave-start="opacity-100"
+                     x-transition:leave-end="opacity-0"
+                ></div>
+                <div class="fixed inset-0 flex w-full">
+                    <div class="relative flex w-full max-w-xs flex-1"
+                         x-show="menuOpen"
+                         x-transition:enter="transition ease-in-out duration-300 transform motion-reduce:duration-0"
+                         x-transition:enter-start="-translate-x-full"
+                         x-transition:enter-end="translate-x-0"
+                         x-transition:leave="transition ease-in-out duration-300 transform motion-reduce:duration-0"
+                         x-transition:leave-start="translate-x-0"
+                         x-transition:leave-end="-translate-x-full"
+                    >
+                        {{ template "nav" . }}
+
+                    </div>
+
+                    <!-- Close button -->
+                    <button @click="menuOpen = false"
+                            class="group focus-visible:ring-0 flex-1 flex justify-start"
+                            x-show="menuOpen"
+                            x-transition:enter="transition-opacity ease-linear duration-300"
+                            x-transition:enter-start="opacity-0"
+                            x-transition:enter-end="opacity-100"
+                            x-transition:leave="transition-opacity ease-linear duration-300"
+                            x-transition:leave-start="opacity-100"
+                            x-transition:leave-end="opacity-0"
+                    >
+                        <div class="p-2.5">
+                            <span class="sr-only">Close menu</span>
+                            <svg class="h-6 w-6 rounded-md text-white group-focus-visible:ring group-focus-visible:ring-white"
+                                 fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                                 aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round"
+                                      d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Static sidebar for desktop -->
+            <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
                 {{ template "nav" . }}
-              </div>
             </div>
-          </div>
-
-          <!-- Static sidebar for desktop -->
-          <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-            {{ template "nav" . }}
-          </div>
-          <div class="sticky top-0 z-40 flex items-center gap-x-6 bg-gray-900 px-4 py-4 shadow-sm sm:px-6 lg:hidden">
-            <a href="#open-sidebar" class="text-gray-400 -m-2.5 p-2.5 lg:hidden">
-              <span class="sr-only">Open sidebar</span>
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
-              </svg>
-            </a>
-            <div class="flex-1 text-sm font-semibold leading-6 text-white">Dashboard</div>
-          </div>
-
-          <main class="py-10 lg:pl-72">
-            <div class="px-4 sm:px-6 lg:px-8">
-              {{ template "main" . }}
+            <div class="sticky top-0 z-40 flex items-center gap-x-6 bg-gray-900 px-4 py-4 shadow-sm sm:px-6 lg:hidden">
+                <button @click="menuOpen = true" class="text-gray-400 -m-2.5 p-2.5 lg:hidden">
+                    <span class="sr-only">Open sidebar</span>
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+                         aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"></path>
+                    </svg>
+                </button>
+                <div class="flex-1 text-sm font-semibold leading-6 text-white">Dashboard</div>
             </div>
-          </main>
+
+            <main class="py-10 lg:pl-72">
+                <div class="px-4 sm:px-6 lg:px-8">
+                    {{ template "main" . }}
+                </div>
+            </main>
         </div>
-      {{ end }}
+    {{ end }}
     </body>
-  </html>
+    </html>
 {{ end }}

@@ -1,8 +1,10 @@
 @tailwind base;
 @layer base {
-  a {
+  a,button {
     @apply focus-visible:outline-none focus-visible:ring focus-visible:ring-white
   }
 }
 @tailwind components;
 @tailwind utilities;
+
+[x-cloak] { display: none !important; }
