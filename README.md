@@ -48,6 +48,12 @@ go run ./cmd/web/
 
 Navigate to http://localhost:3003 to see the service in action.
 
-### Acknowledgements
+### Attribution
 
-Images was created with the assistance of DALL·E 2
+Sheerluck logo made by Martin Yrjölä.
+
+Images was created with the assistance of [DALL·E 2](https://openai.com/dall-e-2).
+
+HeroIcons made by [steveschoger](https://twitter.com/steveschoger). Available on https://heroicons.dev/.
+
+Game Icons made by [Delapouite](https://delapouite.com/) and Skoll. Available on https://game-icons.net.

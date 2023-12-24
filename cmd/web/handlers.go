@@ -25,6 +25,7 @@ type route struct {
 	Href    string
 	Title   string
 	Current bool
+	Icon    string
 }
 
 type baseData struct {
@@ -41,10 +42,12 @@ func (app *application) resolveRoutes(currentPath string) []route {
 		{
 			Href:  "/question-people",
 			Title: "Question people",
+			Icon:  "talk.svg",
 		},
 		{
 			Href:  "/investigate-scenes",
 			Title: "Investigate scenes",
+			Icon:  "chalk-outline-murder.svg",
 		},
 	}
 
