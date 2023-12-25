@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 #  Build Stage
 # -----------------------------------------------------------------------------
-FROM golang:alpine3.18 AS build
+FROM golang:1.22rc1-alpine3.19 AS build
 
 ENV CGO_ENABLED=1
 ENV GOOS=linux
@@ -15,7 +15,9 @@ RUN apk add --no-cache \
     # Update CA certificates
     ca-certificates \
     # Add time zone data
-    tzdata
+    tzdata \
+    # Required for fetching and running Tailwind standalone
+    curl
 
 RUN adduser \
   --disabled-password \
@@ -31,17 +33,25 @@ WORKDIR /workspace
 COPY /go.mod .
 COPY /go.sum .
 
-RUN go install golang.org/dl/go1.22rc1@latest
-RUN go1.22rc1 download
-RUN go1.22rc1 mod download
-RUN go1.22rc1 mod verify
+RUN go mod download
+RUN go mod verify
 
 COPY /cmd ./cmd
 COPY /internal ./internal
 COPY /sqlite ./sqlite
 
 # Build a statically linked binary
-RUN go1.22rc1 build -ldflags='-s -w -extldflags "-static"' -o /dist/sheerluck ./cmd/web
+RUN go build -ldflags='-s -w -extldflags "-static"' -o /dist/sheerluck ./cmd/web
+
+# Minimize CSS and copy UI files to dist
+COPY /ui ./ui
+COPY /tailwind.config.js ./tailwind.config.js
+COPY /input.css ./input.css
+RUN curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.0/tailwindcss-linux-x64 && \
+  chmod +x tailwindcss-linux-x64 && \
+  mv tailwindcss-linux-x64 tailwindcss
+RUN ./tailwindcss --input ./input.css --output ./ui/static/main.css --minify
+RUN cp -r ./ui /dist/ui
 
 # -----------------------------------------------------------------------------
 #  Main Stage
@@ -53,7 +63,6 @@ COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 COPY --from=build /dist /dist
-COPY /ui /dist/ui
 COPY /.env /dist
 COPY /sqlite/init.sql /dist/sqlite/init.sql
 

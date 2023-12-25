@@ -33,10 +33,12 @@ func listenAndServe(addr string) error {
 	return newServer(addr).ListenAndServe()
 }
 
-// Launch a standard pprof server at addr.
+// Launch a standard pprof server at ipv6 loopback address ::1 and given port.
 func Launch(port string, logger *slog.Logger) {
 	go func() {
-		err := listenAndServe(fmt.Sprintf("localhost%s", port))
+		addr := fmt.Sprintf("[::1]%s", port)
+		logger.Info("starting pprof server", "addr", addr)
+		err := listenAndServe(addr)
 		logger.Error(err.Error())
 		os.Exit(0)
 	}()
