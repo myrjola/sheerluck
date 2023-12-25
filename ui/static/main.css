@@ -1344,10 +1344,6 @@ a:focus-visible,button:focus-visible {
   border-width: 0;
 }
 
-.invisible {
-  visibility: hidden;
-}
-
 .fixed {
   position: fixed;
 }
@@ -1383,10 +1379,6 @@ a:focus-visible,button:focus-visible {
 
 .left-\[calc\(50\%-11rem\)\] {
   left: calc(50% - 11rem);
-}
-
-.left-full {
-  left: 100%;
 }
 
 .top-0 {
@@ -1430,11 +1422,6 @@ a:focus-visible,button:focus-visible {
   margin-right: -0.5rem;
 }
 
-.-mx-6 {
-  margin-left: -1.5rem;
-  margin-right: -1.5rem;
-}
-
 .mx-4 {
   margin-left: 1rem;
   margin-right: 1rem;
@@ -1457,16 +1444,8 @@ a:focus-visible,button:focus-visible {
   margin-left: 0.5rem;
 }
 
-.mr-16 {
-  margin-right: 4rem;
-}
-
 .mt-10 {
   margin-top: 2.5rem;
-}
-
-.mt-2 {
-  margin-top: 0.5rem;
 }
 
 .mt-4 {
@@ -1475,10 +1454,6 @@ a:focus-visible,button:focus-visible {
 
 .mt-6 {
   margin-top: 1.5rem;
-}
-
-.mt-8 {
-  margin-top: 2rem;
 }
 
 .mt-auto {
@@ -1501,10 +1476,6 @@ a:focus-visible,button:focus-visible {
   aspect-ratio: 1155/678;
 }
 
-.h-16 {
-  height: 4rem;
-}
-
 .h-36 {
   height: 9rem;
 }
@@ -1525,24 +1496,12 @@ a:focus-visible,button:focus-visible {
   height: 100%;
 }
 
-.min-h-full {
-  min-height: 100%;
-}
-
-.w-16 {
-  width: 4rem;
-}
-
 .w-5 {
   width: 1.25rem;
 }
 
 .w-6 {
   width: 1.5rem;
-}
-
-.w-8 {
-  width: 2rem;
 }
 
 .w-\[36\.125rem\] {
@@ -1575,10 +1534,6 @@ a:focus-visible,button:focus-visible {
 
 .flex-1 {
   flex: 1 1 0%;
-}
-
-.shrink-0 {
-  flex-shrink: 0;
 }
 
 .grow {
@@ -1638,11 +1593,6 @@ a:focus-visible,button:focus-visible {
        column-gap: 0.75rem;
 }
 
-.gap-x-4 {
-  -moz-column-gap: 1rem;
-       column-gap: 1rem;
-}
-
 .gap-x-6 {
   -moz-column-gap: 1.5rem;
        column-gap: 1.5rem;
@@ -1670,12 +1620,6 @@ a:focus-visible,button:focus-visible {
   overflow-y: auto;
 }
 
-.truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .whitespace-nowrap {
   white-space: nowrap;
 }
@@ -1684,29 +1628,12 @@ a:focus-visible,button:focus-visible {
   border-radius: 0.25rem;
 }
 
-.rounded-full {
-  border-radius: 9999px;
-}
-
-.rounded-lg {
-  border-radius: 0.5rem;
-}
-
 .rounded-md {
   border-radius: 0.375rem;
 }
 
-.border {
-  border-width: 1px;
-}
-
 .border-0 {
   border-width: 0px;
-}
-
-.border-gray-700 {
-  --tw-border-opacity: 1;
-  border-color: rgb(55 65 81 / var(--tw-border-opacity));
 }
 
 .bg-gray-800 {
@@ -1726,16 +1653,6 @@ a:focus-visible,button:focus-visible {
 .bg-indigo-500 {
   --tw-bg-opacity: 1;
   background-color: rgb(99 102 241 / var(--tw-bg-opacity));
-}
-
-.bg-indigo-600 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(79 70 229 / var(--tw-bg-opacity));
-}
-
-.bg-indigo-700 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(67 56 202 / var(--tw-bg-opacity));
 }
 
 .bg-white\/5 {
@@ -1767,11 +1684,6 @@ a:focus-visible,button:focus-visible {
 
 .p-2\.5 {
   padding: 0.625rem;
-}
-
-.px-2 {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
 }
 
 .px-3 {
@@ -1824,14 +1736,14 @@ a:focus-visible,button:focus-visible {
   padding-bottom: 6rem;
 }
 
-.py-3 {
-  padding-top: 0.75rem;
-  padding-bottom: 0.75rem;
-}
-
 .py-4 {
   padding-top: 1rem;
   padding-bottom: 1rem;
+}
+
+.py-12 {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
 }
 
 .pb-2 {
@@ -1842,26 +1754,13 @@ a:focus-visible,button:focus-visible {
   padding-top: 3.5rem;
 }
 
-.pt-5 {
-  padding-top: 1.25rem;
-}
-
 .text-center {
   text-align: center;
-}
-
-.text-2xl {
-  font-size: 1.5rem;
-  line-height: 2rem;
 }
 
 .text-4xl {
   font-size: 2.25rem;
   line-height: 2.5rem;
-}
-
-.text-\[0\.625rem\] {
-  font-size: 0.625rem;
 }
 
 .text-lg {
@@ -1883,10 +1782,6 @@ a:focus-visible,button:focus-visible {
   font-weight: 700;
 }
 
-.font-medium {
-  font-weight: 500;
-}
-
 .font-semibold {
   font-weight: 600;
 }
@@ -1897,10 +1792,6 @@ a:focus-visible,button:focus-visible {
 
 .leading-8 {
   line-height: 2rem;
-}
-
-.leading-9 {
-  line-height: 2.25rem;
 }
 
 .tracking-tight {
@@ -1915,11 +1806,6 @@ a:focus-visible,button:focus-visible {
 .text-gray-400 {
   --tw-text-opacity: 1;
   color: rgb(156 163 175 / var(--tw-text-opacity));
-}
-
-.text-indigo-200 {
-  --tw-text-opacity: 1;
-  color: rgb(199 210 254 / var(--tw-text-opacity));
 }
 
 .text-white {
@@ -1972,12 +1858,6 @@ a:focus-visible,button:focus-visible {
   transition-duration: 150ms;
 }
 
-.transition-\[visibility\] {
-  transition-property: visibility;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
-}
-
 .transition-opacity {
   transition-property: opacity;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -2004,10 +1884,6 @@ a:focus-visible,button:focus-visible {
   display: none !important;
 }
 
-.target\:visible:target {
-  visibility: visible;
-}
-
 .hover\:bg-gray-800:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(31 41 55 / var(--tw-bg-opacity));
@@ -2016,16 +1892,6 @@ a:focus-visible,button:focus-visible {
 .hover\:bg-indigo-400:hover {
   --tw-bg-opacity: 1;
   background-color: rgb(129 140 248 / var(--tw-bg-opacity));
-}
-
-.hover\:bg-indigo-500:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(99 102 241 / var(--tw-bg-opacity));
-}
-
-.hover\:bg-indigo-700:hover {
-  --tw-bg-opacity: 1;
-  background-color: rgb(67 56 202 / var(--tw-bg-opacity));
 }
 
 .hover\:text-white:hover {
@@ -2068,23 +1934,10 @@ a:focus-visible,button:focus-visible {
   outline-color: #6366f1;
 }
 
-.focus-visible\:outline-indigo-600:focus-visible {
-  outline-color: #4f46e5;
-}
-
 .focus-visible\:ring-0:focus-visible {
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(0px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
-}
-
-.group:target .group-target\:translate-x-0 {
-  --tw-translate-x: 0px;
-  transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
-}
-
-.group:target .group-target\:opacity-100 {
-  opacity: 1;
 }
 
 .group:hover .group-hover\:text-white {
@@ -2151,6 +2004,11 @@ a:focus-visible,button:focus-visible {
   .sm\:py-32 {
     padding-top: 8rem;
     padding-bottom: 8rem;
+  }
+
+  .sm\:py-24 {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
   }
 
   .sm\:text-6xl {
