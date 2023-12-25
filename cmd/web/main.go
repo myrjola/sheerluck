@@ -8,6 +8,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/joho/godotenv"
 	"github.com/myrjola/sheerluck/internal/ai"
+	"github.com/myrjola/sheerluck/internal/pprofserver"
 	"github.com/myrjola/sheerluck/internal/repositories"
 	"github.com/myrjola/sheerluck/sqlite"
 	"log/slog"
@@ -27,6 +28,7 @@ type application struct {
 
 func main() {
 	addr := flag.String("addr", "localhost:4000", "HTTP network address")
+	pprofPort := flag.String("pprof-port", ":6060", "Port for pprof listening on localhost")
 	dbUrl := flag.String("sqlite-url", "./sheerluck.sqlite", "SQLite URL")
 	flag.Parse()
 
@@ -35,6 +37,9 @@ func main() {
 		AddSource: true,
 	})
 	logger := slog.New(loggerHandler)
+
+	// Initialise pprof listening on localhost so that it's not open to the world
+	pprofserver.Launch(*pprofPort, logger)
 
 	err := godotenv.Load()
 	if err != nil {
