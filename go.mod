@@ -3,7 +3,6 @@ module github.com/myrjola/sheerluck
 go 1.22
 
 require (
-	github.com/a-h/templ v0.2.476
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20231113091146-cef4b05350c8
 	github.com/alexedwards/scs/v2 v2.7.0
 	github.com/go-webauthn/webauthn v0.9.4

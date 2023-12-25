@@ -29,7 +29,7 @@ type application struct {
 func main() {
 	addr := flag.String("addr", "localhost:4000", "HTTP network address")
 	pprofPort := flag.String("pprof-port", ":6060", "Port for pprof listening on localhost")
-	dbUrl := flag.String("sqlite-url", "./sheerluck.sqlite", "SQLite URL")
+	dbURL := flag.String("sqlite-url", "./sheerluck.sqlite", "SQLite URL")
 	flag.Parse()
 
 	loggerHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
@@ -61,7 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := sqlite.NewDB(*dbUrl)
+	db, err := sqlite.NewDB(*dbURL)
 
 	logger.Info("connected to db")
 
