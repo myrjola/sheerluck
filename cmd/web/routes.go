@@ -9,7 +9,7 @@ func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
 
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("/", fileServer)
+	mux.Handle("/", cacheForeverHeaders(fileServer))
 
 	session := alice.New(app.sessionManager.LoadAndSave, app.authenticate)
 	sessionSSE := alice.New(app.serverSentEventMiddleware, app.authenticate)
