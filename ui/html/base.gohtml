@@ -22,6 +22,7 @@
     </head>
     <body class="h-full" hx-boost="true">
     {{ block "body" . }}
+    {{ if .IsAuthenticated }}
         <div x-data="{ menuOpen: false }">
             <!-- Off-canvas menu for mobile, show/hide based on off-canvas menu state. -->
             <div class="relative isolate z-50 lg:hidden"
@@ -95,6 +96,13 @@
                 </div>
             </main>
         </div>
+    {{ else }}
+        <main class="py-10">
+            <div class="px-4 sm:px-6 lg:px-8">
+                {{ template "main" . }}
+            </div>
+        </main>
+    {{ end }}
     {{ end }}
     </body>
     </html>

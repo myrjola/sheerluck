@@ -89,8 +89,9 @@ func (app *application) renderHtmxPage(w http.ResponseWriter, r *http.Request, t
 }
 
 type questionPeopleData struct {
-	Routes        []route
-	ChatResponses []chatResponse
+	IsAuthenticated bool
+	Routes          []route
+	ChatResponses   []chatResponse
 }
 
 func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
@@ -115,8 +116,9 @@ func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
 	routes := app.resolveRoutes(r.URL.Path)
 
 	data := questionPeopleData{
-		Routes:        routes,
-		ChatResponses: chatResponses,
+		IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
+		Routes:          routes,
+		ChatResponses:   chatResponses,
 	}
 
 	if err = app.renderHtmxPage(w, r, t, data); err != nil {
@@ -138,7 +140,8 @@ func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request
 	routes := app.resolveRoutes(r.URL.Path)
 
 	data := baseData{
-		Routes: routes,
+		IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
+		Routes:          routes,
 	}
 
 	if err = app.renderHtmxPage(w, r, t, data); err != nil {
