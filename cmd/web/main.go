@@ -53,9 +53,9 @@ func main() {
 	if len(defaultFQDN) == 0 {
 		defaultFQDN = "localhost"
 	}
-	defaultPprofPort := os.Getenv("SHEERLUCK_PPROF_PORT")
+	defaultPprofPort := os.Getenv("SHEERLUCK_PPROF_ADDR")
 	if len(defaultPprofPort) == 0 {
-		defaultPprofPort = ":6060"
+		defaultPprofPort = "localhost:6060"
 	}
 	defaultSqliteURL := os.Getenv("SHEERLUCK_SQLITE_URL")
 	if len(defaultSqliteURL) == 0 {
@@ -64,7 +64,7 @@ func main() {
 
 	addr := flag.String("addr", defaultAddr, "HTTP network address")
 	fqdn := flag.String("fqdn", defaultFQDN, "Fully qualified domain name for setting up Webauthn")
-	pprofPort := flag.String("pprof-port", defaultPprofPort, "Port for pprof listening on localhost")
+	pprofPort := flag.String("pprof-addr", defaultPprofPort, "HTTP network address for pprof")
 	sqliteURL := flag.String("sqlite-url", defaultSqliteURL, "SQLite URL")
 	flag.Parse()
 

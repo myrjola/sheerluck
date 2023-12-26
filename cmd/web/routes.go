@@ -19,9 +19,9 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /question-people/stream", sessionSSE.ThenFunc(app.streamChat))
 	mux.Handle("GET /investigate-scenes", session.ThenFunc(app.investigateScenes))
 
-	mux.Handle("GET /api/registration/start", session.ThenFunc(app.BeginRegistration))
+	mux.Handle("POST /api/registration/start", session.ThenFunc(app.BeginRegistration))
 	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.FinishRegistration))
-	mux.Handle("GET /api/login/start", session.ThenFunc(app.BeginLogin))
+	mux.Handle("POST /api/login/start", session.ThenFunc(app.BeginLogin))
 	mux.Handle("POST /api/login/finish", session.ThenFunc(app.FinishLogin))
 	mux.Handle("POST /api/logout", session.ThenFunc(app.Logout))
 

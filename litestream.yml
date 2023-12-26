@@ -1,0 +1,8 @@
+dbs:
+  - path: ${SHEERLUCK_SQLITE_URL}
+    replicas:
+      - type: s3
+        endpoint: ${LITESTREAM_URL}
+        bucket: sheerluck-backup
+        access-key-id: ${LITESTREAM_ACCESS_KEY}
+        secret-access-key: ${LITESTREAM_SECRET_KEY}

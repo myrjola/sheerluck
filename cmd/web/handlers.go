@@ -309,12 +309,15 @@ func (app *application) BeginRegistration(w http.ResponseWriter, r *http.Request
 	}
 
 	authSelect := protocol.AuthenticatorSelection{
-		AuthenticatorAttachment: protocol.AuthenticatorAttachment("platform"),
-		RequireResidentKey:      protocol.ResidentKeyNotRequired(),
-		UserVerification:        protocol.VerificationDiscouraged,
+		//AuthenticatorAttachment: protocol.AuthenticatorAttachment("platform"),
+		RequireResidentKey: protocol.ResidentKeyNotRequired(),
+		UserVerification:   protocol.VerificationDiscouraged,
 	}
 
-	opts, session, err := app.webAuthn.BeginRegistration(user, webauthn.WithAuthenticatorSelection(authSelect))
+	opts, session, err := app.webAuthn.BeginRegistration(
+		user,
+		webauthn.WithAuthenticatorSelection(authSelect),
+		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired))
 	if err != nil {
 		app.serverError(w, r, err)
 		return

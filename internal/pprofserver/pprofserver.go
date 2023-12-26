@@ -1,7 +1,6 @@
 package pprofserver
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 	"net/http/pprof"
@@ -33,10 +32,8 @@ func listenAndServe(addr string) error {
 	return newServer(addr).ListenAndServe()
 }
 
-// Launch a standard pprof server at ipv6 loopback address ::1 and given port.
-func Launch(port string, logger *slog.Logger) {
+func Launch(addr string, logger *slog.Logger) {
 	go func() {
-		addr := fmt.Sprintf("[::1]%s", port)
 		logger.Info("starting pprof server", "addr", addr)
 		err := listenAndServe(addr)
 		logger.Error(err.Error())

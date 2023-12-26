@@ -35,3 +35,7 @@ node_modules
 
 # Temporary files
 /tmp
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

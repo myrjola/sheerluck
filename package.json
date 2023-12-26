@@ -4,15 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "tailwind:watch": "tailwindcss -i input.css -o ui/static/main.css --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "tailwind:watch": "tailwindcss -i input.css -o ui/static/main.css --watch"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.40.1",
     "@tailwindcss/forms": "^0.5.7",
     "@tailwindcss/typography": "^0.5.10",
+    "@types/node": "^20.10.5",
     "tailwindcss": "^3.3.5"
   }
 }

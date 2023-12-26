@@ -69,11 +69,15 @@ COPY --from=build /dist /dist
 COPY /.env /dist
 COPY /sqlite/init.sql /dist/sqlite/init.sql
 
+# Configure Litestream for backups to object storage
+COPY /litestream.yml /etc/litestream.yml
+COPY --from=litestream/litestream:0.3.13 /usr/local/bin/litestream /dist/litestream
+
 USER sheerluck:sheerluck
 
 ENV TZ=Europe/Helsinki
 
-EXPOSE 4000
+EXPOSE 4000 6060
 
 WORKDIR /dist
-ENTRYPOINT [ "./sheerluck", "-addr", ":4000" ]
+ENTRYPOINT [ "./litestream", "replicate", "-exec", "./sheerluck -addr :4000 -pprof-addr :6060" ]
