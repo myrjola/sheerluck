@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/justinas/nosurf"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/internal/models"
 	"github.com/sashabaranov/go-openai"
@@ -31,6 +32,7 @@ type route struct {
 type baseData struct {
 	IsAuthenticated bool
 	Routes          []route
+	CSRFToken       string
 }
 
 func init() {
@@ -92,6 +94,7 @@ type questionPeopleData struct {
 	IsAuthenticated bool
 	Routes          []route
 	ChatResponses   []chatResponse
+	CSRFToken       string
 }
 
 func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
@@ -119,6 +122,7 @@ func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
 		IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
 		Routes:          routes,
 		ChatResponses:   chatResponses,
+		CSRFToken:       nosurf.Token(r),
 	}
 
 	if err = app.renderHtmxPage(w, r, t, data); err != nil {
@@ -491,6 +495,7 @@ func (app *application) Home(w http.ResponseWriter, r *http.Request) {
 	data := baseData{
 		Routes:          routes,
 		IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
+		CSRFToken:       nosurf.Token(r),
 	}
 
 	if err = app.renderHtmxPage(w, r, t, data); err != nil {

@@ -21,6 +21,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.0 // indirect
 	github.com/google/go-tpm v0.9.0 // indirect
 	github.com/google/uuid v1.4.0 // indirect
+	github.com/justinas/nosurf v1.1.1 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

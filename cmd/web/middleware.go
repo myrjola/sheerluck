@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/justinas/nosurf"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"net/http"
 )
@@ -107,4 +108,18 @@ func (app *application) commonContext(next http.Handler) http.Handler {
 		r = contexthelpers.SetCurrentPath(r, r.URL.Path)
 		next.ServeHTTP(w, r)
 	})
+}
+
+// noSurf implements CSRF protection using https://github.com/justinas/nosurf
+func noSurf(next http.Handler) http.Handler {
+	csrfHandler := nosurf.New(next)
+	csrfHandler.SetBaseCookie(http.Cookie{
+		HttpOnly: true,
+		Path:     "/",
+		Secure:   true,
+	})
+	// TODO: figure out how to enable CSRF protection for the JSON API endpoints.
+	csrfHandler.ExemptPaths("/api/registration/start", "/api/registration/finish", "/api/login/start", "/api/login/finish")
+
+	return csrfHandler
 }

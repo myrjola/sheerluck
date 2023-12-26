@@ -11,6 +11,7 @@
             hx-swap="show:none"
             class="mx-auto max-w-md"
     >
+        <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
         <label>
             <span> Question: </span>
             <input

@@ -24,6 +24,7 @@
                                     method="post"
                                     class="mt-10 flex gap-2 sm:mx-auto sm:w-full sm:max-w-sm"
                             >
+                                <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
                                 <button
                                         type="submit"
                                         class="flex w-full justify-center rounded-md bg-indigo-800 px-3 text-sm font-semibold leading-6 text-white shadow-sm py-1.5 hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"

@@ -11,7 +11,7 @@ func (app *application) routes() http.Handler {
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	mux.Handle("/", cacheForeverHeaders(fileServer))
 
-	session := alice.New(app.sessionManager.LoadAndSave, app.authenticate)
+	session := alice.New(app.sessionManager.LoadAndSave, app.authenticate, noSurf)
 	sessionSSE := alice.New(app.serverSentEventMiddleware, app.authenticate)
 
 	mux.Handle("GET /{$}", session.ThenFunc(app.Home))
