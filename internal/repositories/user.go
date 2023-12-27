@@ -10,14 +10,16 @@ import (
 )
 
 type UserRepository struct {
-	db     *sqlx.DB
-	logger *slog.Logger
+	readWriteDB *sqlx.DB
+	readDB      *sqlx.DB
+	logger      *slog.Logger
 }
 
-func NewUserRepository(db *sqlx.DB, logger *slog.Logger) *UserRepository {
+func NewUserRepository(readWriteDB *sqlx.DB, readDB *sqlx.DB, logger *slog.Logger) *UserRepository {
 	return &UserRepository{
-		db:     db,
-		logger: logger,
+		readWriteDB: readWriteDB,
+		readDB:      readDB,
+		logger:      logger,
 	}
 }
 
@@ -30,27 +32,27 @@ func (r *UserRepository) Get(id []byte) (*models.User, error) {
 
 	user.Credentials = make([]webauthn.Credential, 0)
 
-	stmt := `SELECT id, display_name FROM users WHERE id = ?`
-	if err = r.db.Get(&user, stmt, id); err != nil {
+	stmt := `SELECT "id", "display_name" FROM "users" WHERE "id" = ?`
+	if err = r.readDB.Get(&user, stmt, id); err != nil {
 		return nil, err
 	}
 
 	// scan credentials
-	stmt = `SELECT id,
-       public_key,
-       attestation_type,
-       transport,
-       flag_user_present,
-       flag_user_verified,
-       flag_backup_eligible,
-       flag_backup_state,
-       authenticator_aaguid,
-       authenticator_sign_count,
-       authenticator_clone_warning,
-       authenticator_attachment
-FROM credentials
-WHERE user_id = ?`
-	if rows, err = r.db.Queryx(stmt, id); err != nil {
+	stmt = `SELECT "id",
+       "public_key",
+       "attestation_type",
+       "transport",
+       "flag_user_present",
+       "flag_user_verified",
+       "flag_backup_eligible",
+       "flag_backup_state",
+       "authenticator_aaguid",
+       "authenticator_sign_count",
+       "authenticator_clone_warning",
+       "authenticator_attachment"
+FROM "credentials"
+WHERE "user_id" = ?`
+	if rows, err = r.readDB.Queryx(stmt, id); err != nil {
 		return nil, err
 	}
 	defer func() {
@@ -78,45 +80,45 @@ WHERE user_id = ?`
 }
 
 func (r *UserRepository) Upsert(ctx context.Context, user *models.User) error {
-	tx, err := r.db.BeginTxx(ctx, nil)
+	tx, err := r.readWriteDB.BeginTxx(ctx, nil)
 	if err != nil {
 
 	}
 	defer func() {
 		_ = tx.Rollback()
 	}()
-	stmt := `INSERT INTO users (id, display_name) VALUES (:id, :display_name) ON CONFLICT DO NOTHING`
+	stmt := `INSERT INTO "users" ("id", "display_name") VALUES (:id, :display_name) ON CONFLICT DO NOTHING`
 	_, err = tx.NamedExecContext(ctx, stmt, user)
 	if err != nil {
 		return err
 	}
 
 	// Upsert credentials
-	stmt = `INSERT INTO credentials (id,
-                         user_id,
-                         public_key,
-                         attestation_type,
-                         transport,
-                         flag_user_present,
-                         flag_user_verified,
-                         flag_backup_eligible,
-                         flag_backup_state,
-                         authenticator_aaguid,
-                         authenticator_sign_count,
-                         authenticator_clone_warning,
-                         authenticator_attachment)
+	stmt = `INSERT INTO "credentials" ("id",
+                         "user_id",
+                         "public_key",
+                         "attestation_type",
+                         "transport",
+                         "flag_user_present",
+                         "flag_user_verified",
+                         "flag_backup_eligible",
+                         "flag_backup_state",
+                         "authenticator_aaguid",
+                         "authenticator_sign_count",
+                         "authenticator_clone_warning",
+                         "authenticator_attachment")
 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10,
         $11, $12, $13)
-ON CONFLICT (id) DO UPDATE SET attestation_type            = EXCLUDED.attestation_type,
-                               transport                   = EXCLUDED.transport,
-                               flag_user_present           = EXCLUDED.flag_user_present,
-                               flag_user_verified          = EXCLUDED.flag_user_verified,
-                               flag_backup_eligible        = EXCLUDED.flag_backup_eligible,
-                               flag_backup_state           = EXCLUDED.flag_backup_state,
-                               authenticator_aaguid        = EXCLUDED.authenticator_aaguid,
-                               authenticator_sign_count    = EXCLUDED.authenticator_sign_count,
-                               authenticator_clone_warning = EXCLUDED.authenticator_clone_warning,
-                               authenticator_attachment    = EXCLUDED.authenticator_attachment;
+ON CONFLICT ("id") DO UPDATE SET "attestation_type"            = "EXCLUDED"."attestation_type",
+                               "transport"                   = "EXCLUDED"."transport",
+                               "flag_user_present"           = "EXCLUDED"."flag_user_present",
+                               "flag_user_verified"          = "EXCLUDED"."flag_user_verified",
+                               "flag_backup_eligible"        = "EXCLUDED"."flag_backup_eligible",
+                               "flag_backup_state"           = "EXCLUDED"."flag_backup_state",
+                               "authenticator_aaguid"        = "EXCLUDED"."authenticator_aaguid",
+                               "authenticator_sign_count"    = "EXCLUDED"."authenticator_sign_count",
+                               "authenticator_clone_warning" = "EXCLUDED"."authenticator_clone_warning",
+                               "authenticator_attachment"    = "EXCLUDED"."authenticator_attachment";
                                  
                                    `
 	for _, c := range user.WebAuthnCredentials() {
@@ -139,8 +141,8 @@ func (r *UserRepository) Exists(id []byte) (bool, error) {
 		row *sqlx.Row
 	)
 
-	stmt := `SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)`
-	if row = r.db.QueryRowx(stmt, id); err != nil {
+	stmt := `SELECT EXISTS(SELECT 1 FROM "users" WHERE "id" = ?)`
+	if row = r.readDB.QueryRowx(stmt, id); err != nil {
 		return false, err
 	}
 

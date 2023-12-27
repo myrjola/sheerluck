@@ -12,9 +12,9 @@ import (
 )
 
 func TestUserRepository(t *testing.T) {
-	db := newTestDB(t)
+	readWriteDB := newTestDB(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	repo := NewUserRepository(db, logger)
+	repo := NewUserRepository(readWriteDB, readWriteDB, logger)
 
 	user, err := models.NewUser()
 	if err != nil {
@@ -75,4 +75,22 @@ func TestUserRepository(t *testing.T) {
 			require.Equal(t, readUser.WebAuthnCredentials(), tt.user.WebAuthnCredentials())
 		})
 	}
+}
+
+func Benchmark_UserRepository(b *testing.B) {
+	readWriteDB, readDB := newBenchmarkDB(b)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repo := NewUserRepository(readWriteDB, readDB, logger)
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			user, err := models.NewUser()
+			err = repo.Upsert(context.Background(), user)
+			require.NoError(b, err)
+			_, err = repo.Get(user.ID)
+			require.NoError(b, err)
+		}
+	})
 }

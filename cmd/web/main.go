@@ -88,7 +88,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	db, err := sqlite.NewDB(*sqliteURL)
+	readWriteDB, readDB, err := sqlite.NewDB(*sqliteURL)
 	if err != nil {
 		logger.Error("open database %s: %w", *sqliteURL, err)
 		os.Exit(1)
@@ -97,10 +97,10 @@ func main() {
 	logger.Info("connected to db")
 
 	sessionManager := scs.New()
-	sessionManager.Store = sqlite3store.NewWithCleanupInterval(db.DB, 24*time.Hour)
+	sessionManager.Store = sqlite3store.NewWithCleanupInterval(readWriteDB.DB, 24*time.Hour)
 	sessionManager.Lifetime = 12 * time.Hour
 
-	users := repositories.NewUserRepository(db, logger)
+	users := repositories.NewUserRepository(readWriteDB, readDB, logger)
 
 	app := application{
 		logger:         logger,
