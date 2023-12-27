@@ -71,11 +71,13 @@ vars == <<completionStatus, completionParent>>
 
 -----------------------------------------------------------------------------
 
-CompletionStatusType == {"not-created", "created", "streaming", "done"}
+CompletionStatusType == {"not-created", "created", "streaming", "done", "error"}
 
 RangeStruct(struct) == {struct[key]: key \in DOMAIN struct}
 
 TypeOK ==
+    /\ DOMAIN completionStatus = Completion
+    /\ DOMAIN completionParent = Completion
     /\ \A c \in Completion: completionStatus[c] \in CompletionStatusType
     /\ \A c \in Completion: completionParent[c] \in Completion \cup {NULL, UNDEFINED}
 
@@ -83,30 +85,65 @@ Init ==
   /\ completionStatus = [c \in Completion |-> "not-created"]
   /\ completionParent = [c \in Completion |-> UNDEFINED]
 
+UnfinishedCompletions == { c \in Completion: completionStatus[c] \in {"created", "streaming", "error"}}
+
 CreateCompletion ==
+  /\ \E completion, parent \in Completion:
+     /\ completionStatus[completion] \in {"not-created", "error"}
+     /\ \/ /\ \/ \A c \in Completion: completionStatus[c] = "not-created" \* First parent is always NULL
+              \/ \E c \in Completion: completionStatus[c] = "error" /\ completionParent[c] = NULL \* Failure in first step
+           /\ completionStatus' = [x \in UnfinishedCompletions |-> "not-created"] @@ [completionStatus EXCEPT ![completion] = "created"]
+           /\ completionParent' = [x \in UnfinishedCompletions |-> UNDEFINED] @@ [completionParent EXCEPT ![completion] = NULL]
+        \* When parent is done, select that as parent if it isn't already a parent for another completion
+        \/ /\ completionStatus[parent] = "done"
+           /\ \/ \A c \in Completion : completionParent[c] # parent
+              \/ completionStatus[completion] = "error" /\ completionParent[completion] = parent
+           /\ completionStatus' = completion :> "created" @@ [x \in UnfinishedCompletions |-> "not-created"] @@ completionStatus
+           /\ completionParent' = completion :> parent @@ [x \in UnfinishedCompletions |-> UNDEFINED] @@ completionParent
+
+StreamCompletion ==
   /\ \E completion \in Completion:
-    /\ completionStatus[completion] = "not-created"
-    /\ completionStatus' = [completionStatus EXCEPT ![completion] = "created"]
+    /\ completionStatus[completion] = "created"
+    /\ completionStatus' = [completionStatus EXCEPT ![completion] = "streaming"]
+    /\ UNCHANGED <<completionParent>>
+
+FinishCompletion ==
+  /\ \E completion \in Completion:
+    /\ completionStatus[completion] = "streaming"
+    /\ completionStatus' = [completionStatus EXCEPT ![completion] = "done"]
+    /\ UNCHANGED <<completionParent>>
+
+ErrorCompletion ==
+  /\ \E completion \in Completion:
+    /\ completionStatus[completion] \in {"created", "streaming"}
+    /\ completionStatus' = [completionStatus EXCEPT ![completion] = "error"]
     /\ UNCHANGED <<completionParent>>
 
 Next ==
   \/ CreateCompletion
+  \/ StreamCompletion
+  \/ FinishCompletion
+  \/ ErrorCompletion
 
 Fairness ==
-  /\ WF_vars(UNCHANGED vars)
+  /\ WF_vars(CreateCompletion) /\ SF_vars(StreamCompletion) /\ SF_vars(FinishCompletion)
 
 Spec == Init /\ [][Next]_vars /\ Fairness
 -----------------------------------------------------------------------------
+
+PrintVal(id, exp)  ==  Print(<<id, exp>>, TRUE)
 
 ContiguousHistory ==
     /\ \/ \A c \in Completion: completionStatus[c] = "not-created"
        \/ Cardinality({ c \in Completion : completionParent[c] = NULL }) = 1
     /\ \A c1, c2 \in Completion:
-      \/  completionParent[c1] \in {NULL, UNDEFINED}
-      \/  completionParent[c1] # completionParent[c2]
+        \/ completionParent[c1] \in {NULL, UNDEFINED}
+        \/ c1 # c2 => completionParent[c1] # completionParent[c2]
+
+Done == \A c \in Completion : completionStatus[c] = "done"
 
 Safety ==
   [](ContiguousHistory)
 
-Liveness == <>Init
+Liveness == <>[]Done
 =============================================================================
