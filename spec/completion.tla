@@ -52,6 +52,14 @@ Completion statuses:
 * streaming: the completion is being streamed to the user
 * done: the completion is done and ready to be persisted
 
+Conclusions:
+* Simplest way is to wipe the pending completions when creating a new one
+* Processing clues should probably happen before finalising the completion so that we don't end up in a bad state
+  * Ideally, it's the same prompt doing the post-processing in multiple steps but that needs to be verified
+  * Highlighting character names can be done afterwards since it should be easy processing
+* Keeping UI and db in sync requires careful error handling
+* Remember to add consistency checks in the transactions, maybe UPDATE and WHERE is enough, but need to check.
+
 *)
 EXTENDS TLC, FiniteSets
 
