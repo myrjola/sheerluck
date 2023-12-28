@@ -1650,9 +1650,9 @@ a:focus-visible,button:focus-visible {
   background-color: rgb(17 24 39 / 0.8);
 }
 
-.bg-indigo-500 {
+.bg-indigo-800 {
   --tw-bg-opacity: 1;
-  background-color: rgb(99 102 241 / var(--tw-bg-opacity));
+  background-color: rgb(55 48 163 / var(--tw-bg-opacity));
 }
 
 .bg-white\/5 {
@@ -1662,11 +1662,6 @@ a:focus-visible,button:focus-visible {
 .bg-yellow-200 {
   --tw-bg-opacity: 1;
   background-color: rgb(254 240 138 / var(--tw-bg-opacity));
-}
-
-.bg-indigo-800 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(55 48 163 / var(--tw-bg-opacity));
 }
 
 .bg-gradient-to-tr {
