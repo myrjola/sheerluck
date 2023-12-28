@@ -16,12 +16,15 @@ func NewClient() Client {
 	}
 }
 
+const MaxTokens = 4096
+
 func (c *Client) SyncCompletion(messages []openai.ChatCompletionMessage) (openai.ChatCompletionResponse, error) {
 	return c.client.CreateChatCompletion(
 		context.TODO(),
 		openai.ChatCompletionRequest{
-			Model:    openai.GPT3Dot5Turbo,
-			Messages: messages,
+			Model:     openai.GPT3Dot5Turbo1106,
+			MaxTokens: MaxTokens,
+			Messages:  messages,
 		},
 	)
 }
