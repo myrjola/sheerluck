@@ -20,8 +20,6 @@ import (
 	"sync"
 )
 
-const internalServerError = "Internal Server Error"
-
 type route struct {
 	Href    string
 	Title   string
@@ -161,50 +159,54 @@ type chatResponse struct {
 
 var chatResponses []chatResponse
 
-func (app *application) startCompletionStream(completionID int, messages []openai.ChatCompletionMessage) {
-	var (
-		err error
-	)
-
-	stream, err := app.aiClient.StreamCompletion(messages)
+func (app *application) startCompletionStream(completionID int, messages []openai.ChatCompletionMessage) error {
 	logger := app.logger.With("completionID", completionID)
-	if err != nil {
-		logger.Error("stream completion", "err", err)
-		return
-	}
-	defer stream.Close()
+
 	completionChan := make(chan struct {
 		string
 		error
 	})
 	app.broker.Publish(1, completionChan)
-	defer func() {
-		app.broker.Unpublish(1)
-		close(completionChan)
-	}()
-	for {
-		response, err := stream.Recv()
-		if errors.Is(err, io.EOF) {
-			logger.Debug("stream finished")
-			break
-		}
-
+	go func() {
+		stream, err := app.aiClient.StreamCompletion(messages)
 		if err != nil {
-			logger.Error("stream error", slog.Any("err", err))
+			app.logger.Error("completion stream: %w", err)
+			return
+		}
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.Error("completion stream: %w", err)
+			}
+			stream.Close()
+			app.broker.Unpublish(1)
+			close(completionChan)
+		}()
+		for {
+			response, err := stream.Recv()
+			if errors.Is(err, io.EOF) {
+				logger.Debug("stream finished")
+				break
+			}
+
+			if err != nil {
+				logger.Error("stream error", slog.Any("err", err))
+				completionChan <- struct {
+					string
+					error
+				}{"", err}
+				break
+			}
+
+			delta := response.Choices[0].Delta.Content
+
 			completionChan <- struct {
 				string
 				error
-			}{"", err}
-			break
+			}{delta, err}
 		}
+	}()
 
-		delta := response.Choices[0].Delta.Content
-
-		completionChan <- struct {
-			string
-			error
-		}{delta, err}
-	}
+	return nil
 }
 
 func (app *application) postQuestion(r *http.Request) error {
@@ -244,14 +246,9 @@ func (app *application) postQuestion(r *http.Request) error {
 
 	// When HTMX does the request, we start a stream that the SSE GET can listen to through app.broker.
 	if r.Header.Get("Hx-Boosted") == "true" {
-		go func() {
-			defer func() {
-				if err := recover(); err != nil {
-					app.logger.Error("completion stream: %w", err)
-				}
-			}()
-			app.startCompletionStream(completionID, messages)
-		}()
+		if err = app.startCompletionStream(completionID, messages); err != nil {
+			return fmt.Errorf("start completion stream: %w", err)
+		}
 		chatResponses = append(chatResponses, chatResponse{
 			Question: question,
 			Answer:   "",
