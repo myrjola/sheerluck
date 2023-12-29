@@ -159,25 +159,66 @@ type chatResponse struct {
 	Answer   string
 }
 
-var chatResponses = []chatResponse{}
+var chatResponses []chatResponse
+
+func (app *application) startCompletionStream(completionID int, messages []openai.ChatCompletionMessage) {
+	var (
+		err error
+	)
+
+	stream, err := app.aiClient.StreamCompletion(messages)
+	logger := app.logger.With("completionID", completionID)
+	if err != nil {
+		logger.Error("stream completion", "err", err)
+		return
+	}
+	defer stream.Close()
+	completionChan := make(chan struct {
+		string
+		error
+	})
+	app.broker.Publish(1, completionChan)
+	defer func() {
+		app.broker.Unpublish(1)
+		close(completionChan)
+	}()
+	for {
+		response, err := stream.Recv()
+		if errors.Is(err, io.EOF) {
+			logger.Debug("stream finished")
+			break
+		}
+
+		if err != nil {
+			logger.Error("stream error", slog.Any("err", err))
+			completionChan <- struct {
+				string
+				error
+			}{"", err}
+			break
+		}
+
+		delta := response.Choices[0].Delta.Content
+
+		completionChan <- struct {
+			string
+			error
+		}{delta, err}
+	}
+}
 
 func (app *application) postQuestion(r *http.Request) error {
-	if err := r.ParseForm(); err != nil {
-		return err
+	var (
+		err error
+	)
+	if err = r.ParseForm(); err != nil {
+		return fmt.Errorf("parse form: %w", err)
 	}
 	if r.PostForm == nil {
 		return errors.New("no form data")
 	}
 	question := r.PostForm.Get("question")
-
-	// When HTMX does the request, we defer streaming the data to SSE triggered by the HTMX template.
-	if r.Header.Get("Hx-Boosted") == "true" {
-		chatResponses = append(chatResponses, chatResponse{
-			Question: question,
-			Answer:   "",
-		})
-		return nil
-	}
+	completionID := 1
 
 	messages := []openai.ChatCompletionMessage{
 		{
@@ -201,20 +242,31 @@ func (app *application) postQuestion(r *http.Request) error {
 
 	messages = append(messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: question})
 
-	var (
-		resp openai.ChatCompletionResponse
-		err  error
-	)
-
-	if resp, err = app.aiClient.SyncCompletion(messages); err != nil {
-		return err
+	// When HTMX does the request, we start a stream that the SSE GET can listen to through app.broker.
+	if r.Header.Get("Hx-Boosted") == "true" {
+		go func() {
+			defer func() {
+				if err := recover(); err != nil {
+					app.logger.Error("completion stream: %w", err)
+				}
+			}()
+			app.startCompletionStream(completionID, messages)
+		}()
+		chatResponses = append(chatResponses, chatResponse{
+			Question: question,
+			Answer:   "",
+		})
+		return nil
 	}
-
+	// When not a HTMX request, we do the completion synchronously.
+	var resp openai.ChatCompletionResponse
+	if resp, err = app.aiClient.SyncCompletion(messages); err != nil {
+		return fmt.Errorf("sync completion: %w", err)
+	}
 	cr := chatResponse{
 		Question: question,
 		Answer:   resp.Choices[0].Message.Content,
 	}
-
 	chatResponses = append(chatResponses, cr)
 
 	return nil
@@ -222,13 +274,14 @@ func (app *application) postQuestion(r *http.Request) error {
 
 // streamChat sends server side events (SSE) to the client.
 func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
+	completionID := 1
+
 	// Set headers for SSE
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
-	// Create a channel to send data
-	dataCh := make(chan string)
+	sseChannel := make(chan string)
 
 	// Create a context for handling client disconnection
 	_, cancel := context.WithCancel(r.Context())
@@ -238,67 +291,50 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
-		defer wg.Done()
-		for data := range dataCh {
+		defer func() {
+			if err := recover(); err != nil {
+				app.logger.Error("send SSE data: %w", err)
+			}
+			wg.Done()
+		}()
+		for data := range sseChannel {
 			app.logger.Debug("Sending data", slog.Any("data", data))
-			fmt.Fprintf(w, "data: %s\n\n", data)
+			_, err := fmt.Fprintf(w, "data: %s\n\n", data)
+			if err != nil {
+				app.logger.Error("send SSE data", slog.Any("err", err))
+				return
+			}
 			w.(http.Flusher).Flush()
 		}
 	}()
 
-	messages := []openai.ChatCompletionMessage{
-		{
-			Role: openai.ChatMessageRoleSystem,
-			Content: "This is a murder mystery game based on Murders in the Rue Morgue by Edgar Allan Poe. " +
-				"You are Adolphe Le Bon, a clerk who was arrested based on circumstantial evidence on the murder of " +
-				"Madame L'Espanaye and her daughter. Answer the questions from detective Auguste Dupin in plain text.",
-		},
-	}
+	cr := chatResponses[len(chatResponses)-1]
 
-	for _, response := range chatResponses {
-		messages = append(messages, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleUser,
-			Content: response.Question,
-		})
-		messages = append(messages, openai.ChatCompletionMessage{
-			Role:    openai.ChatMessageRoleAssistant,
-			Content: response.Answer,
-		})
-	}
-
-	// HACK: Remove last assistant answer because it's empty at this point
-	messages = messages[:len(messages)-1]
-	question := messages[len(messages)-1].Content
-
-	stream, err := app.aiClient.StreamCompletion(messages)
-	if err != nil {
-		app.serverError(w, r, err)
+	completionChan, ok := <-app.broker.Subscribe(completionID)
+	if !ok {
+		// TODO: rerender page
+		sseChannel <- `<div class="text-red500">Refresh page and try again</div>`
+		close(sseChannel)
 		return
 	}
-	defer stream.Close()
 
-	cr := chatResponse{
-		Question: question,
-		Answer:   "",
-	}
-	for {
-		response, err := stream.Recv()
-		if errors.Is(err, io.EOF) {
-			app.logger.Debug("stream finished")
-			dataCh <- "<div id='chat-listener' hx-swap-oob='true'></div>"
-			break
-		}
-
+	for payload := range completionChan {
+		delta := payload.string
+		err := payload.error
 		if err != nil {
-			app.logger.Error("stream error", slog.Any("err", err))
+			app.logger.Error("completion stream error", slog.Any("err", err))
+			// TODO: rerender page with error
+			sseChannel <- `<div class="text-red500">Error during streaming. Refresh page and try again</div>`
 			break
 		}
-
-		delta := response.Choices[0].Delta.Content
 
 		cr.Answer += delta
-		dataCh <- fmt.Sprintf("<span>%s</span>", strings.ReplaceAll(delta, "\n", "<br>"))
+		sseChannel <- fmt.Sprintf("<span>%s</span>", strings.ReplaceAll(delta, "\n", "<br>"))
 	}
+
+	// instruct client to stop listening to SSE stream
+	sseChannel <- "<div id='chat-listener' hx-swap-oob='true'></div>"
+	close(sseChannel)
 
 	chatResponses[len(chatResponses)-1] = cr
 	wg.Wait()

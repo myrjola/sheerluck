@@ -28,7 +28,10 @@ type application struct {
 	webAuthn       *webauthn.WebAuthn
 	sessionManager *scs.SessionManager
 	users          *repositories.UserRepository
-	broker         *broker.ChannelBroker[int, string]
+	broker         *broker.ChannelBroker[int, struct {
+		string
+		error
+	}]
 }
 
 type configuration struct {
@@ -108,7 +111,10 @@ func main() {
 
 	users := repositories.NewUserRepository(readWriteDB, readDB, logger)
 
-	channelBroker := broker.NewChannelBroker[int, string]()
+	channelBroker := broker.NewChannelBroker[int, struct {
+		string
+		error
+	}]()
 
 	app := application{
 		logger:         logger,

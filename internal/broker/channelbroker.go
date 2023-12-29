@@ -58,7 +58,7 @@ func (b *ChannelBroker[TID, TPayload]) Start() {
 			subscribers := subscriberLists[subscription.ID]
 			if subscribers == nil {
 				// First subscriber gets the channel from the producer
-				subscribers = []chan chan TPayload{subscription.Channel}
+				subscriberLists[subscription.ID] = []chan chan TPayload{subscription.Channel}
 				subscription.Channel <- c
 			} else {
 				// Subsequent subscribers block until the producer is finished
