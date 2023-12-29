@@ -35,11 +35,12 @@ func NewChannelBroker[TID comparable, TPayload any]() *ChannelBroker[TID, TPaylo
 		unpublishChannel: make(chan TID),
 		subscribeChannel: make(chan subscribeChannelContent[TID, TPayload]),
 	}
-	go broker.start()
 	return &broker
 }
 
-func (b *ChannelBroker[TID, TPayload]) start() {
+// Start listening for publish, unpublish, and subscribe events. This function blocks until Stop() is called,
+// so it should be called in a goroutine. It does not handle panics, so it should be wrapped in a recover.
+func (b *ChannelBroker[TID, TPayload]) Start() {
 	publishedChannels := map[TID]chan TPayload{}
 	subscriberLists := map[TID][]chan chan TPayload{}
 	for {

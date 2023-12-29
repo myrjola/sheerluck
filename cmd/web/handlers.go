@@ -165,6 +165,9 @@ func (app *application) postQuestion(r *http.Request) error {
 	if err := r.ParseForm(); err != nil {
 		return err
 	}
+	if r.PostForm == nil {
+		return errors.New("no form data")
+	}
 	question := r.PostForm.Get("question")
 
 	// When HTMX does the request, we defer streaming the data to SSE triggered by the HTMX template.

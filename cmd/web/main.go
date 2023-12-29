@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"github.com/alexedwards/scs/sqlite3store"
@@ -8,12 +10,15 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/joho/godotenv"
 	"github.com/myrjola/sheerluck/internal/ai"
+	"github.com/myrjola/sheerluck/internal/broker"
 	"github.com/myrjola/sheerluck/internal/pprofserver"
 	"github.com/myrjola/sheerluck/internal/repositories"
 	"github.com/myrjola/sheerluck/sqlite"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
@@ -23,6 +28,7 @@ type application struct {
 	webAuthn       *webauthn.WebAuthn
 	sessionManager *scs.SessionManager
 	users          *repositories.UserRepository
+	broker         *broker.ChannelBroker[int, string]
 }
 
 type configuration struct {
@@ -102,17 +108,65 @@ func main() {
 
 	users := repositories.NewUserRepository(readWriteDB, readDB, logger)
 
+	channelBroker := broker.NewChannelBroker[int, string]()
+
 	app := application{
 		logger:         logger,
 		aiClient:       ai.NewClient(),
 		webAuthn:       webAuthn,
 		sessionManager: sessionManager,
 		users:          users,
+		broker:         channelBroker,
 	}
+
+	go func() {
+		defer func() {
+			if err := recover(); err != nil {
+				// Safest to gracefully shutdown the server in case of a panic
+				app.logger.Error("channel broker: %w", err)
+				if err = syscall.Kill(syscall.Getpid(), syscall.SIGINT); err != nil {
+					panic(err)
+				}
+			}
+		}()
+
+		channelBroker.Start()
+	}()
 
 	logger.Info("starting server", slog.Any("addr", *addr))
 
-	err = http.ListenAndServe(*addr, app.routes())
-	logger.Error(err.Error())
+	srv := &http.Server{
+		Addr:              *addr,
+		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		Handler:           app.routes(),
+		IdleTimeout:       time.Minute,
+		ReadTimeout:       time.Minute,
+		WriteTimeout:      time.Minute,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	shutdownComplete := make(chan struct{})
+	go func() {
+		sigint := make(chan os.Signal, 1)
+
+		signal.Notify(sigint, os.Interrupt)
+		signal.Notify(sigint, syscall.SIGTERM)
+
+		<-sigint
+		logger.Info("shutting down server")
+
+		// We received an interrupt signal, shut down.
+		if err := srv.Shutdown(context.Background()); err != nil {
+			// Error from closing listeners, or context timeout:
+			logger.Error("HTTP server shutdown: %v", err)
+		}
+		close(shutdownComplete)
+	}()
+
+	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
+		// Error starting or closing listener:
+		logger.Error("HTTP server ListenAndServe: %v", err)
+		os.Exit(1)
+	}
+	<-shutdownComplete
 	os.Exit(1)
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 )
 
+//nolint:funlen
 func TestChannelBroker(t *testing.T) {
 	type testCase struct {
 		name     string
@@ -69,6 +70,7 @@ func TestChannelBroker(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			broker := NewChannelBroker[int, string]()
+			go broker.Start()
 			t.Cleanup(func() {
 				broker.Stop()
 			})
