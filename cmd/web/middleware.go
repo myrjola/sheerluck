@@ -10,7 +10,7 @@ import (
 func secureHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy",
-			`default-src 'self' https://myrjola.twic.pics/?v1 'unsafe-inline' 'unsafe-eval';
+			`default-src 'self' https://myrjola.twic.pics 'unsafe-inline' 'unsafe-eval';
                    style-src 'self' 'unsafe-inline';
                    img-src 'self' data: https://myrjola.twic.pics`)
 
