@@ -3,7 +3,7 @@
   "short_name": "Sheerluck",
   "start_url": "/",
   "icons": [{
-    "src": "google-touch-icon.png",
+    "src": "https://myrjola.twic.pics/sheerluck/google-touch-icon.png",
     "sizes": "512x512",
     "type": "image/png",
     "purpose": "any maskable"

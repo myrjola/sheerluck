@@ -1,52 +1,111 @@
-create table if not exists sessions
+CREATE TABLE IF NOT EXISTS "sessions"
 (
-    token  text primary key,
-    data   blob not null,
-    expiry real not null
-) strict;
+    "token"  TEXT PRIMARY KEY,
+    "data"   BLOB NOT NULL,
+    "expiry" REAL NOT NULL
+) STRICT;
 
-create index if not exists sessions_expiry_idx on sessions (expiry);
+CREATE INDEX IF NOT EXISTS "sessions_expiry_idx" ON "sessions" ("expiry");
 
-create table if not exists users
+CREATE TABLE IF NOT EXISTS "users"
 (
-    id           blob primary key,
-    display_name text not null,
+    "id"           BLOB PRIMARY KEY,
+    "display_name" TEXT NOT NULL,
 
-    created      text not null default (strftime('%Y-%m-%dT%H:%M:%fZ')),
-    updated      text not null default (strftime('%Y-%m-%dT%H:%M:%fZ'))
-) strict;
+    "created"      TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ')),
+    "updated"      TEXT NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ'))
+) STRICT;
 
-create trigger if not exists users_updated_timestamp
-    after update
-    on users
-begin
-    update users set updated = strftime('%Y-%m-%dT%H:%M:%fZ') where id = old.id;
-end;
+CREATE TRIGGER IF NOT EXISTS "users_updated_timestamp"
+    AFTER UPDATE
+    ON "users"
+BEGIN
+    UPDATE "users" SET "updated" = STRFTIME('%Y-%m-%dT%H:%M:%fZ') WHERE "id" = "old"."id";
+END;
 
-create table if not exists credentials
+CREATE TABLE IF NOT EXISTS "credentials"
 (
-    id                          blob primary key,
-    public_key                  blob    not null,
-    attestation_type            text    not null,
-    transport                   text    not null,
-    flag_user_present           integer not null,
-    flag_user_verified          integer not null,
-    flag_backup_eligible        integer not null,
-    flag_backup_state           integer not null,
-    authenticator_aaguid        blob    not null,
-    authenticator_sign_count    integer not null,
-    authenticator_clone_warning integer not null,
-    authenticator_attachment    text    not null,
+    "id"                          BLOB PRIMARY KEY,
+    "public_key"                  BLOB    NOT NULL,
+    "attestation_type"            TEXT    NOT NULL,
+    "transport"                   TEXT    NOT NULL,
+    "flag_user_present"           INTEGER NOT NULL,
+    "flag_user_verified"          INTEGER NOT NULL,
+    "flag_backup_eligible"        INTEGER NOT NULL,
+    "flag_backup_state"           INTEGER NOT NULL,
+    "authenticator_aaguid"        BLOB    NOT NULL,
+    "authenticator_sign_count"    INTEGER NOT NULL,
+    "authenticator_clone_warning" INTEGER NOT NULL,
+    "authenticator_attachment"    TEXT    NOT NULL,
 
-    created                     text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ')),
-    updated                     text    not null default (strftime('%Y-%m-%dT%H:%M:%fZ')),
+    "created"                     TEXT    NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ')),
+    "updated"                     TEXT    NOT NULL DEFAULT (STRFTIME('%Y-%m-%dT%H:%M:%fZ')),
 
-    user_id                     blob    not null references users (id) on delete cascade
-) strict;
+    "user_id"                     BLOB    NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE
+) STRICT;
 
-create trigger if not exists credentials_updated_timestamp
-    after update
-    on credentials
-begin
-    update credentials set updated = strftime('%Y-%m-%dT%H:%M:%fZ') where id = old.id;
-end;
+CREATE TRIGGER IF NOT EXISTS "credentials_updated_timestamp"
+    AFTER UPDATE
+    ON "credentials"
+BEGIN
+    UPDATE "credentials" SET "updated" = STRFTIME('%Y-%m-%dT%H:%M:%fZ') WHERE "id" = "old"."id";
+END;
+
+CREATE TABLE IF NOT EXISTS "cases"
+(
+    "id"     TEXT PRIMARY KEY,
+    "name"   TEXT NOT NULL UNIQUE,
+    "author" TEXT NOT NULL
+) STRICT;
+
+INSERT INTO "cases"("id", "name", "author")
+VALUES ('rue-morgue', 'The Murders in the Rue Morgue', 'Edgar Allan Poe')
+ON CONFLICT("id") DO UPDATE SET "name"   = "excluded"."name",
+                                "author" = "excluded"."author";
+
+CREATE TABLE IF NOT EXISTS "investigation_targets"
+(
+    "id"         TEXT PRIMARY KEY,
+    "name"       TEXT                                         NOT NULL UNIQUE,
+    "short_name" TEXT                                         NOT NULL,
+    "type"       TEXT CHECK ( "type" IN ('person', 'scene') ) NOT NULL,
+    "image_path" TEXT                                         NOT NULL,
+
+    "case_id"    TEXT                                         NOT NULL REFERENCES "cases" ("id") ON DELETE CASCADE
+) STRICT;
+
+INSERT INTO "investigation_targets"("id", "name", "short_name", "type", "image_path", "case_id")
+VALUES ('le-bon', 'Adolphe Le Bon', 'Adolphe', 'person', '/images/adolphe_le-bon.webp', 'rue-morgue'),
+       ('rue-morgue', 'Rue Morgue Murder Scene', 'Rue Morgue', 'scene', '/images/adolphe_le-bon.webp', 'rue-morgue')
+ON CONFLICT ("id") DO UPDATE SET "name"       = "excluded"."name",
+                                 "short_name" = "excluded"."short_name",
+                                 "case_id"    = "excluded"."case_id";
+
+CREATE TABLE IF NOT EXISTS "clues"
+(
+    "id"                      TEXT PRIMARY KEY,
+    "description"             TEXT NOT NULL,
+    "keywords"                TEXT NOT NULL,
+
+    "investigation_target_id" TEXT NOT NULL REFERENCES "investigation_targets" ("id") ON DELETE CASCADE
+) STRICT;
+
+INSERT INTO "clues"("id", "description", "keywords", "investigation_target_id")
+VALUES ('le-bon-victim-belongings',
+        'The victims'' belongings in Adolphe''s posession were given to him as collateral for a debt.',
+        'gold,watch,scissors', 'le-bon')
+ON CONFLICT ("id") DO UPDATE SET "description"             = "excluded"."description",
+                                 "keywords"                = "excluded"."keywords",
+                                 "investigation_target_id" = "excluded"."investigation_target_id";
+
+CREATE TABLE IF NOT EXISTS "completions"
+(
+    "id"                      INTEGER PRIMARY KEY,
+    "order"                   INTEGER NOT NULL,
+    "question"                TEXT    NOT NULL,
+    "answer"                  TEXT    NOT NULL,
+
+    "user_id"                 BLOB    NOT NULL REFERENCES "users" ("id") ON DELETE CASCADE,
+    "investigation_target_id" TEXT    NOT NULL REFERENCES "investigation_targets" ("id") ON DELETE CASCADE,
+    UNIQUE ("user_id", "investigation_target_id", "order") ON CONFLICT REPLACE
+) STRICT;

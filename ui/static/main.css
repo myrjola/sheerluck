@@ -1476,6 +1476,10 @@ a:focus-visible,button:focus-visible {
   aspect-ratio: 1155/678;
 }
 
+.aspect-square {
+  aspect-ratio: 1 / 1;
+}
+
 .h-36 {
   height: 9rem;
 }
@@ -1494,6 +1498,14 @@ a:focus-visible,button:focus-visible {
 
 .h-full {
   height: 100%;
+}
+
+.h-24 {
+  height: 6rem;
+}
+
+.h-12 {
+  height: 3rem;
 }
 
 .w-5 {
@@ -1630,6 +1642,10 @@ a:focus-visible,button:focus-visible {
 
 .rounded-md {
   border-radius: 0.375rem;
+}
+
+.rounded-full {
+  border-radius: 9999px;
 }
 
 .border-0 {
