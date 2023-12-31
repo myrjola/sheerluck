@@ -114,7 +114,6 @@ function loginUser() {
                     throw new Error(`failed response: ${resp.status} ${resp.statusText}`);
                 }
                 window.location.reload();
-                return;
             });
         })
         .catch((error) => {
@@ -122,3 +121,6 @@ function loginUser() {
             alert("failed to login!");
         });
 }
+
+document.getElementById('login-button').addEventListener('click', loginUser);
+document.getElementById('register-button').addEventListener('click', registerUser);

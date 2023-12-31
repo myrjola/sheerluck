@@ -1,5 +1,5 @@
-{{- /*gotype:github.com/myrjola/sheerluck/cmd/web.baseData*/ -}}
-{{ define "main" }}
+{{- /*gotype:github.com/myrjola/sheerluck/cmd/web.homeData*/ -}}
+{{ define "home" }}
     <div class="relative isolate pt-14">
         <div class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
              aria-hidden="true">
@@ -33,17 +33,18 @@
                                 </button>
                             </form>
                         {{ else }}
+                            <script src="/webauthn.js"></script>
                             <button
+                                    id="login-button"
                                     type="button"
                                     class="rounded-md bg-indigo-800 text-sm font-semibold text-white shadow-sm px-3.5 py-2.5 hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400"
-                                    onclick="loginUser()"
                             >
                                 Sign in
                             </button>
                             <button
+                                    id="register-button"
                                     type="button"
                                     class="rounded-md bg-indigo-800 text-sm font-semibold text-white shadow-sm px-3.5 py-2.5 hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400"
-                                    onclick="registerUser()"
                             >
                                 Register
                             </button>

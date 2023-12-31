@@ -48,7 +48,7 @@
                          x-transition:leave-start="translate-x-0"
                          x-transition:leave-end="-translate-x-full"
                     >
-                        {{ template "nav" . }}
+                        {{ .Nav }}
 
                     </div>
 
@@ -78,7 +78,7 @@
 
             <!-- Static sidebar for desktop -->
             <div class="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
-                {{ template "nav" . }}
+                {{ .Nav }}
             </div>
             <div class="sticky top-0 z-40 flex items-center gap-x-6 bg-gray-900 px-4 py-4 shadow-sm sm:px-6 lg:hidden">
                 <button @click="menuOpen = true" class="text-gray-400 -m-2.5 p-2.5 lg:hidden">
@@ -94,14 +94,14 @@
 
             <main class="py-10 lg:pl-72">
                 <div class="px-4 sm:px-6 lg:px-8">
-                    {{ template "main" . }}
+                    {{ .Main }}
                 </div>
             </main>
         </div>
     {{ else }}
         <main class="py-10">
             <div class="px-4 sm:px-6 lg:px-8">
-                {{ template "main" . }}
+                {{ .Main }}
             </div>
         </main>
     {{ end }}

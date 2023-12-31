@@ -16,6 +16,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 )
@@ -25,12 +26,6 @@ type route struct {
 	Title   string
 	Current bool
 	Icon    string
-}
-
-type baseData struct {
-	IsAuthenticated bool
-	Routes          []route
-	CSRFToken       string
 }
 
 func init() {
@@ -57,6 +52,17 @@ func (app *application) resolveRoutes(currentPath string) []route {
 	return routes
 }
 
+func (app *application) parseTemplates() (*template.Template, error) {
+	fs := os.DirFS("./ui/html")
+	patterns := []string{
+		"base.gohtml",
+		"partials/*.gohtml",
+		"pages/*.gohtml",
+	}
+
+	return template.ParseFS(fs, patterns...)
+}
+
 // compileTemplates parses the base templates and adds a templates based on path
 func (app *application) compileTemplates(templateFileNames ...string) (*template.Template, error) {
 	templates := []string{
@@ -71,7 +77,20 @@ func (app *application) compileTemplates(templateFileNames ...string) (*template
 	return template.ParseFiles(templates...)
 }
 
-func (app *application) renderHtmxPage(w http.ResponseWriter, r *http.Request, t *template.Template, data any) error {
+// renderHTMXPage renders the HTMX page when the request is not an HTMX request,
+// else it renders the full page with base template.
+func (app *application) renderHTMXPage(w http.ResponseWriter, r *http.Request) {
+	handler := app.htmx.NewHandler(w, r)
+
+	h := handler.Request()
+
+	if err := app.Base(r.Context(), handler, &h); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+}
+
+func (app *application) renderHtmx(w http.ResponseWriter, r *http.Request, t *template.Template, data any) error {
 	var err error
 	// Detect htmx header and render only the body because that's what's replaced with hx-boost="true"
 	if r.Header.Get("Hx-Boosted") == "true" {
@@ -123,7 +142,7 @@ func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
 		CSRFToken:       nosurf.Token(r),
 	}
 
-	if err = app.renderHtmxPage(w, r, t, data); err != nil {
+	if err = app.renderHtmx(w, r, t, data); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
@@ -139,14 +158,14 @@ func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	routes := app.resolveRoutes(r.URL.Path)
+	//routes := app.resolveRoutes(r.URL.Path)
 
 	data := baseData{
-		IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
-		Routes:          routes,
+		//IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
+		//Routes:          routes,
 	}
 
-	if err = app.renderHtmxPage(w, r, t, data); err != nil {
+	if err = app.renderHtmx(w, r, t, data); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
@@ -515,27 +534,4 @@ func (app *application) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 	app.sessionManager.Remove(r.Context(), string(userIDSessionKey))
 	http.Redirect(w, r, "/", http.StatusSeeOther)
-}
-
-func (app *application) Home(w http.ResponseWriter, r *http.Request) {
-	var (
-		err error
-		t   *template.Template
-	)
-	routes := app.resolveRoutes(r.URL.Path)
-	if t, err = app.compileTemplates("home"); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	data := baseData{
-		Routes:          routes,
-		IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
-		CSRFToken:       nosurf.Token(r),
-	}
-
-	if err = app.renderHtmxPage(w, r, t, data); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
 }

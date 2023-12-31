@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
+	"github.com/donseba/go-htmx"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/joho/godotenv"
 	"github.com/myrjola/sheerluck/internal/ai"
@@ -28,6 +29,7 @@ type application struct {
 	webAuthn       *webauthn.WebAuthn
 	sessionManager *scs.SessionManager
 	users          *repositories.UserRepository
+	htmx           *htmx.HTMX
 	broker         *broker.ChannelBroker[int, struct {
 		string
 		error
@@ -122,6 +124,7 @@ func main() {
 		webAuthn:       webAuthn,
 		sessionManager: sessionManager,
 		users:          users,
+		htmx:           htmx.New(),
 		broker:         channelBroker,
 	}
 

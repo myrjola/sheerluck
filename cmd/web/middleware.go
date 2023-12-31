@@ -10,7 +10,7 @@ import (
 func secureHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy",
-			`default-src 'self' https://myrjola.twic.pics 'unsafe-inline' 'unsafe-eval';
+			`default-src 'self' https://myrjola.twic.pics 'unsafe-eval';
                    style-src 'self' 'unsafe-inline';
                    img-src 'self' data: https://myrjola.twic.pics`)
 
@@ -104,9 +104,10 @@ func (app *application) serverSentEventMiddleware(next http.Handler) http.Handle
 	})
 }
 
-func (app *application) commonContext(next http.Handler) http.Handler {
+func commonContext(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r = contexthelpers.SetCurrentPath(r, r.URL.Path)
+		r = contexthelpers.SetCSRFToken(r, nosurf.Token(r))
 		next.ServeHTTP(w, r)
 	})
 }
@@ -119,7 +120,7 @@ func noSurf(next http.Handler) http.Handler {
 		Path:     "/",
 		Secure:   true,
 	})
-	// TODO: figure out how to enable CSRF protection for the JSON API endpoints.
+	// TODO: Enable CSRF protection for the JSON API endpoints.
 	csrfHandler.ExemptPaths("/api/registration/start", "/api/registration/finish", "/api/login/start", "/api/login/finish")
 
 	return csrfHandler

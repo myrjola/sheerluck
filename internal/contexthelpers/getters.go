@@ -30,3 +30,12 @@ func CurrentPath(ctx context.Context) string {
 
 	return currentPath
 }
+
+func CSRFToken(ctx context.Context) string {
+	csrfToken, ok := ctx.Value(csrfTokenContextKey).(string)
+	if !ok {
+		return ""
+	}
+
+	return csrfToken
+}

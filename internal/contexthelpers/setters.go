@@ -17,3 +17,9 @@ func SetCurrentPath(r *http.Request, currentPath string) *http.Request {
 	ctx = context.WithValue(ctx, currentPathContextKey, currentPath)
 	return r.WithContext(ctx)
 }
+
+func SetCSRFToken(r *http.Request, csrfToken string) *http.Request {
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, csrfTokenContextKey, csrfToken)
+	return r.WithContext(ctx)
+}
