@@ -24,7 +24,7 @@
     </head>
     <body class="h-full" hx-boost="true">
     {{ block "body" . }}
-    {{ if .IsAuthenticated }}
+    {{ if isAuthenticated .Ctx }}
         <div x-data="{ menuOpen: false }">
             <!-- Off-canvas menu for mobile, show/hide based on off-canvas menu state. -->
             <div class="relative isolate z-50 lg:hidden"

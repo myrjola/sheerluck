@@ -3,12 +3,39 @@ package main
 import (
 	"bytes"
 	"context"
+	"github.com/donseba/go-htmx"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"html/template"
 	"io"
-
-	"github.com/donseba/go-htmx"
 )
+
+func resolveRoutes(ctx context.Context) []route {
+	currentPath := contexthelpers.CurrentPath(ctx)
+	routes := []route{
+		{
+			Href:  "/question-people",
+			Title: "Question people",
+			Icon:  "talk.svg",
+		},
+		{
+			Href:  "/investigate-scenes",
+			Title: "Investigate scenes",
+			Icon:  "chalk-outline-murder.svg",
+		},
+	}
+
+	for i := range routes {
+		routes[i].Current = currentPath == routes[i].Href
+	}
+	return routes
+}
+
+var templateFuncMap = template.FuncMap{
+	"csrfToken":       contexthelpers.CSRFToken,
+	"isAuthenticated": contexthelpers.IsAuthenticated,
+	"currentPath":     contexthelpers.CurrentPath,
+	"routes":          resolveRoutes,
+}
 
 func (app *application) executeTemplate(w io.Writer, name string, data any) error {
 	t, err := app.parseTemplates()
@@ -19,11 +46,12 @@ func (app *application) executeTemplate(w io.Writer, name string, data any) erro
 }
 
 type baseData struct {
-	Nav             template.HTML
-	Main            template.HTML
-	IsAuthenticated bool
+	Nav  template.HTML
+	Main template.HTML
+	Ctx  context.Context
 }
 
+// TODO: wrap in middleware so that main is passed in as raw HTML, probably need to refactor body to separate template
 func (app *application) Base(ctx context.Context, w io.Writer, h *htmx.HxRequestHeader) error {
 	nav := bytes.Buffer{}
 	if err := app.Nav(ctx, &nav, h); err != nil {
@@ -34,9 +62,9 @@ func (app *application) Base(ctx context.Context, w io.Writer, h *htmx.HxRequest
 		return err
 	}
 	data := baseData{
-		Nav:             template.HTML(nav.String()),  //nolint:gosec
-		Main:            template.HTML(main.String()), //nolint:gosec
-		IsAuthenticated: contexthelpers.IsAuthenticated(ctx),
+		Nav:  template.HTML(nav.String()),  //nolint:gosec
+		Main: template.HTML(main.String()), //nolint:gosec
+		Ctx:  ctx,
 	}
 	if h.HxRequest {
 		return app.executeTemplate(w, "body", data)
@@ -46,28 +74,23 @@ func (app *application) Base(ctx context.Context, w io.Writer, h *htmx.HxRequest
 }
 
 type homeData struct {
-	CSRFToken       string
-	IsAuthenticated bool
+	Ctx context.Context
 }
 
 func (app *application) Home(ctx context.Context, w io.Writer, _ *htmx.HxRequestHeader) error {
 	data := homeData{
-		IsAuthenticated: contexthelpers.IsAuthenticated(ctx),
-		CSRFToken:       contexthelpers.CSRFToken(ctx),
+		ctx,
 	}
 	return app.executeTemplate(w, "home", data)
 }
 
 type navData struct {
-	IsAuthenticated bool
-	Routes          []route
+	Ctx context.Context
 }
 
 func (app *application) Nav(ctx context.Context, w io.Writer, _ *htmx.HxRequestHeader) error {
-	routes := app.resolveRoutes(contexthelpers.CurrentPath(ctx))
 	data := navData{
-		IsAuthenticated: contexthelpers.IsAuthenticated(ctx),
-		Routes:          routes,
+		Ctx: ctx,
 	}
 	return app.executeTemplate(w, "nav", data)
 }

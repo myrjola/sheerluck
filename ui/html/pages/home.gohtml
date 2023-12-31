@@ -18,13 +18,13 @@
                         AI-powered murder mysteries. Question suspects and investigate crime scenes to solve the case. Your first case is “The Murders in the Rue Morgue” by Edgar Allan Poe.
                     </p>
                     <div class="mt-10 flex items-center justify-center gap-x-6">
-                        {{ if .IsAuthenticated }}
+                        {{ if isAuthenticated .Ctx }}
                             <form
                                     action="/api/logout"
                                     method="post"
                                     class="mt-10 flex gap-2 sm:mx-auto sm:w-full sm:max-w-sm"
                             >
-                                <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrfToken .Ctx }}">
                                 <button
                                         type="submit"
                                         class="flex w-full justify-center rounded-md bg-indigo-800 px-3 text-sm font-semibold leading-6 text-white shadow-sm py-1.5 hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"

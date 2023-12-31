@@ -32,26 +32,6 @@ func init() {
 	gob.Register(webauthn.SessionData{})
 }
 
-func (app *application) resolveRoutes(currentPath string) []route {
-	routes := []route{
-		{
-			Href:  "/question-people",
-			Title: "Question people",
-			Icon:  "talk.svg",
-		},
-		{
-			Href:  "/investigate-scenes",
-			Title: "Investigate scenes",
-			Icon:  "chalk-outline-murder.svg",
-		},
-	}
-
-	for i := range routes {
-		routes[i].Current = currentPath == routes[i].Href
-	}
-	return routes
-}
-
 func (app *application) parseTemplates() (*template.Template, error) {
 	fs := os.DirFS("./ui/html")
 	patterns := []string{
@@ -60,7 +40,7 @@ func (app *application) parseTemplates() (*template.Template, error) {
 		"pages/*.gohtml",
 	}
 
-	return template.ParseFS(fs, patterns...)
+	return template.New("base").Funcs(templateFuncMap).ParseFS(fs, patterns...)
 }
 
 // compileTemplates parses the base templates and adds a templates based on path
@@ -133,7 +113,7 @@ func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	routes := app.resolveRoutes(r.URL.Path)
+	routes := resolveRoutes(r.Context())
 
 	data := questionPeopleData{
 		IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
