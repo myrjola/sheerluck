@@ -8,7 +8,8 @@
         <meta name="viewport" content="width=device-width, initial-scale=1"/>
         <meta name="robots" content="noindex,nofollow"/>
         <title>Sheerluck</title>
-        <meta name="description" content="AI-powered murder mysteries. Question suspects and investigate crime scenes to solve the case. Your first case is “The Murders in the Rue Morgue” by Edgar Allan Poe.">
+        <meta name="description"
+              content="AI-powered murder mysteries. Question suspects and investigate crime scenes to solve the case. Your first case is “The Murders in the Rue Morgue” by Edgar Allan Poe.">
         <link rel="stylesheet" href="/main.css"/>
         <link rel="icon" href="/logo.svg">
         <link rel="mask-icon" href="/logo.svg" color="#f1febe">
@@ -17,14 +18,23 @@
         <meta name="theme-color" content="#111827">
         <script defer src="/htmx-1.9.9.js"></script>
         <script defer src="/sse-1.9.9.js"></script>
-        <script defer src="/webauthn.js?v=1"></script>
         <script defer src="/@alpinejs/focus-3.13.3.js"></script>
         <script defer src="/alpinejs-3.13.3.js"></script>
         <script async defer src="https://myrjola.twic.pics/?v1&path=sheerluck"></script>
+        <meta name="htmx-config"
+              content='{"selfRequestsOnly":"true", "historyCacheSize": 0, "allowEval": false, "globalViewTransitions": true}'>
     </head>
     <body class="h-full" hx-boost="true">
     {{ block "body" . }}
-    {{ if isAuthenticated .Ctx }}
+        {{ if isAuthenticated .Ctx }}
+        <dialog id="mobile-menu" class="animate-fade-out open:animate-fade-in">
+            <div>
+                Test
+            </div>
+            <button type="button" id="close-mobile-menu">Close</button>
+        </dialog>
+        <button id="open-mobile-menu">Open menu</button>
+        <script src="/mobilemenu.js"></script>
         <div x-data="{ menuOpen: false }">
             <!-- Off-canvas menu for mobile, show/hide based on off-canvas menu state. -->
             <div class="relative isolate z-50 lg:hidden"
@@ -94,17 +104,17 @@
 
             <main class="py-10 lg:pl-72">
                 <div class="px-4 sm:px-6 lg:px-8">
-                    {{ .Main }}
+                    {{ .Slot }}
                 </div>
             </main>
         </div>
-    {{ else }}
+        {{ else }}
         <main class="py-10">
             <div class="px-4 sm:px-6 lg:px-8">
-                {{ .Main }}
+                {{ .Slot }}
             </div>
         </main>
-    {{ end }}
+        {{ end }}
     {{ end }}
     </body>
     </html>

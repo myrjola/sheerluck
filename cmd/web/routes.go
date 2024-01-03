@@ -15,10 +15,11 @@ func (app *application) routes() http.Handler {
 	session := alice.New(app.sessionManager.LoadAndSave, app.authenticate)
 	sessionSSE := alice.New(app.serverSentEventMiddleware, app.authenticate)
 
-	mux.Handle("GET /{$}", session.ThenFunc(app.renderHTMXPage))
-	mux.Handle("/question-people", session.ThenFunc(app.questionPeople))
+	mux.Handle("GET /{$}", session.Then(app.htmxHandler(app.Home)))
+	mux.Handle("GET /question-people", session.Then(app.htmxHandler(app.QuestionPeople)))
+	mux.Handle("POST /question-target", session.ThenFunc(app.questionTarget))
 	mux.Handle("GET /question-people/stream", sessionSSE.ThenFunc(app.streamChat))
-	mux.Handle("GET /investigate-scenes", session.ThenFunc(app.investigateScenes))
+	mux.Handle("GET /investigate-scenes", session.Then(app.htmxHandler(app.InvestigateScenes)))
 
 	mux.Handle("POST /api/registration/start", session.ThenFunc(app.BeginRegistration))
 	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.FinishRegistration))

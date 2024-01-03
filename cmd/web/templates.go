@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"github.com/donseba/go-htmx"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
@@ -46,31 +45,9 @@ func (app *application) executeTemplate(w io.Writer, name string, data any) erro
 }
 
 type baseData struct {
-	Nav  template.HTML
-	Main template.HTML
 	Ctx  context.Context
-}
-
-// TODO: wrap in middleware so that main is passed in as raw HTML, probably need to refactor body to separate template
-func (app *application) Base(ctx context.Context, w io.Writer, h *htmx.HxRequestHeader) error {
-	nav := bytes.Buffer{}
-	if err := app.Nav(ctx, &nav, h); err != nil {
-		return err
-	}
-	main := bytes.Buffer{}
-	if err := app.Home(ctx, &main, h); err != nil {
-		return err
-	}
-	data := baseData{
-		Nav:  template.HTML(nav.String()),  //nolint:gosec
-		Main: template.HTML(main.String()), //nolint:gosec
-		Ctx:  ctx,
-	}
-	if h.HxRequest {
-		return app.executeTemplate(w, "body", data)
-	}
-
-	return app.executeTemplate(w, "base", data)
+	Nav  template.HTML
+	Slot template.HTML
 }
 
 type homeData struct {
@@ -93,4 +70,25 @@ func (app *application) Nav(ctx context.Context, w io.Writer, _ *htmx.HxRequestH
 		Ctx: ctx,
 	}
 	return app.executeTemplate(w, "nav", data)
+}
+
+type questionPeopleData struct {
+	Ctx           context.Context
+	ChatResponses []chatResponse
+}
+
+func (app *application) QuestionPeople(ctx context.Context, w io.Writer, _ *htmx.HxRequestHeader) error {
+	data := questionPeopleData{
+		Ctx:           ctx,
+		ChatResponses: chatResponses,
+	}
+	return app.executeTemplate(w, "question-people", data)
+}
+
+func (app *application) InvestigateScenes(_ context.Context, w io.Writer, _ *htmx.HxRequestHeader) error {
+	return app.executeTemplate(w, "investigate-scenes", nil)
+}
+
+func (app *application) ChatResponse(w io.Writer, chatResponse chatResponse) error {
+	return app.executeTemplate(w, "chat-response", chatResponse)
 }

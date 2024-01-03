@@ -1,15 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/donseba/go-htmx"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/justinas/nosurf"
-	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/internal/models"
 	"github.com/sashabaranov/go-openai"
 	"html/template"
@@ -57,17 +57,41 @@ func (app *application) compileTemplates(templateFileNames ...string) (*template
 	return template.ParseFiles(templates...)
 }
 
-// renderHTMXPage renders the HTMX page when the request is not an HTMX request,
-// else it renders the full page with base template.
-func (app *application) renderHTMXPage(w http.ResponseWriter, r *http.Request) {
-	handler := app.htmx.NewHandler(w, r)
+func (app *application) htmxHandler(slotFunc func(ctx context.Context, w io.Writer, h *htmx.HxRequestHeader) error) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		handler := app.htmx.NewHandler(w, r)
+		headers := handler.Request()
 
-	h := handler.Request()
+		nav := bytes.Buffer{}
+		if err := app.Nav(ctx, &nav, &headers); err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		slot := bytes.Buffer{}
+		if err := slotFunc(ctx, &slot, &headers); err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+		data := baseData{
+			Nav:  template.HTML(nav.String()),  //nolint:gosec
+			Slot: template.HTML(slot.String()), //nolint:gosec
+			Ctx:  ctx,
+		}
 
-	if err := app.Base(r.Context(), handler, &h); err != nil {
-		app.serverError(w, r, err)
-		return
+		templateName := "base"
+
+		if headers.HxRequest {
+			templateName = "body"
+		}
+
+		if err := app.executeTemplate(w, templateName, data); err != nil {
+			app.serverError(w, r, err)
+			return
+		}
 	}
+
+	return http.HandlerFunc(fn)
 }
 
 func (app *application) renderHtmx(w http.ResponseWriter, r *http.Request, t *template.Template, data any) error {
@@ -85,47 +109,6 @@ func (app *application) renderHtmx(w http.ResponseWriter, r *http.Request, t *te
 	}
 
 	return nil
-}
-
-type questionPeopleData struct {
-	IsAuthenticated bool
-	Routes          []route
-	ChatResponses   []chatResponse
-	CSRFToken       string
-}
-
-func (app *application) questionPeople(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodPost {
-		err := app.postQuestion(r)
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-	}
-
-	var (
-		t   *template.Template
-		err error
-	)
-
-	if t, err = app.compileTemplates("question-people", "partials/chat-responses"); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	routes := resolveRoutes(r.Context())
-
-	data := questionPeopleData{
-		IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
-		Routes:          routes,
-		ChatResponses:   chatResponses,
-		CSRFToken:       nosurf.Token(r),
-	}
-
-	if err = app.renderHtmx(w, r, t, data); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
 }
 
 func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request) {
@@ -208,18 +191,27 @@ func (app *application) startCompletionStream(completionID int, messages []opena
 	return nil
 }
 
-func (app *application) postQuestion(r *http.Request) error {
+func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 	var (
 		err error
 	)
 	if err = r.ParseForm(); err != nil {
-		return fmt.Errorf("parse form: %w", err)
+		app.serverError(w, r, err)
+		return
 	}
 	if r.PostForm == nil {
-		return errors.New("no form data")
+		app.serverError(w, r, errors.New("no post form"))
+		return
 	}
 	question := r.PostForm.Get("question")
+	if question == "" {
+		app.serverError(w, r, errors.New("no question"))
+		return
+	}
 	completionID := 1
+
+	handler := app.htmx.NewHandler(w, r)
+	headers := handler.Request()
 
 	messages := []openai.ChatCompletionMessage{
 		{
@@ -244,20 +236,26 @@ func (app *application) postQuestion(r *http.Request) error {
 	messages = append(messages, openai.ChatCompletionMessage{Role: openai.ChatMessageRoleUser, Content: question})
 
 	// When HTMX does the request, we start a stream that the SSE GET can listen to through app.broker.
-	if r.Header.Get("Hx-Boosted") == "true" {
+	if headers.HxBoosted {
 		if err = app.startCompletionStream(completionID, messages); err != nil {
-			return fmt.Errorf("start completion stream: %w", err)
+			app.serverError(w, r, fmt.Errorf("start completion stream: %w", err))
+			return
 		}
-		chatResponses = append(chatResponses, chatResponse{
+		cr := chatResponse{
 			Question: question,
 			Answer:   "",
-		})
-		return nil
+		}
+		chatResponses = append(chatResponses, cr)
+		if err := app.ChatResponse(w, cr); err != nil {
+			app.serverError(w, r, fmt.Errorf("render chat response: %w", err))
+		}
+		return
 	}
 	// When not a HTMX request, we do the completion synchronously.
 	var resp openai.ChatCompletionResponse
 	if resp, err = app.aiClient.SyncCompletion(messages); err != nil {
-		return fmt.Errorf("sync completion: %w", err)
+		app.serverError(w, r, fmt.Errorf("sync completion: %w", err))
+		return
 	}
 	cr := chatResponse{
 		Question: question,
@@ -265,7 +263,7 @@ func (app *application) postQuestion(r *http.Request) error {
 	}
 	chatResponses = append(chatResponses, cr)
 
-	return nil
+	http.Redirect(w, r, "/question-people", http.StatusSeeOther)
 }
 
 // streamChat sends server side events (SSE) to the client.

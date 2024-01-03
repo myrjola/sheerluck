@@ -33,7 +33,6 @@
                                 </button>
                             </form>
                         {{ else }}
-                            <script src="/webauthn.js"></script>
                             <button
                                     id="login-button"
                                     type="button"
@@ -48,6 +47,7 @@
                             >
                                 Register
                             </button>
+                            <script src="/webauthn.js?v=2"></script>
                         {{ end }}
                     </div>
                 </div>

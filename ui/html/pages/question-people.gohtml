@@ -1,17 +1,19 @@
 {{- /*gotype:github.com/myrjola/sheerluck/cmd/web.questionPeopleData */ -}}
-{{ define "main" }}
+{{ define "question-people" }}
     <h2 class="mb-1 text-lg font-bold">Question people</h2>
     <div id="answers" class="mx-auto max-w-md [overflow-anchor:none]">
         {{ template "chat-responses" . }}
     </div>
 
     <form
-            action="/question-people"
+            action="/question-target"
             method="post"
-            hx-swap="show:none"
+            hx-swap="beforeend show:none"
+            hx-target="#answers"
+            hx-push-url="false"
             class="mx-auto max-w-md"
     >
-        <input type="hidden" name="csrf_token" value="{{ .CSRFToken }}">
+        <input type="hidden" name="csrf_token" value="{{ csrfToken .Ctx }}">
         <label>
             <span> Question: </span>
             <input
