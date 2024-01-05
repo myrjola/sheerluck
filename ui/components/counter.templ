@@ -4,32 +4,29 @@ import (
     "strconv"
 )
 
-templ counterStyle() {
-	<style>
+var CounterElement = CustomElement{
+    Style: `
         my-counter:defined input {
-            display: none;
-        }
-    </style>
-}
+           display: none;
+        }`,
+    Script: `
+        window.customElements.define("my-counter", class extends HTMLElement {
+            connectedCallback() {
+                const tmpl = this.querySelector("template");
+                tmpl.replaceWith(tmpl.content);
 
-script counterScript() {
-    window.customElements.define("my-counter", class extends HTMLElement {
-        connectedCallback() {
-            const tmpl = this.querySelector("template");
-            tmpl.replaceWith(tmpl.content);
+                const btn = this.querySelector("button");
+                const output = this.querySelector("output");
+                const input = this.querySelector("input");
 
-            const btn = this.querySelector("button");
-            const output = this.querySelector("output");
-            const input = this.querySelector("input");
-
-            let value = parseInt(output.innerText);
-            btn.addEventListener("click", () => {
-                 value++;
-                 output.innerText = value;
-                 input.value = value;
-            })
-        }
-    })
+                let value = parseInt(output.innerText);
+                btn.addEventListener("click", () => {
+                     value++;
+                     output.innerText = value;
+                     input.value = value;
+                })
+            }
+        })`,
 }
 
 templ counter(name string, value int) {

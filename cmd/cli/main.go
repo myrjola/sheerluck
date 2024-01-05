@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/joho/godotenv"
+	"github.com/myrjola/sheerluck/cmd/cli/bundle"
 	"github.com/myrjola/sheerluck/cmd/cli/img"
 	"github.com/spf13/cobra"
 	"os"
@@ -15,6 +16,8 @@ func init() {
 	}
 	rootCmd.AddGroup(img.Group)
 	rootCmd.AddCommand(img.Generate)
+	rootCmd.AddGroup(bundle.Group)
+	rootCmd.AddCommand(bundle.CustomElements)
 }
 
 var rootCmd = &cobra.Command{
