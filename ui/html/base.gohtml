@@ -16,13 +16,39 @@
         <link rel="apple-touch-icon" href="https://myrjola.twic.pics/sheerluck/apple-touch-icon.png">
         <link rel="manifest" href="manifest.json">
         <meta name="theme-color" content="#111827">
-        <script defer src="/htmx-1.9.9.js"></script>
-        <script defer src="/sse-1.9.9.js"></script>
-        <script defer src="/@alpinejs/focus-3.13.3.js"></script>
-        <script defer src="/alpinejs-3.13.3.js"></script>
-        <script async defer src="https://myrjola.twic.pics/?v1&path=sheerluck"></script>
+        <script nonce="123" defer src="/htmx-1.9.9.js"></script>
+        <script nonce="123" defer src="/sse-1.9.9.js"></script>
+        <script nonce="123" defer src="/@alpinejs/focus-3.13.3.js"></script>
+        <script nonce="123" defer src="/alpinejs-3.13.3.js"></script>
+        <script nonce="123" async defer src="https://myrjola.twic.pics/?v1&path=sheerluck"></script>
         <meta name="htmx-config"
               content='{"selfRequestsOnly":"true", "historyCacheSize": 0, "allowEval": false, "globalViewTransitions": true}'>
+
+        <style>
+            my-counter:defined input {
+                display: none;
+            }
+        </style>
+
+        <script type="module">
+            window.customElements.define("my-counter", class extends HTMLElement {
+                connectedCallback() {
+                    const tmpl = this.querySelector("template");
+                    tmpl.replaceWith(tmpl.content);
+
+                    const btn = this.querySelector("button");
+                    const output = this.querySelector("output");
+                    const input = this.querySelector("input");
+
+                    let value = parseInt(output.innerText);
+                    btn.addEventListener("click", () => {
+                        value++;
+                        output.innerText = value;
+                        input.value = value;
+                    })
+                }
+            })
+        </script>
     </head>
     <body class="h-full" hx-boost="true">
     {{ block "body" . }}
@@ -37,7 +63,7 @@
         <script src="/mobilemenu.js"></script>
         <div x-data="{ menuOpen: false }">
             <!-- Off-canvas menu for mobile, show/hide based on off-canvas menu state. -->
-            <div class="relative isolate z-50 lg:hidden"
+            <div class="hidden relative isolate z-50 lg:hidden"
                  role="dialog" aria-modal="true" x-trap="menuOpen" x-show="menuOpen" x-cloak
             >
                 <div class="fixed inset-0 bg-gray-900/80" x-show="menuOpen"

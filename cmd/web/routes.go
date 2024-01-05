@@ -1,8 +1,10 @@
 package main
 
 import (
+	"github.com/a-h/templ"
 	goHTMX "github.com/donseba/go-htmx/middleware"
 	"github.com/justinas/alice"
+	"github.com/myrjola/sheerluck/ui/components"
 	"net/http"
 )
 
@@ -20,6 +22,7 @@ func (app *application) routes() http.Handler {
 	mux.Handle("POST /question-target", session.ThenFunc(app.questionTarget))
 	mux.Handle("GET /question-people/stream", sessionSSE.ThenFunc(app.streamChat))
 	mux.Handle("GET /investigate-scenes", session.Then(app.htmxHandler(app.InvestigateScenes)))
+	mux.Handle("GET /templ", session.Then(templ.Handler(components.Test())))
 
 	mux.Handle("POST /api/registration/start", session.ThenFunc(app.BeginRegistration))
 	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.FinishRegistration))

@@ -10,9 +10,9 @@ import (
 func secureHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy",
-			`default-src 'self' https://myrjola.twic.pics 'unsafe-eval';
-                   style-src 'self' 'unsafe-inline';
-                   img-src 'self' data: https://myrjola.twic.pics`)
+			`script-src 'nonce-123123123' 'strict-dynamic' 'unsafe-inline' https: http:;
+				   object-src 'none';
+				   base-uri 'none';`)
 
 		w.Header().Set("Referrer-Policy", "origin-when-cross-origin")
 		w.Header().Set("X-Content-Type-Options", "nosniff")

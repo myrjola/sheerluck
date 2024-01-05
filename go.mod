@@ -19,6 +19,7 @@ require (
 )
 
 require (
+	github.com/a-h/templ v0.2.513 // indirect
 	github.com/andybalholm/cascadia v1.3.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.5.0 // indirect
@@ -35,7 +36,7 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	golang.org/x/crypto v0.16.0 // indirect
-	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
