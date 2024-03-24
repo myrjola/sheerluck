@@ -2,6 +2,8 @@ package components
 
 import (
     "strconv"
+
+	"github.com/myrjola/sheerluck/internal/contexthelpers"
 )
 
 // Hello, wrld
@@ -68,14 +70,14 @@ templ Test() {
             <meta name="description"
                   content="AI-powered murder mysteries. Question suspects and investigate crime scenes to solve the case. Your first case is “The Murders in the Rue Morgue” by Edgar Allan Poe."/>
             <link rel="stylesheet" href="/main.css"/>
-            <script type="module" src="/bundle.js" nonce="123123123" />
-            <script nonce="123123123" defer src="/htmx-1.9.9.js" />
+            <script type="module" src="/bundle.js" nonce={ contexthelpers.CSPNonce(ctx) }></script>
+            <script defer src="/htmx-1.9.9.js" nonce={ contexthelpers.CSPNonce(ctx) }></script>
         </head>
         <body>
             <div class="m-2">
-               Hello, wrld
+               Hello, world
             </div>
-            @hello("wrld")
+            @hello("world")
             @NavigationMenu()
             @counter("counter1", 0)
             @counter("counter2", 2)
