@@ -77,6 +77,7 @@ func main() {
 	fqdn := flag.String("fqdn", defaultFQDN, "Fully qualified domain name for setting up Webauthn")
 	pprofPort := flag.String("pprof-addr", defaultPprofPort, "HTTP network address for pprof")
 	sqliteURL := flag.String("sqlite-url", defaultSqliteURL, "SQLite URL")
+	proxyPort := flag.String("proxyport", "", "Proxy port for configuring webauthn in dev environment")
 	flag.Parse()
 
 	// Initialise pprof listening on localhost so that it's not open to the world
@@ -85,6 +86,9 @@ func main() {
 	rpOrigins := []string{fmt.Sprintf("http://%s", *addr)}
 	if *fqdn != "localhost" {
 		rpOrigins = []string{fmt.Sprintf("https://%s", *fqdn)}
+	}
+	if *proxyPort != "" {
+		rpOrigins = []string{fmt.Sprintf("http://%s:%s", *fqdn, *proxyPort)}
 	}
 
 	var webauthnConfig = &webauthn.Config{
