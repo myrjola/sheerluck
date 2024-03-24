@@ -1,18 +1,18 @@
 package components
 
 import (
-    "strconv"
+	"strconv"
 
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 )
 
 // Hello, wrld
 var CounterElement = CustomElement{
-    Style: `
+	Style: `
         my-counter:defined input {
            display: none;
         }`,
-    Script: `
+	Script: `
         window.customElements.define("my-counter", class extends HTMLElement {
             connectedCallback() {
                 const tmpl = this.querySelector("template");
@@ -33,25 +33,26 @@ var CounterElement = CustomElement{
 }
 
 templ counter(name string, value int) {
-    if uid := shortUID(); true {
-        <my-counter>
-            <input type="number" id={uid} name={name} value={strconv.Itoa(value)} />
-            <template>
-                @primaryButton(templ.Attributes{"type": "button"}) {
-                    Add
-                }
-                <output for={uid}>{strconv.Itoa(value)}</output>
-            </template>
-        </my-counter>
-    }
+	if uid := shortUID(); true {
+		<my-counter>
+			<input type="number" id={ uid } name={ name } value={ strconv.Itoa(value) }/>
+			<template>
+				@primaryButton(templ.Attributes{"type": "button"}) {
+					Add
+				}
+				<output for={ uid }>{ strconv.Itoa(value) }</output>
+			</template>
+		</my-counter>
+	}
 }
 
 templ primaryButton(attrs templ.Attributes) {
-    <button
-        class="rounded-md bg-indigo-800 text-sm font-semibold text-white shadow-sm px-3.5 py-2.5 hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400" { attrs... }
-    >
-        {children...}
-    </button>
+	<button
+		class="rounded-md bg-indigo-800 text-sm font-semibold text-white shadow-sm px-3.5 py-2.5 hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400"
+		{ attrs... }
+	>
+		{ children... }
+	</button>
 }
 
 templ hello(name string) {
@@ -59,34 +60,36 @@ templ hello(name string) {
 }
 
 templ Test() {
-    <!doctype html>
-    <html lang="en" class="h-full">
-        <head>
-            <meta charset="utf-8"/>
-            <meta http-equiv="x-ua-compatible" content="ie=edge"/>
-            <meta name="viewport" content="width=device-width, initial-scale=1"/>
-            <meta name="robots" content="noindex,nofollow"/>
-            <title>Sheerluck</title>
-            <meta name="description"
-                  content="AI-powered murder mysteries. Question suspects and investigate crime scenes to solve the case. Your first case is “The Murders in the Rue Morgue” by Edgar Allan Poe."/>
-            <link rel="stylesheet" href="/main.css"/>
-            <script type="module" src="/bundle.js" nonce={ contexthelpers.CSPNonce(ctx) }></script>
-            <script defer src="/htmx-1.9.9.js" nonce={ contexthelpers.CSPNonce(ctx) }></script>
-        </head>
-        <body>
-            <div class="m-2">
-               Hello, world
-            </div>
-            @hello("world")
-            @NavigationMenu()
-            @counter("counter1", 0)
-            @counter("counter2", 2)
-            @counter("counter3", 4)
-            @primaryButton(templ.Attributes{"type": "button", "hx-get": "/templ", "hx-select": "my-counter", "hx-swap": "afterend"}) {
-                Re-fetch
-            }
-        </body>
-    </html>
+	<!DOCTYPE html>
+	<html lang="en" class="h-full">
+		<head>
+			<meta charset="utf-8"/>
+			<meta http-equiv="x-ua-compatible" content="ie=edge"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1"/>
+			<meta name="robots" content="noindex,nofollow"/>
+			<title>Sheerluck</title>
+			<meta
+				name="description"
+				content="AI-powered murder mysteries. Question suspects and investigate crime scenes to solve the case. Your first case is “The Murders in the Rue Morgue” by Edgar Allan Poe."
+			/>
+			<link rel="stylesheet" href="/main.css"/>
+			<script type="module" src="/bundle.js" nonce={ contexthelpers.CSPNonce(ctx) }></script>
+			<script defer src="/htmx-1.9.9.js" nonce={ contexthelpers.CSPNonce(ctx) }></script>
+		</head>
+		<body>
+			<div class="m-2">
+				Hello, world
+			</div>
+			@hello("world")
+			@NavigationMenu()
+			@counter("counter1", 0)
+			@counter("counter2", 2)
+			@counter("counter3", 4)
+			@primaryButton(templ.Attributes{"type": "button", "hx-get": "/templ", "hx-select": "my-counter", "hx-swap": "afterend"}) {
+				Re-fetch
+			}
+		</body>
+	</html>
 }
 
 css primaryClassName() {
