@@ -4,6 +4,7 @@ import (
     "strconv"
 )
 
+// Hello, wrld
 var CounterElement = CustomElement{
     Style: `
         my-counter:defined input {
@@ -71,13 +72,28 @@ templ Test() {
             <script nonce="123123123" defer src="/htmx-1.9.9.js" />
         </head>
         <body>
-            @hello("world")
+            <div class="m-2">
+               Hello, wrld
+            </div>
+            @hello("wrld")
+            @NavigationMenu()
             @counter("counter1", 0)
             @counter("counter2", 2)
             @counter("counter3", 4)
             @primaryButton(templ.Attributes{"type": "button", "hx-get": "/templ", "hx-select": "my-counter", "hx-swap": "afterend"}) {
-                Refetch
+                Re-fetch
             }
         </body>
     </html>
+}
+
+css primaryClassName() {
+	background-color: #ffffff;
+	color: { templ.KV("brace", true).Key };
+}
+
+script graph(data []string) {
+	const chart = LightweightCharts.createChart(document.body, { width: 400, height: 300 });
+	const lineSeries = chart.addLineSeries();
+	lineSeries.setData(data);
 }

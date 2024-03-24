@@ -10,7 +10,7 @@ import (
 func secureHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Security-Policy",
-			`script-src 'nonce-123123123' 'strict-dynamic' 'unsafe-inline' https: http:;
+			`script-src 'nonce-123123123' 'sha256-bTgwCXX2FVGgej3B6zYwnW8d6H0hyp8hy53Zn8fBPgU=' 'strict-dynamic' https: http:;
 				   object-src 'none';
 				   base-uri 'none';`)
 

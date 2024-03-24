@@ -1,0 +1,16 @@
+package components
+
+templ NavigationMenu() {
+    <navigation-menu>
+        @primaryButton(templ.Attributes{"type": "button"}) {
+            Menu
+        }
+        <dialog>
+            <form method="dialog">
+                @primaryButton(templ.Attributes{}) {
+                    Close menu
+                }
+            </form>
+        </dialog>
+    </navigation-menu>
+}

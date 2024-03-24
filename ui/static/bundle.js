@@ -1,1 +1,0 @@
-window.customElements.define("my-counter",class extends HTMLElement{connectedCallback(){const t=this.querySelector("template");t.replaceWith(t.content);const s=this.querySelector("button"),n=this.querySelector("output"),o=this.querySelector("input");let e=parseInt(n.innerText);s.addEventListener("click",()=>{e++,n.innerText=e,o.value=e})}})
