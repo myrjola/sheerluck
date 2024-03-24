@@ -10,8 +10,8 @@ class MyCounter extends HTMLElement {
     let value = parseInt(output.innerText);
     btn.addEventListener("click", () => {
       value++;
-      output.innerText = value;
-      input.value = value;
+      output.innerText = value.toString();
+      input.value = value.toString();
     })
   }
 }

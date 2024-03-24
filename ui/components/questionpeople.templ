@@ -1,0 +1,35 @@
+package components
+
+import (
+	"github.com/myrjola/sheerluck/internal/contexthelpers"
+)
+
+templ QuestionPeople(chatResponses []ChatResponse) {
+    <h2 class="mb-1 text-lg font-bold">Question people</h2>
+    <div id="answers" class="mx-auto max-w-md [overflow-anchor:none]">
+        @ChatResponses(chatResponses)
+    </div>
+
+    <form
+            action="/question-target"
+            method="post"
+            hx-swap="beforeend show:none"
+            hx-target="#answers"
+            hx-push-url="false"
+            class="mx-auto max-w-md"
+    >
+        <input type="hidden" name="csrf_token" value={ contexthelpers.CSRFToken(ctx) } />
+        <label>
+            <span> Question: </span>
+            <input
+                    class="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
+                    id="chat-question"
+                    name="question"
+                    type="text"
+                    autocomplete="off"
+                    autofocus
+            />
+        </label>
+        <button id="question-submit-button" type="submit" hx-disabled-elt="this">Submit</button>
+    </form>
+}

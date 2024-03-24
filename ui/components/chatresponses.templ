@@ -1,0 +1,68 @@
+package components
+
+type ChatResponse struct {
+	Question string
+	Answer   string
+}
+
+templ ActiveChatResponse(chatResponse ChatResponse) {
+    <div class="prose prose-invert">
+        <span class="font-semibold">Detective:</span>
+        <span>
+        { chatResponse.Question }
+      </span>
+    </div>
+    <img class="h-12 w-auto rounded-full" data-twic-src="image:/adolphe_le-bon.webp" alt=""/>
+    if chatResponse.Answer != "" {
+        <div class="prose prose-invert">
+            <span class="font-semibold">Adolphe:</span>
+            <span>
+            { chatResponse.Answer }
+            </span>
+        </div>
+    } else {
+        <div id="chat-streaming-content" class="prose prose-invert">
+            <span class="font-semibold">Adolphe:</span>
+        </div>
+        <div
+                id="chat-listener"
+                hx-ext="sse"
+                sse-connect="/question-people/stream"
+                sse-swap="message"
+                hx-swap="beforeend"
+                hx-target="#chat-streaming-content"
+        ></div>
+    }
+}
+
+templ ChatResponses(chatResponses []ChatResponse) {
+    for _, chatResponse := range chatResponses {
+        <div class="prose prose-invert">
+          <span class="font-semibold">Detective:</span>
+          <span>
+            { chatResponse.Question }
+          </span>
+        </div>
+        <img class="h-12 w-auto rounded-full" data-twic-src="image:/adolphe_le-bon.webp" alt="" />
+        if chatResponse.Answer != "" {
+          <div class="prose prose-invert">
+            <span class="font-semibold">Adolphe:</span>
+            <span>
+              { chatResponse.Answer }
+            </span>
+          </div>
+        } else {
+          <div id="chat-streaming-content" class="prose prose-invert">
+            <span class="font-semibold">Adolphe:</span>
+          </div>
+          <div
+            id="chat-listener"
+            hx-ext="sse"
+            sse-connect="/question-people/stream"
+            sse-swap="message"
+            hx-swap="beforeend"
+            hx-target="#chat-streaming-content"
+          ></div>
+        }
+    }
+}

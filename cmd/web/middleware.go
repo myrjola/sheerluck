@@ -18,7 +18,7 @@ func secureHeaders(next http.Handler) http.Handler {
 		}
 		r = contexthelpers.SetCSPNonce(r, cspNonce)
 
-		// TODO: the sha256-bTg... hash is for templ proxy script, it could be removed in production
+		// TODO: the sha256-sqo... hash is for templ proxy script, it could be removed in production
 		csp := fmt.Sprintf(`script-src 'nonce-%s' 'sha256-sqo8MTGTNv+1S8aob6Z4+nMtPb2eAfoUvjfTU20cq5o=' 'strict-dynamic' https: http:;
 object-src 'none';
 base-uri 'none';`, cspNonce)

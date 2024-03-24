@@ -1,16 +1,17 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/gob"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/a-h/templ"
 	"github.com/donseba/go-htmx"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/myrjola/sheerluck/internal/models"
+	"github.com/myrjola/sheerluck/ui/components"
 	"github.com/sashabaranov/go-openai"
 	"html/template"
 	"io"
@@ -57,35 +58,27 @@ func (app *application) compileTemplates(templateFileNames ...string) (*template
 	return template.ParseFiles(templates...)
 }
 
-func (app *application) htmxHandler(slotFunc func(ctx context.Context, w io.Writer, h *htmx.HxRequestHeader) error) http.Handler {
+type slotFunc func(ctx context.Context, h *htmx.HxRequestHeader) templ.Component
+
+func (app *application) htmxHandler(slotF slotFunc) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		handler := app.htmx.NewHandler(w, r)
 		headers := handler.Request()
 
-		nav := bytes.Buffer{}
-		if err := app.Nav(ctx, &nav, &headers); err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-		slot := bytes.Buffer{}
-		if err := slotFunc(ctx, &slot, &headers); err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-		data := baseData{
-			Nav:  template.HTML(nav.String()),  //nolint:gosec
-			Slot: template.HTML(slot.String()), //nolint:gosec
-			Ctx:  ctx,
-		}
+		nav := components.Nav()
+		slot := slotF(ctx, &headers)
+		body := components.Body(slot, nav)
 
-		templateName := "base"
+		var err error
 
 		if headers.HxRequest {
-			templateName = "body"
+			err = body.Render(ctx, w)
+		} else {
+			err = components.Base(body).Render(ctx, w)
 		}
 
-		if err := app.executeTemplate(w, templateName, data); err != nil {
+		if err != nil {
 			app.serverError(w, r, err)
 			return
 		}
@@ -134,12 +127,7 @@ func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request
 	}
 }
 
-type chatResponse struct {
-	Question string
-	Answer   string
-}
-
-var chatResponses []chatResponse
+var chatResponses []components.ChatResponse
 
 func (app *application) startCompletionStream(completionID int, messages []openai.ChatCompletionMessage) error {
 	logger := app.logger.With("completionID", completionID)
@@ -241,12 +229,12 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 			app.serverError(w, r, fmt.Errorf("start completion stream: %w", err))
 			return
 		}
-		cr := chatResponse{
+		cr := components.ChatResponse{
 			Question: question,
 			Answer:   "",
 		}
 		chatResponses = append(chatResponses, cr)
-		if err := app.ChatResponse(w, cr); err != nil {
+		if err := components.ActiveChatResponse(cr).Render(r.Context(), w); err != nil {
 			app.serverError(w, r, fmt.Errorf("render chat response: %w", err))
 		}
 		return
@@ -257,7 +245,7 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, r, fmt.Errorf("sync completion: %w", err))
 		return
 	}
-	cr := chatResponse{
+	cr := components.ChatResponse{
 		Question: question,
 		Answer:   resp.Choices[0].Message.Content,
 	}

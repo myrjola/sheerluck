@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"github.com/a-h/templ"
 	"github.com/donseba/go-htmx"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
+	"github.com/myrjola/sheerluck/ui/components"
 	"html/template"
 	"io"
 )
@@ -14,12 +16,12 @@ func resolveRoutes(ctx context.Context) []route {
 		{
 			Href:  "/question-people",
 			Title: "Question people",
-			Icon:  "talk.svg",
+			Icon:  "/images/talk.svg",
 		},
 		{
 			Href:  "/investigate-scenes",
 			Title: "Investigate scenes",
-			Icon:  "chalk-outline-murder.svg",
+			Icon:  "/images/chalk-outline-murder.svg",
 		},
 	}
 
@@ -54,11 +56,8 @@ type homeData struct {
 	Ctx context.Context
 }
 
-func (app *application) Home(ctx context.Context, w io.Writer, _ *htmx.HxRequestHeader) error {
-	data := homeData{
-		ctx,
-	}
-	return app.executeTemplate(w, "home", data)
+func (app *application) Home(ctx context.Context, _ *htmx.HxRequestHeader) templ.Component {
+	return components.Home()
 }
 
 type navData struct {
@@ -72,23 +71,10 @@ func (app *application) Nav(ctx context.Context, w io.Writer, _ *htmx.HxRequestH
 	return app.executeTemplate(w, "nav", data)
 }
 
-type questionPeopleData struct {
-	Ctx           context.Context
-	ChatResponses []chatResponse
+func (app *application) QuestionPeople(ctx context.Context, _ *htmx.HxRequestHeader) templ.Component {
+	return components.QuestionPeople(chatResponses)
 }
 
-func (app *application) QuestionPeople(ctx context.Context, w io.Writer, _ *htmx.HxRequestHeader) error {
-	data := questionPeopleData{
-		Ctx:           ctx,
-		ChatResponses: chatResponses,
-	}
-	return app.executeTemplate(w, "question-people", data)
-}
-
-func (app *application) InvestigateScenes(_ context.Context, w io.Writer, _ *htmx.HxRequestHeader) error {
-	return app.executeTemplate(w, "investigate-scenes", nil)
-}
-
-func (app *application) ChatResponse(w io.Writer, chatResponse chatResponse) error {
-	return app.executeTemplate(w, "chat-response", chatResponse)
+func (app *application) InvestigateScenes(_ context.Context, _ *htmx.HxRequestHeader) templ.Component {
+	return components.InvestigateScenes()
 }

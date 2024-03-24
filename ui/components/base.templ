@@ -1,0 +1,34 @@
+package components
+
+import (
+	"github.com/myrjola/sheerluck/internal/contexthelpers"
+)
+
+templ Base(body templ.Component) {
+    <!doctype html>
+    <html lang="en" class="h-full bg-gray-900 text-white">
+        <head>
+            <meta charset="utf-8" />
+            <meta http-equiv="x-ua-compatible" content="ie=edge" />
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <meta name="robots" content="noindex,nofollow" />
+            <title>Sheerluck</title>
+            <meta name="description"
+                  content="AI-powered murder mysteries. Question suspects and investigate crime scenes to solve the case. Your first case is “The Murders in the Rue Morgue” by Edgar Allan Poe." />
+            <link rel="stylesheet" href="/main.css" />
+            <link rel="icon" href="/logo.svg" />
+            <link rel="mask-icon" href="/logo.svg" color="#f1febe" />
+            <link rel="apple-touch-icon" href="https://myrjola.twic.pics/sheerluck/apple-touch-icon.png" />
+            <link rel="manifest" href="/manifest.json" />
+            <meta name="theme-color" content="#111827" />
+            <meta name="htmx-config"
+                  content='{"selfRequestsOnly":"true", "historyCacheSize": 0, "allowEval": false, "globalViewTransitions": true}' />
+            <script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/htmx-1.9.9.js"></script>
+            <script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/sse-1.9.9.js"></script>
+            <script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/@alpinejs/focus-3.13.3.js"></script>
+            <script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/alpinejs-3.13.3.js"></script>
+            <script nonce={ contexthelpers.CSPNonce(ctx) } async defer src="https://myrjola.twic.pics/?v1&path=sheerluck"></script>
+        </head>
+        <body class="h-full" hx-boost="true">@body</body>
+    </html>
+}
