@@ -29,10 +29,11 @@ templ Base(body templ.Component) {
 			/>
 			<script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/htmx-2.0.0-alpha2.js"></script>
 			<script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/sse-2.0.0-alpha2.js"></script>
+			<script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/bundle.js"></script>
 			<script nonce={ contexthelpers.CSPNonce(ctx) } async defer src="https://myrjola.twic.pics/?v1&path=sheerluck"></script>
-			<script nonce={ contexthelpers.CSPNonce(ctx) } async defer src="/bundle.js"></script>
 		</head>
-		<body class="h-full" hx-boost="true">@body
-</body>
+		<body class="h-full" hx-boost="true" hx-ext="form-reset-on-success">
+            @body
+        </body>
 	</html>
 }

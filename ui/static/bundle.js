@@ -127,8 +127,24 @@
   };
   var registerbutton_default = RegisterButton;
 
-  // ui/components/custom-elements.ts
+  // main.ts
   window.customElements.define("navigation-menu", navigationmenu_default);
   window.customElements.define("login-button", loginbutton_default);
   window.customElements.define("register-button", registerbutton_default);
+  htmx.defineExtension("form-reset-on-success", {
+    onEvent: function(name, event) {
+      if (name !== "htmx:afterRequest")
+        return;
+      console.log(event);
+      if (!event.detail.successful)
+        return;
+      const triggeringElt = event.detail.requestConfig.elt;
+      console.log(triggeringElt);
+      console.log("closest: ", triggeringElt.closest("[hx-form-reset-on-success]"));
+      if (!triggeringElt.closest("[hx-form-reset-on-success]"))
+        return;
+      console.log("reset");
+      triggeringElt.reset();
+    }
+  });
 })();

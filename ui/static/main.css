@@ -571,10 +571,6 @@
     right: var(--spacing-0, 0px);
     left: var(--spacing-0, 0px);
   }
-  .inset-y-0 {
-    top: var(--spacing-0, 0px);
-    bottom: var(--spacing-0, 0px);
-  }
   .-top-40 {
     top: calc(var(--spacing-40, 10rem) * -1);
   }
@@ -837,6 +833,10 @@
   .pt-14 {
     padding-top: var(--spacing-14, 3.5rem);
   }
+  .px-2 {
+    padding-left: var(--spacing-2, 0.5rem);
+    padding-right: var(--spacing-2, 0.5rem);
+  }
   .px-3 {
     padding-left: var(--spacing-3, 0.75rem);
     padding-right: var(--spacing-3, 0.75rem);
@@ -951,9 +951,6 @@
   }
   .ease-out {
     transition-timing-function: var(--transition-timing-function-out, cubic-bezier(0, 0, 0.2, 1));
-  }
-  .\[a-zA-Z\:\\-\\\.\] {
-    a-zA-Z: \-\.;
   }
   .\[overflow-anchor\:none\] {
     overflow-anchor: none;
