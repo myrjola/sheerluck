@@ -40,6 +40,7 @@ var CustomElements = &cobra.Command{
 		fmt.Println("Bundling complete!")
 
 		if len(result.Errors) > 0 {
+			fmt.Println("Bundler errors: %s", result.Errors[0])
 			os.Exit(1)
 		}
 	},

@@ -34,32 +34,16 @@ templ Home() {
 							<form
 								action="/api/logout"
 								method="post"
-								class="mt-10 flex gap-2 sm:mx-auto sm:w-full sm:max-w-sm"
+								class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm"
 							>
 								<input type="hidden" name="csrf_token" value={ contexthelpers.CSRFToken(ctx) }/>
-								<button
-									type="submit"
-									class="flex w-full justify-center rounded-md bg-indigo-800 px-3 text-sm font-semibold leading-6 text-white shadow-sm py-1.5 hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500"
-								>
-									Log out
-								</button>
+								@primaryButton(templ.Attributes{"type": "submit"}) {
+                                    <span>Log out</span>
+								}
 							</form>
 						} else {
-							<button
-								id="login-button"
-								type="button"
-								class="rounded-md bg-indigo-800 text-sm font-semibold text-white shadow-sm px-3.5 py-2.5 hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400"
-							>
-								Sign in
-							</button>
-							<button
-								id="register-button"
-								type="button"
-								class="rounded-md bg-indigo-800 text-sm font-semibold text-white shadow-sm px-3.5 py-2.5 hover:bg-indigo-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-400"
-							>
-								Register
-							</button>
-							<script nonce={ contexthelpers.CSPNonce(ctx) } src="/webauthn.js?v=2"></script>
+                            @loginButton()
+                            @registerButton()
 						}
 					</div>
 				</div>
