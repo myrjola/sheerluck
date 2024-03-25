@@ -27,12 +27,12 @@ func resolveRoutes(ctx context.Context) []route {
 		{
 			Href:  "/question-people",
 			Title: "Question people",
-			Icon:  "talk.svg",
+			Icon:  "/images/talk.svg",
 		},
 		{
 			Href:  "/investigate-scenes",
 			Title: "Investigate scenes",
-			Icon:  "chalk-outline-murder.svg",
+			Icon:  "/images/chalk-outline-murder.svg",
 		},
 	}
 

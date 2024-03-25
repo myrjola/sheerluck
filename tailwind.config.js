@@ -2,7 +2,7 @@ const defaultTheme = require("tailwindcss/defaultTheme");
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    content: ["./ui/html/**/*.{html,js,gohtml,components}"],
+    content: ["./ui/**/*.{html,js,gohtml,templ}"],
     theme: {
         extend: {
             fontFamily: {
@@ -10,27 +10,41 @@ module.exports = {
             },
             animation: {
                 'fade-in': 'fade-in 0.7s ease-out',
-                'fade-out': 'fade-out 0.7s ease-out'
+                'fade-out': 'fade-out 0.7s ease-out',
+                'slide-in': 'slide-in 0.3s ease-in-out',
+                'slide-out': 'slide-out 0.3s ease-in-out',
             },
             keyframes: {
-                "fade-in": {
+                'fade-in': {
                     '0%': {
                         opacity: '0',
-                        display: 'none'
                     },
                     '100%': {
                         opacity: '1',
-                        display: 'block'
                     },
                 },
-                "fade-out": {
+                'fade-out': {
                     '0%': {
                         opacity: '1',
-                        display: 'block'
                     },
                     '100%': {
                         opacity: '0',
-                        display: 'none'
+                    },
+                },
+                'slide-in': {
+                    '0%': {
+                        'transform': 'translateX(-100%)',
+                    },
+                    '100%': {
+                        'transform': 'translateX(0)',
+                    },
+                },
+                'slide-out': {
+                    '0%': {
+                        'transform': 'translateX(0)',
+                    },
+                    '100%': {
+                        'transform': 'translateX(-100%)',
                     },
                 }
             }

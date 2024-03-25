@@ -17,12 +17,12 @@ func resolveRoutes(ctx context.Context) []route {
 		{
 			Href:  "/question-people",
 			Title: "Question people",
-			Icon:  "talk.svg",
+			Icon:  "/images/talk.svg",
 		},
 		{
 			Href:  "/investigate-scenes",
 			Title: "Investigate scenes",
-			Icon:  "chalk-outline-murder.svg",
+			Icon:  "/images/chalk-outline-murder.svg",
 		},
 	}
 
@@ -36,7 +36,7 @@ templ Nav() {
 	<div class="flex grow flex-col gap-y-5 overflow-y-auto bg-gray-900 px-6 pb-2 ring-1 ring-white/10">
 		<a href="/" class="-mx-2 mt-4 flex items-center rounded p-2">
 			<img class="h-8 w-auto" src="/logo.svg" alt=""/>
-			<span class="ml-2 text-lg">Sheerluck</span>
+			<span class="ml-2 text-lg text-gray-400">Sheerluck</span>
 			<span class="sr-only">Go to home page</span>
 		</a>
 		<nav class="flex flex-1 flex-col">

@@ -27,11 +27,10 @@ templ Base(body templ.Component) {
 				name="htmx-config"
 				content='{"selfRequestsOnly":"true", "historyCacheSize": 0, "allowEval": false, "globalViewTransitions": true}'
 			/>
-			<script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/htmx-1.9.9.js"></script>
-			<script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/sse-1.9.9.js"></script>
-			<script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/@alpinejs/focus-3.13.3.js"></script>
-			<script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/alpinejs-3.13.3.js"></script>
+			<script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/htmx-2.0.0-alpha2.js"></script>
+			<script nonce={ contexthelpers.CSPNonce(ctx) } defer src="/sse-2.0.0-alpha2.js"></script>
 			<script nonce={ contexthelpers.CSPNonce(ctx) } async defer src="https://myrjola.twic.pics/?v1&path=sheerluck"></script>
+			<script nonce={ contexthelpers.CSPNonce(ctx) } async defer src="/bundle.js"></script>
 		</head>
 		<body class="h-full" hx-boost="true">@body
 </body>
