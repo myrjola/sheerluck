@@ -168,3 +168,27 @@ func TestInvestigationRepository_FinishCompletion(t *testing.T) {
 		})
 	}
 }
+
+func Benchmark_InvestigationRepository(b *testing.B) {
+	readWriteDB, readDB := newBenchmarkDB(b)
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	repo := NewInvestigationRepository(readWriteDB, readDB, logger)
+	user, err := models.NewUser()
+	require.NoError(b, err)
+	userRepo := NewUserRepository(readWriteDB, readDB, logger)
+	err = userRepo.Upsert(context.Background(), user)
+	require.NoError(b, err)
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		ctx := context.Background()
+		investigationTarget := "le-bon"
+		for pb.Next() {
+			_, _ = repo.FinishCompletion(ctx, investigationTarget, user.ID, "question", "answer")
+			require.NoError(b, err)
+			_, err := repo.Get(ctx, investigationTarget, user.ID)
+			require.NoError(b, err)
+		}
+	})
+}
