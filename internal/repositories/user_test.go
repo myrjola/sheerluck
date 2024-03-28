@@ -12,9 +12,9 @@ import (
 )
 
 func TestUserRepository(t *testing.T) {
-	readWriteDB := newTestDB(t)
+	readWriteDB, readDB := newTestDB(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	repo := NewUserRepository(readWriteDB, readWriteDB, logger)
+	repo := NewUserRepository(readWriteDB, readDB, logger)
 
 	user, err := models.NewUser()
 	if err != nil {

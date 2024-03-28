@@ -1,9 +1,9 @@
-import Navigationmenu from "./ui/components/navigationmenu";
+import NavigationMenu from "./ui/components/navigationmenu";
 import LoginButton from "./ui/components/loginbutton";
 import RegisterButton from "./ui/components/registerbutton";
 
 // Define custom elements
-window.customElements.define('navigation-menu', Navigationmenu);
+window.customElements.define('navigation-menu', NavigationMenu);
 window.customElements.define('login-button', LoginButton);
 window.customElements.define('register-button', RegisterButton);
 

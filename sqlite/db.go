@@ -23,7 +23,15 @@ func NewDB(url string) (*sqlx.DB, *sqlx.DB, error) {
 		readDB      *sqlx.DB
 		ctx         = context.Background()
 	)
-	if readWriteDB, err = sqlx.ConnectContext(ctx, "sqlite3", fmt.Sprintf("%s?_txlock=immediate", url)); err != nil {
+
+	// For in-memory databases, we need shared cache mode so that both databases access the same data.
+	isInMemory := url == ":memory:"
+	cacheConfig := "&cache=private"
+	if isInMemory {
+		cacheConfig = "&cache=shared"
+	}
+
+	if readWriteDB, err = sqlx.ConnectContext(ctx, "sqlite3", fmt.Sprintf("file:%s?_txlock=immediate%s", url, cacheConfig)); err != nil {
 		return nil, nil, err
 	}
 
@@ -41,7 +49,7 @@ func NewDB(url string) (*sqlx.DB, *sqlx.DB, error) {
 	// Initialize the database schema
 	readWriteDB.MustExec(initialiseSchemaScript)
 
-	if readDB, err = sqlx.ConnectContext(ctx, "sqlite3", fmt.Sprintf("%s?mode=ro", url)); err != nil {
+	if readDB, err = sqlx.ConnectContext(ctx, "sqlite3", fmt.Sprintf("file:%s?mode=ro%s", url, cacheConfig)); err != nil {
 		return nil, nil, err
 	}
 

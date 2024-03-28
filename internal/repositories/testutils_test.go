@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	_ "embed"
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"github.com/myrjola/sheerluck/sqlite"
@@ -8,8 +9,11 @@ import (
 	"testing"
 )
 
+//go:embed testdata/fixtures.sql
+var testFixtures string
+
 // newTestDB creates a new in-memory database for testing purposes.
-func newTestDB(t *testing.T) *sqlx.DB {
+func newTestDB(t *testing.T) (*sqlx.DB, *sqlx.DB) {
 	var (
 		readWriteDB, readDB *sqlx.DB
 		err                 error
@@ -18,20 +22,26 @@ func newTestDB(t *testing.T) *sqlx.DB {
 	if readWriteDB, readDB, err = sqlite.NewDB(":memory:"); err != nil {
 		t.Fatal(err)
 	}
-	if err = readDB.Close(); err != nil {
-		t.Fatal(err)
-	}
+
+	// Set database to read-only mode.
+	// The mode=ro flag doesn't seem to work with :memory: and cache=shared.
+	readDB.MustExec("PRAGMA query_only = TRUE;")
+
+	// Add test data
+	readWriteDB.MustExec(testFixtures)
 
 	t.Cleanup(func() {
 		defer func() {
-			err := readWriteDB.Close()
-			if err != nil {
+			if err := readWriteDB.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if err := readDB.Close(); err != nil {
 				t.Fatal(err)
 			}
 		}()
 	})
 
-	return readWriteDB
+	return readWriteDB, readDB
 }
 
 // newBenchmarkDB creates database connection pools for benchmarking purposes.

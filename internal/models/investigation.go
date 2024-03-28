@@ -25,10 +25,8 @@ type InvestigationTarget struct {
 
 // Completion is a question and answer pair that is part of an investigation.
 type Completion struct {
-	ID                    []byte `db:"id"`
-	Order                 int    `db:"order"`
-	Question              string `db:"question"`
-	Answer                string `db:"answer"`
-	UserID                string `db:"user_id"`
-	InvestigationTargetID string `db:"investigation_target_id"`
+	ID       int64  `db:"id"`
+	Order    int64  `db:"order"`
+	Question string `db:"question"`
+	Answer   string `db:"answer"`
 }

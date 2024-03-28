@@ -82,7 +82,7 @@ WHERE "user_id" = ?`
 func (r *UserRepository) Upsert(ctx context.Context, user *models.User) error {
 	tx, err := r.readWriteDB.BeginTxx(ctx, nil)
 	if err != nil {
-
+		return err
 	}
 	defer func() {
 		_ = tx.Rollback()
