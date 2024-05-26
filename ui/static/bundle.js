@@ -135,15 +135,11 @@
     onEvent: function(name, event) {
       if (name !== "htmx:afterRequest")
         return;
-      console.log(event);
       if (!event.detail.successful)
         return;
       const triggeringElt = event.detail.requestConfig.elt;
-      console.log(triggeringElt);
-      console.log("closest: ", triggeringElt.closest("[hx-form-reset-on-success]"));
       if (!triggeringElt.closest("[hx-form-reset-on-success]"))
         return;
-      console.log("reset");
       triggeringElt.reset();
     }
   });

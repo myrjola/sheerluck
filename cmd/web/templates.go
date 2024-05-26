@@ -56,7 +56,7 @@ type homeData struct {
 	Ctx context.Context
 }
 
-func (app *application) Home(ctx context.Context, _ *htmx.HxRequestHeader) templ.Component {
+func (app *application) Home(_ context.Context, _ *htmx.HxRequestHeader) templ.Component {
 	return components.Home()
 }
 
@@ -72,6 +72,18 @@ func (app *application) Nav(ctx context.Context, w io.Writer, _ *htmx.HxRequestH
 }
 
 func (app *application) QuestionPeople(ctx context.Context, _ *htmx.HxRequestHeader) templ.Component {
+	userID := contexthelpers.AuthenticatedUserID(ctx)
+	investigation, _ := app.investigations.Get(ctx, "le-bon", userID)
+
+	chatResponses := make([]components.ChatResponse, len(investigation.Completions))
+
+	for i, completion := range investigation.Completions {
+		chatResponses[i] = components.ChatResponse{
+			Question: completion.Question,
+			Answer:   completion.Answer,
+		}
+	}
+
 	return components.QuestionPeople(chatResponses)
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/donseba/go-htmx"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/internal/models"
 	"github.com/myrjola/sheerluck/ui/components"
 	"github.com/sashabaranov/go-openai"
@@ -126,9 +127,6 @@ func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request
 		return
 	}
 }
-
-var chatResponses []components.ChatResponse
-
 func (app *application) startCompletionStream(completionID int, messages []openai.ChatCompletionMessage) error {
 	logger := app.logger.With("completionID", completionID)
 
@@ -136,7 +134,7 @@ func (app *application) startCompletionStream(completionID int, messages []opena
 		string
 		error
 	})
-	app.broker.Publish(1, completionChan)
+	app.broker.Publish(completionID, completionChan)
 	go func() {
 		stream, err := app.aiClient.StreamCompletion(messages)
 		if err != nil {
@@ -148,7 +146,7 @@ func (app *application) startCompletionStream(completionID int, messages []opena
 				app.logger.Error("completion stream: %w", err)
 			}
 			stream.Close()
-			app.broker.Unpublish(1)
+			app.broker.Unpublish(completionID)
 			close(completionChan)
 		}()
 		for {
@@ -181,7 +179,10 @@ func (app *application) startCompletionStream(completionID int, messages []opena
 
 func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 	var (
-		err error
+		err                   error
+		chatResponses         []components.ChatResponse
+		ctx                   = r.Context()
+		investigationTargetID = "le-bon"
 	)
 	if err = r.ParseForm(); err != nil {
 		app.serverError(w, r, err)
@@ -201,6 +202,8 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 	handler := app.htmx.NewHandler(w, r)
 	headers := handler.Request()
 
+	investigation, err := app.investigations.Get(ctx, investigationTargetID, contexthelpers.AuthenticatedUserID(ctx))
+
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role: openai.ChatMessageRoleSystem,
@@ -208,6 +211,13 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 				"You are Adolphe Le Bon, a clerk who was arrested based on circumstantial evidence on the murder of " +
 				"Madame L'Espanaye and her daughter. Answer the questions from detective Auguste Dupin in plain text.",
 		},
+	}
+
+	for _, completion := range investigation.Completions {
+		chatResponses = append(chatResponses, components.ChatResponse{
+			Question: completion.Question,
+			Answer:   completion.Answer,
+		})
 	}
 
 	for _, response := range chatResponses {
@@ -249,7 +259,11 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 		Question: question,
 		Answer:   resp.Choices[0].Message.Content,
 	}
-	chatResponses = append(chatResponses, cr)
+
+	if _, err := app.investigations.FinishCompletion(ctx, "le-bon", contexthelpers.AuthenticatedUserID(ctx), cr.Question, cr.Answer); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 
 	http.Redirect(w, r, "/question-people", http.StatusSeeOther)
 }
@@ -290,8 +304,6 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
-	cr := chatResponses[len(chatResponses)-1]
-
 	completionChan, ok := <-app.broker.Subscribe(completionID)
 	if !ok {
 		// TODO: rerender page
@@ -310,7 +322,6 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		cr.Answer += delta
 		sseChannel <- fmt.Sprintf("<span>%s</span>", strings.ReplaceAll(delta, "\n", "<br>"))
 	}
 
@@ -318,7 +329,6 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 	sseChannel <- "<div id='chat-listener' hx-swap-oob='true'></div>"
 	close(sseChannel)
 
-	chatResponses[len(chatResponses)-1] = cr
 	wg.Wait()
 }
 

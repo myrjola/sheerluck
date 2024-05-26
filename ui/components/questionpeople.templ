@@ -19,17 +19,21 @@ templ QuestionPeople(chatResponses []ChatResponse) {
 		class="mx-auto max-w-md"
 	>
 		<input type="hidden" name="csrf_token" value={ contexthelpers.CSRFToken(ctx) }/>
-		<label>
-			<span>Question: </span>
-			<input
-				class="block px-2 w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm sm:text-sm sm:leading-6"
-				id="chat-question"
-				name="question"
-				type="text"
-				autocomplete="off"
-				autofocus
-			/>
-		</label>
-		<button id="question-submit-button" type="submit" hx-disabled-elt="this">Submit</button>
+		<div class="flex flex-col gap-2">
+            <label for="chat-question">Question:</label>
+            <div class="flex gap-2">
+                <textarea
+                    class="block px-2 w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm sm:text-sm sm:leading-6"
+                    id="chat-question"
+                    name="question"
+                    type="text"
+                    autocomplete="off"
+                    autofocus
+                ></textarea>
+                @primaryButton(templ.Attributes{"type": "submit", "hx-disabled-elt": "this"}) {
+                    Submit
+                }
+            </div>
+		</div>
 	</form>
 }

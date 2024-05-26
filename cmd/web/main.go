@@ -29,6 +29,7 @@ type application struct {
 	webAuthn       *webauthn.WebAuthn
 	sessionManager *scs.SessionManager
 	users          *repositories.UserRepository
+	investigations *repositories.InvestigationRepository
 	htmx           *htmx.HTMX
 	broker         *broker.ChannelBroker[int, struct {
 		string
@@ -116,6 +117,7 @@ func main() {
 	sessionManager.Lifetime = 12 * time.Hour
 
 	users := repositories.NewUserRepository(readWriteDB, readDB, logger)
+	investigations := repositories.NewInvestigationRepository(readWriteDB, readDB, logger)
 
 	channelBroker := broker.NewChannelBroker[int, struct {
 		string
@@ -128,6 +130,7 @@ func main() {
 		webAuthn:       webAuthn,
 		sessionManager: sessionManager,
 		users:          users,
+		investigations: investigations,
 		htmx:           htmx.New(),
 		broker:         channelBroker,
 	}
