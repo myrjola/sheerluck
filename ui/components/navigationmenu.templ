@@ -1,56 +1,41 @@
 package components
 
 templ mobileMenu(nav templ.Component) {
-    <dialog class="h-full">
-        <div class="flex w-full h-full">
+    <dialog id="mobilemenu" class="starting:open:-translate-x-full starting:open:backdrop:opacity-0 open:backdrop:opacity-100 h-full w-full open:translate-x-0 -translate-x-full backdrop:bg-gray-900/80 backdrop:opacity-0">
+        <div class="flex h-full w-full">
             <div
-                class="relative flex w-full max-w-xs flex-1 group-open:animate-slide-in"
-                x-transition:enter="transition ease-in-out duration-300 transform motion-reduce:duration-0"
-                x-transition:enter-start="-translate-x-full"
-                x-transition:enter-end="translate-x-0"
-                x-transition:leave="transition ease-in-out duration-300 transform motion-reduce:duration-0"
-                x-transition:leave-start="translate-x-0"
-                x-transition:leave-end="-translate-x-full"
+                class="relative flex w-full max-w-xs flex-1"
             >
                 @nav
             </div>
             <!-- Close button -->
-            <form class="flex flex-1 justify-start">
-                <button
-                    formmethod="dialog"
-                    @click="menuOpen = false"
-                    class="group focus-visible:ring-0"
-                    x-show="menuOpen"
-                    x-transition:enter="transition-opacity ease-linear duration-300"
-                    x-transition:enter-start="opacity-0"
-                    x-transition:enter-end="opacity-100"
-                    x-transition:leave="transition-opacity ease-linear duration-300"
-                    x-transition:leave-start="opacity-100"
-                    x-transition:leave-end="opacity-0"
-                >
-                    <div class="p-2.5">
-                        <span class="sr-only">Close menu</span>
-                        <svg
-                            class="h-6 w-6 rounded-md text-white group-focus-visible:ring group-focus-visible:ring-white"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke-width="1.5"
-                            stroke="currentColor"
-                            aria-hidden="true"
-                        >
-                            <path
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                d="M6 18L18 6M6 6l12 12"
-                            ></path>
-                        </svg>
-                    </div>
-                </button>
-            </form>
+            <button
+                type="button"
+                id="closemobilemenu"
+                class="flex flex-1 justify-start group focus-visible:ring-0"
+            >
+                <div class="p-2.5">
+                    <span class="sr-only">Close menu</span>
+                    <svg
+                        class="h-6 w-6 rounded-md text-white group-focus-visible:ring group-focus-visible:ring-white"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        aria-hidden="true"
+                    >
+                        <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                        ></path>
+                    </svg>
+                </div>
+            </button>
         </div>
     </dialog>
     <div class="sticky top-0 z-40 flex items-center gap-x-6 bg-gray-900 px-4 py-4 shadow-sm sm:px-6 lg:hidden">
-        <button type="button" id="mobilemenu" class="text-gray-400 -m-2.5 p-2.5 lg:hidden">
+        <button type="button" id="openmobilemenu" class="text-gray-400 -m-2.5 p-2.5 lg:hidden">
             <span class="sr-only">Open sidebar</span>
             <svg
                 class="h-6 w-6"
@@ -67,7 +52,7 @@ templ mobileMenu(nav templ.Component) {
                 ></path>
             </svg>
         </button>
-        <div class="flex-1 text-sm font-semibold leading-6 text-white">Dashboard</div>
+        <div class="flex-1 text-sm font-semibold leading-6 text-white">TODO: add correct title here</div>
     </div>
 }
 

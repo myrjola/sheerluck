@@ -1,1 +1,10 @@
+@import "./ui/components/navigationmenu.css";
 @import "tailwindcss";
+
+/* CSS reset for dialog */
+dialog {
+    max-width: unset;
+    max-height: unset;
+    background-color: unset;
+}
+

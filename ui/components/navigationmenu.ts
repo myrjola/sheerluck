@@ -1,9 +1,13 @@
 class Navigationmenu extends HTMLElement {
   connectedCallback() {
-    const button = this.querySelector("#mobilemenu");
+    const openButton = this.querySelector("#openmobilemenu");
+    const closeButton = this.querySelector("#closemobilemenu");
     const dialog = this.querySelector("dialog");
-    button.addEventListener("click", () => {
+    openButton.addEventListener("click", () => {
       dialog.showModal()
+    })
+    closeButton.addEventListener("click", () => {
+      dialog.close()
     })
   }
 }
