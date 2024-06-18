@@ -23,9 +23,3 @@ func SetCSRFToken(r *http.Request, csrfToken string) *http.Request {
 	ctx = context.WithValue(ctx, csrfTokenContextKey, csrfToken)
 	return r.WithContext(ctx)
 }
-
-func SetCSPNonce(r *http.Request, cspNonce string) *http.Request {
-	ctx := r.Context()
-	ctx = context.WithValue(ctx, cspNonceContextKey, cspNonce)
-	return r.WithContext(ctx)
-}

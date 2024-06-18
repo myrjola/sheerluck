@@ -1,5 +1,39 @@
 package components
 
+templ hamburgerIcon() {
+    <svg
+        class="h-6 w-6"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+        aria-hidden="true"
+    >
+        <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+        ></path>
+    </svg>
+}
+
+templ closeIcon() {
+    <svg
+        class="h-6 w-6 rounded-md text-white group-focus-visible:ring group-focus-visible:ring-white"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke-width="1.5"
+        stroke="currentColor"
+        aria-hidden="true"
+    >
+        <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M6 18L18 6M6 6l12 12"
+        ></path>
+    </svg>
+}
+
 templ mobileMenu(nav templ.Component) {
     <dialog id="mobilemenu" class="starting:open:-translate-x-full starting:open:backdrop:opacity-0 open:backdrop:opacity-100 h-full w-full open:translate-x-0 -translate-x-full backdrop:bg-gray-900/80 backdrop:opacity-0">
         <div class="flex h-full w-full">
@@ -16,20 +50,7 @@ templ mobileMenu(nav templ.Component) {
             >
                 <div class="p-2.5">
                     <span class="sr-only">Close menu</span>
-                    <svg
-                        class="h-6 w-6 rounded-md text-white group-focus-visible:ring group-focus-visible:ring-white"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        aria-hidden="true"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M6 18L18 6M6 6l12 12"
-                        ></path>
-                    </svg>
+                    @closeIcon()
                 </div>
             </button>
         </div>
@@ -37,20 +58,7 @@ templ mobileMenu(nav templ.Component) {
     <div class="sticky top-0 z-40 flex items-center gap-x-6 bg-gray-900 px-4 py-4 shadow-sm sm:px-6 lg:hidden">
         <button type="button" id="openmobilemenu" class="text-gray-400 -m-2.5 p-2.5 lg:hidden">
             <span class="sr-only">Open sidebar</span>
-            <svg
-                class="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke-width="1.5"
-                stroke="currentColor"
-                aria-hidden="true"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
-                ></path>
-            </svg>
+            @hamburgerIcon()
         </button>
         <div class="flex-1 text-sm font-semibold leading-6 text-white">TODO: add correct title here</div>
     </div>

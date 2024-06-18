@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/a-h/templ"
 	"github.com/justinas/nosurf"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/internal/random"
@@ -16,10 +17,7 @@ func secureHeaders(next http.Handler) http.Handler {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
-		r = contexthelpers.SetCSPNonce(r, cspNonce)
-
-		// TODO: the sha256-sqo... hash is for templ proxy script, it could be removed in production
-		csp := fmt.Sprintf(`script-src 'nonce-%s' 'sha256-sqo8MTGTNv+1S8aob6Z4+nMtPb2eAfoUvjfTU20cq5o=' 'strict-dynamic' https: http:;
+		csp := fmt.Sprintf(`script-src 'nonce-%s' 'strict-dynamic' https: http:;
 object-src 'none';
 base-uri 'none';`, cspNonce)
 
@@ -29,7 +27,10 @@ base-uri 'none';`, cspNonce)
 		w.Header().Set("X-Frame-Options", "deny")
 		w.Header().Set("X-XSS-Protection", "0")
 
-		next.ServeHTTP(w, r)
+		// Modify context so that Templ is aware of the CSP nonce.
+		ctx := templ.WithNonce(r.Context(), cspNonce)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
