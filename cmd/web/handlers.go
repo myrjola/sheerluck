@@ -129,8 +129,9 @@ func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (app *application) startCompletionStream(completionID uuid.UUID, messages []openai.ChatCompletionMessage) error {
+func (app *application) startCompletionStream(ctx context.Context, completionID uuid.UUID, messages []openai.ChatCompletionMessage, question string) error {
 	logger := app.logger.With("completionID", completionID)
+	authenticatedUserID := contexthelpers.AuthenticatedUserID(ctx)
 
 	completionChan := make(chan struct {
 		string
@@ -138,6 +139,7 @@ func (app *application) startCompletionStream(completionID uuid.UUID, messages [
 	})
 	app.broker.Publish(completionID, completionChan)
 	go func() {
+		answer := ""
 		stream, err := app.aiClient.StreamCompletion(messages)
 		if err != nil {
 			app.logger.Error("completion stream: %w", err)
@@ -155,6 +157,11 @@ func (app *application) startCompletionStream(completionID uuid.UUID, messages [
 			response, err := stream.Recv()
 			if errors.Is(err, io.EOF) {
 				logger.Debug("stream finished")
+				if _, err := app.investigations.FinishCompletion(context.Background(), "le-bon", authenticatedUserID, question, answer); err != nil {
+					app.logger.Error("finish completion", slog.Any("error", err))
+					return
+				}
+
 				break
 			}
 
@@ -168,6 +175,7 @@ func (app *application) startCompletionStream(completionID uuid.UUID, messages [
 			}
 
 			delta := response.Choices[0].Delta.Content
+			answer += delta
 
 			completionChan <- struct {
 				string
@@ -237,7 +245,7 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 
 	// When HTMX does the request, we start a stream that the SSE GET can listen to through app.broker.
 	if headers.HxBoosted {
-		if err = app.startCompletionStream(completionID, messages); err != nil {
+		if err = app.startCompletionStream(ctx, completionID, messages, question); err != nil {
 			app.serverError(w, r, fmt.Errorf("start completion stream: %w", err))
 			return
 		}
@@ -246,7 +254,6 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 			Answer:       "",
 			CompletionID: completionID.String(),
 		}
-		chatResponses = append(chatResponses, cr)
 		app.logger.Info("completion stream started", slog.Any("completionID", completionID))
 		if err := components.ActiveChatResponse(cr).Render(r.Context(), w); err != nil {
 			app.serverError(w, r, fmt.Errorf("render chat response: %w", err))
