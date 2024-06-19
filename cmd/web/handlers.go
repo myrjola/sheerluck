@@ -161,6 +161,7 @@ func (app *application) startCompletionStream(ctx context.Context, completionID 
 					app.logger.Error("finish completion", slog.Any("error", err))
 					return
 				}
+				logger.Debug("completion persisted")
 
 				break
 			}
