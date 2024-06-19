@@ -10,6 +10,7 @@ import (
 	"github.com/donseba/go-htmx"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/google/uuid"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/internal/models"
 	"github.com/myrjola/sheerluck/ui/components"
@@ -127,7 +128,8 @@ func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request
 		return
 	}
 }
-func (app *application) startCompletionStream(completionID int, messages []openai.ChatCompletionMessage) error {
+
+func (app *application) startCompletionStream(completionID uuid.UUID, messages []openai.ChatCompletionMessage) error {
 	logger := app.logger.With("completionID", completionID)
 
 	completionChan := make(chan struct {
@@ -197,7 +199,7 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 		app.serverError(w, r, errors.New("no question"))
 		return
 	}
-	completionID := 1
+	completionID := uuid.New()
 
 	handler := app.htmx.NewHandler(w, r)
 	headers := handler.Request()
@@ -240,10 +242,12 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		cr := components.ChatResponse{
-			Question: question,
-			Answer:   "",
+			Question:     question,
+			Answer:       "",
+			CompletionID: completionID.String(),
 		}
 		chatResponses = append(chatResponses, cr)
+		app.logger.Info("completion stream started", slog.Any("completionID", completionID))
 		if err := components.ActiveChatResponse(cr).Render(r.Context(), w); err != nil {
 			app.serverError(w, r, fmt.Errorf("render chat response: %w", err))
 		}
@@ -270,7 +274,15 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 
 // streamChat sends server side events (SSE) to the client.
 func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
-	completionID := 1
+	var (
+		completionID uuid.UUID
+		err          error
+	)
+
+	if completionID, err = uuid.Parse(r.PathValue("completionID")); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 
 	// Set headers for SSE
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -326,7 +338,7 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// instruct client to stop listening to SSE stream
-	sseChannel <- "<div id='chat-listener' hx-swap-oob='true'></div>"
+	sseChannel <- fmt.Sprintf("<div id='chat-listener-%s' hx-swap-oob='true'></div>", completionID.String())
 	close(sseChannel)
 
 	wg.Wait()

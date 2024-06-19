@@ -9,6 +9,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/donseba/go-htmx"
 	"github.com/go-webauthn/webauthn/webauthn"
+	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/myrjola/sheerluck/internal/ai"
 	"github.com/myrjola/sheerluck/internal/broker"
@@ -31,7 +32,7 @@ type application struct {
 	users          *repositories.UserRepository
 	investigations *repositories.InvestigationRepository
 	htmx           *htmx.HTMX
-	broker         *broker.ChannelBroker[int, struct {
+	broker         *broker.ChannelBroker[uuid.UUID, struct {
 		string
 		error
 	}]
@@ -119,7 +120,7 @@ func main() {
 	users := repositories.NewUserRepository(readWriteDB, readDB, logger)
 	investigations := repositories.NewInvestigationRepository(readWriteDB, readDB, logger)
 
-	channelBroker := broker.NewChannelBroker[int, struct {
+	channelBroker := broker.NewChannelBroker[uuid.UUID, struct {
 		string
 		error
 	}]()
