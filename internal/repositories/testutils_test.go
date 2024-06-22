@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"github.com/myrjola/sheerluck/sqlite"
 	"os"
 	"testing"
 )
@@ -19,7 +18,7 @@ func newTestDB(t *testing.T) (*sqlx.DB, *sqlx.DB) {
 		err                 error
 	)
 
-	if readWriteDB, readDB, err = sqlite.NewDB(":memory:"); err != nil {
+	if readWriteDB, readDB, err = db.NewDB(":memory:"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -52,7 +51,7 @@ func newBenchmarkDB(b *testing.B) (*sqlx.DB, *sqlx.DB) {
 		benchmarkDBPath     = "./benchmark.sqlite"
 	)
 
-	if readWriteDB, readDB, err = sqlite.NewDB(benchmarkDBPath); err != nil {
+	if readWriteDB, readDB, err = db.NewDB(benchmarkDBPath); err != nil {
 		b.Fatal(err)
 	}
 

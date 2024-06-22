@@ -19,7 +19,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 )
@@ -33,31 +32,6 @@ type route struct {
 
 func init() {
 	gob.Register(webauthn.SessionData{})
-}
-
-func (app *application) parseTemplates() (*template.Template, error) {
-	fs := os.DirFS("./ui/html")
-	patterns := []string{
-		"base.gohtml",
-		"partials/*.gohtml",
-		"pages/*.gohtml",
-	}
-
-	return template.New("base").Funcs(templateFuncMap).ParseFS(fs, patterns...)
-}
-
-// compileTemplates parses the base templates and adds a templates based on path
-func (app *application) compileTemplates(templateFileNames ...string) (*template.Template, error) {
-	templates := []string{
-		"./ui/html/base.gohtml",
-		"./ui/html/nav/nav.gohtml",
-	}
-
-	for _, templateFilename := range templateFileNames {
-		templates = append(templates, fmt.Sprintf("./ui/html/%s.gohtml", templateFilename))
-	}
-
-	return template.ParseFiles(templates...)
 }
 
 type slotFunc func(ctx context.Context, h *htmx.HxRequestHeader) templ.Component
@@ -104,29 +78,6 @@ func (app *application) renderHtmx(w http.ResponseWriter, r *http.Request, t *te
 	}
 
 	return nil
-}
-
-func (app *application) investigateScenes(w http.ResponseWriter, r *http.Request) {
-	var (
-		t   *template.Template
-		err error
-	)
-	if t, err = app.compileTemplates("investigate-scenes"); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	//routes := app.resolveRoutes(r.URL.Path)
-
-	data := baseData{
-		//IsAuthenticated: contexthelpers.IsAuthenticated(r.Context()),
-		//Routes:          routes,
-	}
-
-	if err = app.renderHtmx(w, r, t, data); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
 }
 
 func (app *application) startCompletionStream(ctx context.Context, completionID uuid.UUID, messages []openai.ChatCompletionMessage, question string) error {

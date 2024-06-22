@@ -11,11 +11,11 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
+	"github.com/myrjola/sheerluck/db"
 	"github.com/myrjola/sheerluck/internal/ai"
 	"github.com/myrjola/sheerluck/internal/broker"
 	"github.com/myrjola/sheerluck/internal/pprofserver"
 	"github.com/myrjola/sheerluck/internal/repositories"
-	"github.com/myrjola/sheerluck/sqlite"
 	"log/slog"
 	"net/http"
 	"os"
@@ -105,7 +105,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	readWriteDB, readDB, err := sqlite.NewDB(*sqliteURL)
+	readWriteDB, readDB, err := db.NewDB(*sqliteURL)
 	if err != nil {
 		logger.Error("open database %s: %w", *sqliteURL, err)
 		os.Exit(1)

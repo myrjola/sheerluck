@@ -874,6 +874,10 @@ dialog#mobilemenu::backdrop {
   .text-center {
     text-align: center;
   }
+  .text-3xl {
+    font-size: var(--font-size-3xl, 1.875rem);
+    line-height: var(--font-size-3xl--line-height, 2.25rem);
+  }
   .text-4xl {
     font-size: var(--font-size-4xl, 2.25rem);
     line-height: var(--font-size-4xl--line-height, 2.5rem);
@@ -1206,12 +1210,6 @@ dialog#mobilemenu::backdrop {
   .lg\:pl-72 {
     @media (width >= 64rem) {
       padding-left: var(--spacing-72, 18rem);
-    }
-  }
-  .starting\:-translate-x-full {
-    @starting-style {
-      --tw-translate-x: -100%;
-      translate: var(--tw-translate-x) var(--tw-translate-y);
     }
   }
   .starting\:open\:-translate-x-full {
