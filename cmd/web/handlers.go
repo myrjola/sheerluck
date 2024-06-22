@@ -23,13 +23,6 @@ import (
 	"sync"
 )
 
-type route struct {
-	Href    string
-	Title   string
-	Current bool
-	Icon    string
-}
-
 func init() {
 	gob.Register(webauthn.SessionData{})
 }

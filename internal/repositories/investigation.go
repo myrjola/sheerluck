@@ -30,15 +30,15 @@ func (r *InvestigationRepository) Get(ctx context.Context, investigationTargetID
 		rows                *sqlx.Rows
 	)
 
-	stmt := `SELECT "id", "name", "short_name", "type" FROM "investigation_targets" WHERE "id" = ?`
+	stmt := `SELECT id, name, short_name, type FROM investigation_targets WHERE id = ?`
 	if err = r.readDB.GetContext(ctx, &investigationTarget, stmt, investigationTargetID); err != nil {
 		return nil, err
 	}
 
 	// scan completions for user
-	stmt = `SELECT "id", "order", "question", "answer"
-FROM "completions"
-WHERE "user_id" = ? AND "investigation_target_id" = ?
+	stmt = `SELECT id, "order", question, answer
+FROM completions
+WHERE user_id = ? AND investigation_target_id = ?
 ORDER BY "order" ASC`
 	if rows, err = r.readDB.QueryxContext(ctx, stmt, userID, investigationTargetID); err != nil {
 		return nil, err
@@ -76,13 +76,13 @@ func (r *InvestigationRepository) FinishCompletion(ctx context.Context, investig
 		id         int64
 		result     sql.Result
 	)
-	stmt := `WITH "new_order" AS (SELECT COALESCE(MAX("order") + 1, 0) AS "new_order"
-                   FROM "completions"
-                   WHERE "user_id" = ?
-                     AND "investigation_target_id" = ?)
+	stmt := `WITH new_order AS (SELECT COALESCE(MAX("order") + 1, 0) AS new_order
+                   FROM completions
+                   WHERE user_id = ?
+                     AND investigation_target_id = ?)
 INSERT
-INTO "completions" ("user_id", "investigation_target_id", "order", "question", "answer")
-VALUES (?, ?, (SELECT "new_order" FROM "new_order"), ?, ?);`
+INTO completions (user_id, investigation_target_id, "order", question, answer)
+VALUES (?, ?, (SELECT new_order FROM new_order), ?, ?);`
 	if tx, err = r.readWriteDB.BeginTxx(ctx, nil); err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ VALUES (?, ?, (SELECT "new_order" FROM "new_order"), ?, ?);`
 	if id, err = result.LastInsertId(); err != nil {
 		return nil, err
 	}
-	stmt = `SELECT "id", "order", "question", "answer" FROM "completions" WHERE "id" = ?`
+	stmt = `SELECT id, "order", question, answer FROM completions WHERE id = ?`
 	if err = tx.GetContext(ctx, &completion, stmt, id); err != nil {
 		return nil, err
 	}
