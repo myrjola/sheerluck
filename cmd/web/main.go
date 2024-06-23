@@ -32,6 +32,7 @@ type application struct {
 	users          *repositories.UserRepository
 	investigations *repositories.InvestigationRepository
 	htmx           *htmx.HTMX
+	queries        *db.Queries
 	broker         *broker.ChannelBroker[uuid.UUID, struct {
 		string
 		error
@@ -133,6 +134,7 @@ func main() {
 		users:          users,
 		investigations: investigations,
 		htmx:           htmx.New(),
+		queries:        db.New(readDB),
 		broker:         channelBroker,
 	}
 

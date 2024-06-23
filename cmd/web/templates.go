@@ -1,22 +1,21 @@
 package main
 
 import (
-	"context"
 	"github.com/a-h/templ"
 	"github.com/donseba/go-htmx"
+	"github.com/myrjola/sheerluck/db"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/ui/components"
+	"net/http"
 )
 
-func (app *application) Home(_ context.Context, _ *htmx.HxRequestHeader) templ.Component {
-	return components.Home()
+func (app *application) Home(_ http.ResponseWriter, _ *http.Request, _ *htmx.HxRequestHeader) (*templ.Component, error) {
+	home := components.Home()
+	return &home, nil
 }
 
-type navData struct {
-	Ctx context.Context
-}
-
-func (app *application) QuestionPeople(ctx context.Context, _ *htmx.HxRequestHeader) templ.Component {
+func (app *application) QuestionPeople(_ http.ResponseWriter, r *http.Request, _ *htmx.HxRequestHeader) (*templ.Component, error) {
+	ctx := r.Context()
 	userID := contexthelpers.AuthenticatedUserID(ctx)
 	investigation, _ := app.investigations.Get(ctx, "le-bon", userID)
 
@@ -29,15 +28,38 @@ func (app *application) QuestionPeople(ctx context.Context, _ *htmx.HxRequestHea
 		}
 	}
 
-	return components.QuestionPeople(chatResponses)
+	questionPeople := components.QuestionPeople(chatResponses)
+
+	return &questionPeople, nil
 }
 
-func (app *application) InvestigateScenes(_ context.Context, _ *htmx.HxRequestHeader) templ.Component {
-	return components.InvestigateScenes()
+func (app *application) InvestigateScenes(_ http.ResponseWriter, r *http.Request, _ *htmx.HxRequestHeader) (*templ.Component, error) {
+	investigateScenes := components.InvestigateScenes()
+	return &investigateScenes, nil
 }
 
-func (app *application) CaseHome(_ context.Context, _ *htmx.HxRequestHeader) templ.Component {
-	// TODO: How do I get the case here? Should I consider another signature for these components including the request and response?
-
-	return components.CaseHome()
+func (app *application) CaseView(w http.ResponseWriter, r *http.Request, _ *htmx.HxRequestHeader) (*templ.Component, error) {
+	var (
+		ctx     = r.Context()
+		err     error
+		caseID  = r.PathValue("caseID")
+		persons []db.InvestigationTarget
+		scenes  []db.InvestigationTarget
+	)
+	if persons, err = app.queries.ListInvestigationTargets(ctx, db.ListInvestigationTargetsParams{
+		CaseID: caseID,
+		Type:   "person",
+	}); err != nil {
+		app.serverError(w, r, err)
+		return nil, err
+	}
+	if scenes, err = app.queries.ListInvestigationTargets(ctx, db.ListInvestigationTargetsParams{
+		CaseID: caseID,
+		Type:   "scene",
+	}); err != nil {
+		app.serverError(w, r, err)
+		return nil, err
+	}
+	caseHome := components.CaseHome(persons, scenes)
+	return &caseHome, nil
 }

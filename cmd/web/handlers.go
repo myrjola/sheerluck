@@ -15,7 +15,6 @@ import (
 	"github.com/myrjola/sheerluck/internal/models"
 	"github.com/myrjola/sheerluck/ui/components"
 	"github.com/sashabaranov/go-openai"
-	"html/template"
 	"io"
 	"log/slog"
 	"net/http"
@@ -27,19 +26,24 @@ func init() {
 	gob.Register(webauthn.SessionData{})
 }
 
-type slotFunc func(ctx context.Context, h *htmx.HxRequestHeader) templ.Component
+type slotFunc func(w http.ResponseWriter, r *http.Request, h *htmx.HxRequestHeader) (*templ.Component, error)
 
 func (app *application) htmxHandler(slotF slotFunc) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {
+		var (
+			err  error
+			slot *templ.Component
+		)
 		ctx := r.Context()
 		handler := app.htmx.NewHandler(w, r)
 		headers := handler.Request()
 
 		nav := components.Nav()
-		slot := slotF(ctx, &headers)
-		body := components.Body(slot, nav)
-
-		var err error
+		if slot, err = slotF(w, r, &headers); err != nil {
+			// We assume the slot function already responded with error code
+			return
+		}
+		body := components.Body(*slot, nav)
 
 		if headers.HxRequest {
 			err = body.Render(ctx, w)
@@ -54,23 +58,6 @@ func (app *application) htmxHandler(slotF slotFunc) http.Handler {
 	}
 
 	return http.HandlerFunc(fn)
-}
-
-func (app *application) renderHtmx(w http.ResponseWriter, r *http.Request, t *template.Template, data any) error {
-	var err error
-	// Detect htmx header and render only the body because that's what's replaced with hx-boost="true"
-	if r.Header.Get("Hx-Boosted") == "true" {
-		err = t.ExecuteTemplate(w, "body", data)
-	} else {
-		err = t.ExecuteTemplate(w, "base", data)
-	}
-
-	if err != nil {
-		app.serverError(w, r, err)
-		return err
-	}
-
-	return nil
 }
 
 func (app *application) startCompletionStream(ctx context.Context, completionID uuid.UUID, messages []openai.ChatCompletionMessage, question string) error {
