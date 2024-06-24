@@ -678,6 +678,9 @@ dialog#mobilemenu::backdrop {
   .h-12 {
     height: var(--spacing-12, 3rem);
   }
+  .h-32 {
+    height: var(--spacing-32, 8rem);
+  }
   .h-36 {
     height: var(--spacing-36, 9rem);
   }
@@ -689,6 +692,12 @@ dialog#mobilemenu::backdrop {
   }
   .w-6 {
     width: var(--spacing-6, 1.5rem);
+  }
+  .w-12 {
+    width: var(--spacing-12, 3rem);
+  }
+  .w-32 {
+    width: var(--spacing-32, 8rem);
   }
   .w-\[36\.125rem\] {
     width: 36.125rem;

@@ -47,7 +47,7 @@ func CaseHome(persons []db.InvestigationTarget, scenes []db.InvestigationTarget)
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(scene.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/casehome.templ`, Line: 12, Col: 129}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/casehome.templ`, Line: 14, Col: 127}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -79,7 +79,7 @@ func CaseHome(persons []db.InvestigationTarget, scenes []db.InvestigationTarget)
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(person.Name)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/casehome.templ`, Line: 18, Col: 132}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `ui/components/casehome.templ`, Line: 22, Col: 129}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {

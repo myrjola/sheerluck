@@ -17,6 +17,13 @@ templ logoutButton () {
     </form>
 }
 
+templ caseCard() {
+    <a class="h-32 w-32" href="/cases/rue-morgue">
+        <img data-twic-src="image:/rue-morgue.webp" alt=""/>
+        Murders in the Rue Morgue
+    </a>
+}
+
 templ backdropBlurTop() {
     <div
         class="absolute inset-x-0 -top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
@@ -61,6 +68,7 @@ templ Home() {
 					<div class="mt-10 flex items-center justify-center gap-x-6">
 						if contexthelpers.IsAuthenticated(ctx) {
                             @logoutButton()
+                            @caseCard()
 						} else {
                             @loginButton()
                             @registerButton()

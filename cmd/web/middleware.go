@@ -95,6 +95,17 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 	})
 }
 
+// mustAuthenticate redirects the user to the home page if they are not authenticated.
+func (app *application) mustAuthenticate(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		isAuthenticated := contexthelpers.IsAuthenticated(r.Context())
+		if !isAuthenticated {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // serverSentMiddleware makes our session library scs work with Server Sent Events (SSE).
 // Use this instead of app.sessionManager.LoadAndSave.
 // See https://github.com/alexedwards/scs/issues/141#issuecomment-1807075358

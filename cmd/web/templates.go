@@ -17,7 +17,8 @@ func (app *application) Home(_ http.ResponseWriter, _ *http.Request, _ *htmx.HxR
 func (app *application) QuestionPeople(_ http.ResponseWriter, r *http.Request, _ *htmx.HxRequestHeader) (*templ.Component, error) {
 	ctx := r.Context()
 	userID := contexthelpers.AuthenticatedUserID(ctx)
-	investigation, _ := app.investigations.Get(ctx, "le-bon", userID)
+	investigationTargetID := r.PathValue("investigationTargetID")
+	investigation, _ := app.investigations.Get(ctx, investigationTargetID, userID)
 
 	chatResponses := make([]components.ChatResponse, len(investigation.Completions))
 

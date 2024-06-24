@@ -21,7 +21,7 @@ templ Base(body templ.Component) {
 			<meta name="theme-color" content="#111827"/>
 			<meta
 				name="htmx-config"
-				content='{"selfRequestsOnly":"true", "historyCacheSize": 0, "allowEval": false, "globalViewTransitions": true}'
+				content='{"selfRequestsOnly":"true", "historyCacheSize": 0, "allowEval": false, "globalViewTransitions": true, "scrollIntoViewOnBoost": true}'
 			/>
 			<script nonce={ templ.GetNonce(ctx) } defer src="/htmx-2.0.0.js"></script>
 			<script nonce={ templ.GetNonce(ctx) } defer src="/sse-2.0.0.js"></script>
