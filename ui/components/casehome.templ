@@ -10,16 +10,22 @@ templ CaseHome(persons []db.InvestigationTarget, scenes []db.InvestigationTarget
 	    for _, scene := range scenes {
             <div>
                 <a
-                 hx-swap="show:none"
-                 href={ templ.SafeURL(fmt.Sprintf("/cases/%s/investigation-targets/%s", scene.CaseID, scene.ID)) }>{ scene.Name }</a>
+                    hx-swap="show:none"
+                    href={ templ.SafeURL(fmt.Sprintf("/cases/%s/investigation-targets/%s", scene.CaseID, scene.ID)) }
+                >
+                    { scene.Name }
+                </a>
             </div>
         }
 	    <h2 class="text-3xl">Suspects</h2>
 	    for _, person := range persons {
             <div>
                 <a
-                hx-swap="show:none"
-                href={ templ.SafeURL(fmt.Sprintf("/cases/%s/investigation-targets/%s", person.CaseID, person.ID)) }>{ person.Name }</a>
+                    hx-swap="show:none"
+                    href={ templ.SafeURL(fmt.Sprintf("/cases/%s/investigation-targets/%s", person.CaseID, person.ID)) }
+                >
+                    { person.Name }
+                </a>
             </div>
         }
 	</div>

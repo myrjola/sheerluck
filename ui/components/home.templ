@@ -18,9 +18,18 @@ templ logoutButton () {
 }
 
 templ caseCard() {
-    <a class="h-32 w-32" href="/cases/rue-morgue">
-        <img data-twic-src="image:/rue-morgue.webp" alt=""/>
-        Murders in the Rue Morgue
+    <a class="flex flex-col gap-10 mt-12 sm:flex-row items-center sm:items-start group" href="/cases/rue-morgue">
+        <img
+            class="aspect-square w-52 flex-none rounded-2xl object-cover"
+            src="https://myrjola.twic.pics/sheerluck/rue-morgue.webp?twic=v1/max=208"
+            alt=""
+            loading="lazy"
+        >
+        <div class="max-w-xl flex-auto">
+            <h3 class="text-lg font-semibold leading-8 tracking-tight text-gray-300 group-hover:text-gray-100">Murders in the Rue Morgue</h3>
+            <p class="text-base leading-7 text-gray-300">Edgar Allan Poe</p>
+            <p class="mt-6 text-base leading-7 text-gray-300"> You are the brilliant detective Auguste Dupin solving a gruesome murder of two women in 19th century Paris.</p>
+        </div>
     </a>
 }
 
@@ -68,12 +77,14 @@ templ Home() {
 					<div class="mt-10 flex items-center justify-center gap-x-6">
 						if contexthelpers.IsAuthenticated(ctx) {
                             @logoutButton()
-                            @caseCard()
 						} else {
                             @loginButton()
                             @registerButton()
 						}
 					</div>
+					if contexthelpers.IsAuthenticated(ctx) {
+                        @caseCard()
+					}
 				</div>
 			</div>
 		</div>
