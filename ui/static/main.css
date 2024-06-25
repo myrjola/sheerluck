@@ -556,6 +556,9 @@ dialog#mobilemenu::backdrop {
   }
 }
 @layer utilities {
+  .pointer-events-none {
+    pointer-events: none;
+  }
   .collapse {
     visibility: collapse;
   }
@@ -589,6 +592,10 @@ dialog#mobilemenu::backdrop {
     right: var(--spacing-0, 0px);
     left: var(--spacing-0, 0px);
   }
+  .inset-y-0 {
+    top: var(--spacing-0, 0px);
+    bottom: var(--spacing-0, 0px);
+  }
   .-top-40 {
     top: calc(var(--spacing-40, 10rem) * -1);
   }
@@ -597,6 +604,9 @@ dialog#mobilemenu::backdrop {
   }
   .top-\[calc\(100\%-13rem\)\] {
     top: calc(100% - 13rem);
+  }
+  .left-0 {
+    left: var(--spacing-0, 0px);
   }
   .left-\[calc\(50\%\+3rem\)\] {
     left: calc(50% + 3rem);
@@ -632,6 +642,9 @@ dialog#mobilemenu::backdrop {
   .-mt-12 {
     margin-top: calc(var(--spacing-12, 3rem) * -1);
   }
+  .mt-2 {
+    margin-top: var(--spacing-2, 0.5rem);
+  }
   .mt-4 {
     margin-top: var(--spacing-4, 1rem);
   }
@@ -657,6 +670,15 @@ dialog#mobilemenu::backdrop {
   .mb-4 {
     margin-bottom: var(--spacing-4, 1rem);
   }
+  .-ml-0 {
+    margin-left: calc(var(--spacing-0, 0px) * -1);
+  }
+  .-ml-0\.5 {
+    margin-left: calc(var(--spacing-0_5, 0.125rem) * -1);
+  }
+  .-ml-px {
+    margin-left: calc(var(--spacing-px, 1px) * -1);
+  }
   .ml-2 {
     margin-left: var(--spacing-2, 0.5rem);
   }
@@ -672,6 +694,9 @@ dialog#mobilemenu::backdrop {
   .inline {
     display: inline;
   }
+  .inline-flex {
+    display: inline-flex;
+  }
   .list-item {
     display: list-item;
   }
@@ -686,6 +711,9 @@ dialog#mobilemenu::backdrop {
   }
   .aspect-square {
     aspect-ratio: 1 / 1;
+  }
+  .h-4 {
+    height: var(--spacing-4, 1rem);
   }
   .h-5 {
     height: var(--spacing-5, 1.25rem);
@@ -793,6 +821,9 @@ dialog#mobilemenu::backdrop {
   .items-center {
     align-items: center;
   }
+  .items-stretch {
+    align-items: stretch;
+  }
   .justify-center {
     justify-content: center;
   }
@@ -804,6 +835,12 @@ dialog#mobilemenu::backdrop {
   }
   .gap-10 {
     gap: var(--spacing-10, 2.5rem);
+  }
+  .gap-x-1 {
+    column-gap: var(--spacing-1, 0.25rem);
+  }
+  .gap-x-1\.5 {
+    column-gap: var(--spacing-1_5, 0.375rem);
   }
   .gap-x-3 {
     column-gap: var(--spacing-3, 0.75rem);
@@ -862,6 +899,17 @@ dialog#mobilemenu::backdrop {
   }
   .rounded-md {
     border-radius: var(--radius-md, 0.375rem);
+  }
+  .rounded-none {
+    border-radius: 0;
+  }
+  .rounded-l-md {
+    border-top-left-radius: var(--radius-md, 0.375rem);
+    border-bottom-left-radius: var(--radius-md, 0.375rem);
+  }
+  .rounded-r-md {
+    border-top-right-radius: var(--radius-md, 0.375rem);
+    border-bottom-right-radius: var(--radius-md, 0.375rem);
   }
   .border {
     border-style: var(--tw-border-style);
@@ -966,6 +1014,18 @@ dialog#mobilemenu::backdrop {
   .pb-2 {
     padding-bottom: var(--spacing-2, 0.5rem);
   }
+  .pl-1 {
+    padding-left: var(--spacing-1, 0.25rem);
+  }
+  .pl-1\.5 {
+    padding-left: var(--spacing-1_5, 0.375rem);
+  }
+  .pl-3 {
+    padding-left: var(--spacing-3, 0.75rem);
+  }
+  .pl-10 {
+    padding-left: var(--spacing-10, 2.5rem);
+  }
   .text-center {
     text-align: center;
   }
@@ -996,6 +1056,9 @@ dialog#mobilemenu::backdrop {
   .font-bold {
     font-weight: 700;
   }
+  .font-medium {
+    font-weight: 500;
+  }
   .font-semibold {
     font-weight: 600;
   }
@@ -1008,8 +1071,14 @@ dialog#mobilemenu::backdrop {
   .leading-8 {
     line-height: var(--line-height-8, 2rem);
   }
+  .leading-10 {
+    line-height: var(--line-height-10, 2.5rem);
+  }
   .tracking-tight {
     letter-spacing: var(--letter-spacing-tight, -0.025em);
+  }
+  .text-gray-200 {
+    color: var(--color-gray-200, #e5e7eb);
   }
   .text-gray-300 {
     color: var(--color-gray-300, #d1d5db);
@@ -1042,16 +1111,29 @@ dialog#mobilemenu::backdrop {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentColor);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
+  .ring-2 {
+    --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentColor);
+    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
   .shadow-sm {
     --tw-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+  }
+  .ring-gray-300 {
+    --tw-ring-color: var(--color-gray-300, #d1d5db);
   }
   .ring-white {
     --tw-ring-color: var(--color-white, #fff);
   }
   .ring-white\/10 {
     --tw-ring-color: color-mix(in srgb, var(--color-white, #fff) 10%, transparent);
+  }
+  .ring-white\/50 {
+    --tw-ring-color: color-mix(in srgb, var(--color-white, #fff) 50%, transparent);
+  }
+  .ring-white\/60 {
+    --tw-ring-color: color-mix(in srgb, var(--color-white, #fff) 60%, transparent);
   }
   .outline {
     outline-style: var(--tw-outline-style);
@@ -1129,6 +1211,11 @@ dialog#mobilemenu::backdrop {
       color: var(--color-gray-100, #f3f4f6);
     }
   }
+  .placeholder\:text-gray-400 {
+    &::placeholder {
+      color: var(--color-gray-400, #9ca3af);
+    }
+  }
   .backdrop\:bg-gray-900\/80 {
     &::backdrop {
       background-color: color-mix(in srgb, var(--color-gray-900, #111827) 80%, transparent);
@@ -1152,6 +1239,37 @@ dialog#mobilemenu::backdrop {
       }
     }
   }
+  .focus-within\:z-10 {
+    &:focus-within {
+      z-index: 10;
+    }
+  }
+  .focus-within\:ring-2 {
+    &:focus-within {
+      --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentColor);
+      box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
+    }
+  }
+  .focus-within\:ring-indigo-500 {
+    &:focus-within {
+      --tw-ring-color: var(--color-indigo-500, #6366f1);
+    }
+  }
+  .focus-within\:ring-inset {
+    &:focus-within {
+      --tw-ring-inset: inset;
+    }
+  }
+  .hover\:cursor-pointer {
+    &:hover {
+      cursor: pointer;
+    }
+  }
+  .hover\:bg-gray-50 {
+    &:hover {
+      background-color: var(--color-gray-50, #f9fafb);
+    }
+  }
   .hover\:bg-gray-800 {
     &:hover {
       background-color: var(--color-gray-800, #1f2937);
@@ -1160,6 +1278,16 @@ dialog#mobilemenu::backdrop {
   .hover\:bg-indigo-400 {
     &:hover {
       background-color: var(--color-indigo-400, #818cf8);
+    }
+  }
+  .hover\:bg-white\/4 {
+    &:hover {
+      background-color: color-mix(in srgb, var(--color-white, #fff) 4%, transparent);
+    }
+  }
+  .hover\:bg-white\/7 {
+    &:hover {
+      background-color: color-mix(in srgb, var(--color-white, #fff) 7%, transparent);
     }
   }
   .hover\:text-gray-500 {
@@ -1181,6 +1309,11 @@ dialog#mobilemenu::backdrop {
   .focus\:ring-indigo-500 {
     &:focus {
       --tw-ring-color: var(--color-indigo-500, #6366f1);
+    }
+  }
+  .focus\:ring-indigo-600 {
+    &:focus {
+      --tw-ring-color: var(--color-indigo-600, #4f46e5);
     }
   }
   .focus\:ring-inset {
