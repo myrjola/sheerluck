@@ -556,12 +556,6 @@ dialog#mobilemenu::backdrop {
   }
 }
 @layer utilities {
-  .pointer-events-none {
-    pointer-events: none;
-  }
-  .collapse {
-    visibility: collapse;
-  }
   .sr-only {
     position: absolute;
     width: 1px;
@@ -576,25 +570,15 @@ dialog#mobilemenu::backdrop {
   .absolute {
     position: absolute;
   }
-  .fixed {
-    position: fixed;
-  }
   .relative {
     position: relative;
   }
   .sticky {
     position: sticky;
   }
-  .inset-0 {
-    inset: var(--spacing-0, 0px);
-  }
   .inset-x-0 {
     right: var(--spacing-0, 0px);
     left: var(--spacing-0, 0px);
-  }
-  .inset-y-0 {
-    top: var(--spacing-0, 0px);
-    bottom: var(--spacing-0, 0px);
   }
   .-top-40 {
     top: calc(var(--spacing-40, 10rem) * -1);
@@ -604,9 +588,6 @@ dialog#mobilemenu::backdrop {
   }
   .top-\[calc\(100\%-13rem\)\] {
     top: calc(100% - 13rem);
-  }
-  .left-0 {
-    left: var(--spacing-0, 0px);
   }
   .left-\[calc\(50\%\+3rem\)\] {
     left: calc(50% + 3rem);
@@ -623,12 +604,6 @@ dialog#mobilemenu::backdrop {
   .z-40 {
     z-index: 40;
   }
-  .z-50 {
-    z-index: 50;
-  }
-  .-m-2 {
-    margin: calc(var(--spacing-2, 0.5rem) * -1);
-  }
   .-m-2\.5 {
     margin: calc(var(--spacing-2_5, 0.625rem) * -1);
   }
@@ -638,12 +613,6 @@ dialog#mobilemenu::backdrop {
   .-mx-2 {
     margin-left: calc(var(--spacing-2, 0.5rem) * -1);
     margin-right: calc(var(--spacing-2, 0.5rem) * -1);
-  }
-  .-mt-12 {
-    margin-top: calc(var(--spacing-12, 3rem) * -1);
-  }
-  .mt-2 {
-    margin-top: var(--spacing-2, 0.5rem);
   }
   .mt-4 {
     margin-top: var(--spacing-4, 1rem);
@@ -670,12 +639,6 @@ dialog#mobilemenu::backdrop {
   .mb-4 {
     margin-bottom: var(--spacing-4, 1rem);
   }
-  .-ml-0 {
-    margin-left: calc(var(--spacing-0, 0px) * -1);
-  }
-  .-ml-0\.5 {
-    margin-left: calc(var(--spacing-0_5, 0.125rem) * -1);
-  }
   .-ml-px {
     margin-left: calc(var(--spacing-px, 1px) * -1);
   }
@@ -697,23 +660,14 @@ dialog#mobilemenu::backdrop {
   .inline-flex {
     display: inline-flex;
   }
-  .list-item {
-    display: list-item;
-  }
   .table {
     display: table;
-  }
-  .aspect-\[4\/5\] {
-    aspect-ratio: 4/5;
   }
   .aspect-\[1155\/678\] {
     aspect-ratio: 1155/678;
   }
   .aspect-square {
     aspect-ratio: 1 / 1;
-  }
-  .h-4 {
-    height: var(--spacing-4, 1rem);
   }
   .h-5 {
     height: var(--spacing-5, 1.25rem);
@@ -724,11 +678,11 @@ dialog#mobilemenu::backdrop {
   .h-8 {
     height: var(--spacing-8, 2rem);
   }
+  .h-10 {
+    height: var(--spacing-10, 2.5rem);
+  }
   .h-12 {
     height: var(--spacing-12, 3rem);
-  }
-  .h-32 {
-    height: var(--spacing-32, 8rem);
   }
   .h-36 {
     height: var(--spacing-36, 9rem);
@@ -741,12 +695,6 @@ dialog#mobilemenu::backdrop {
   }
   .w-6 {
     width: var(--spacing-6, 1.5rem);
-  }
-  .w-12 {
-    width: var(--spacing-12, 3rem);
-  }
-  .w-32 {
-    width: var(--spacing-32, 8rem);
   }
   .w-52 {
     width: var(--spacing-52, 13rem);
@@ -787,23 +735,12 @@ dialog#mobilemenu::backdrop {
   .grow {
     flex-grow: 1;
   }
-  .border-collapse {
-    border-collapse: collapse;
-  }
-  .-translate-x-1 {
-    --tw-translate-x: calc(var(--spacing-1, 0.25rem) * -1);
-    translate: var(--tw-translate-x) var(--tw-translate-y);
-  }
   .-translate-x-1\/2 {
     --tw-translate-x: calc(calc(1/2 * 100%) * -1);
     translate: var(--tw-translate-x) var(--tw-translate-y);
   }
   .-translate-x-full {
     --tw-translate-x: -100%;
-    translate: var(--tw-translate-x) var(--tw-translate-y);
-  }
-  .translate-x-0 {
-    --tw-translate-x: var(--spacing-0, 0px);
     translate: var(--tw-translate-x) var(--tw-translate-y);
   }
   .rotate-\[30deg\] {
@@ -836,9 +773,6 @@ dialog#mobilemenu::backdrop {
   .gap-10 {
     gap: var(--spacing-10, 2.5rem);
   }
-  .gap-x-1 {
-    column-gap: var(--spacing-1, 0.25rem);
-  }
   .gap-x-1\.5 {
     column-gap: var(--spacing-1_5, 0.375rem);
   }
@@ -854,30 +788,11 @@ dialog#mobilemenu::backdrop {
       margin-bottom: calc(var(--spacing-1, 0.25rem) * calc(1 - var(--tw-space-y-reverse)));
     }
   }
-  .space-y-12 {
-    :where(& > :not(:last-child)) {
-      margin-top: calc(var(--spacing-12, 3rem) * var(--tw-space-y-reverse));
-      margin-bottom: calc(var(--spacing-12, 3rem) * calc(1 - var(--tw-space-y-reverse)));
-    }
-  }
   .gap-y-5 {
     row-gap: var(--spacing-5, 1.25rem);
   }
   .gap-y-7 {
     row-gap: var(--spacing-7, 1.75rem);
-  }
-  .divide-y {
-    :where(& > :not(:last-child)) {
-      border-bottom-style: var(--tw-border-style);
-      border-top-style: var(--tw-border-style);
-      border-top-width: calc(1px * var(--tw-divide-y-reverse));
-      border-bottom-width: calc(1px * calc(1 - var(--tw-divide-y-reverse)));
-    }
-  }
-  .divide-gray-200 {
-    :where(& > :not(:last-child)) {
-      border-color: var(--color-gray-200, #e5e7eb);
-    }
   }
   .overflow-hidden {
     overflow: hidden;
@@ -911,10 +826,6 @@ dialog#mobilemenu::backdrop {
     border-top-right-radius: var(--radius-md, 0.375rem);
     border-bottom-right-radius: var(--radius-md, 0.375rem);
   }
-  .border {
-    border-style: var(--tw-border-style);
-    border-width: 1px;
-  }
   .border-0 {
     border-style: var(--tw-border-style);
     border-width: 0px;
@@ -925,14 +836,8 @@ dialog#mobilemenu::backdrop {
   .bg-gray-900 {
     background-color: var(--color-gray-900, #111827);
   }
-  .bg-gray-900\/80 {
-    background-color: color-mix(in srgb, var(--color-gray-900, #111827) 80%, transparent);
-  }
   .bg-indigo-800 {
     background-color: var(--color-indigo-800, #3730a3);
-  }
-  .bg-white {
-    background-color: var(--color-white, #fff);
   }
   .bg-white\/5 {
     background-color: color-mix(in srgb, var(--color-white, #fff) 5%, transparent);
@@ -956,10 +861,6 @@ dialog#mobilemenu::backdrop {
   }
   .p-2\.5 {
     padding: var(--spacing-2_5, 0.625rem);
-  }
-  .py-1 {
-    padding-top: var(--spacing-1, 0.25rem);
-    padding-bottom: var(--spacing-1, 0.25rem);
   }
   .py-1\.5 {
     padding-top: var(--spacing-1_5, 0.375rem);
@@ -985,15 +886,8 @@ dialog#mobilemenu::backdrop {
     padding-top: var(--spacing-12, 3rem);
     padding-bottom: var(--spacing-12, 3rem);
   }
-  .pt-12 {
-    padding-top: var(--spacing-12, 3rem);
-  }
   .pt-14 {
     padding-top: var(--spacing-14, 3.5rem);
-  }
-  .px-2 {
-    padding-left: var(--spacing-2, 0.5rem);
-    padding-right: var(--spacing-2, 0.5rem);
   }
   .px-3 {
     padding-left: var(--spacing-3, 0.75rem);
@@ -1014,17 +908,8 @@ dialog#mobilemenu::backdrop {
   .pb-2 {
     padding-bottom: var(--spacing-2, 0.5rem);
   }
-  .pl-1 {
-    padding-left: var(--spacing-1, 0.25rem);
-  }
   .pl-1\.5 {
     padding-left: var(--spacing-1_5, 0.375rem);
-  }
-  .pl-3 {
-    padding-left: var(--spacing-3, 0.75rem);
-  }
-  .pl-10 {
-    padding-left: var(--spacing-10, 2.5rem);
   }
   .text-center {
     text-align: center;
@@ -1071,14 +956,8 @@ dialog#mobilemenu::backdrop {
   .leading-8 {
     line-height: var(--line-height-8, 2rem);
   }
-  .leading-10 {
-    line-height: var(--line-height-10, 2.5rem);
-  }
   .tracking-tight {
     letter-spacing: var(--letter-spacing-tight, -0.025em);
-  }
-  .text-gray-200 {
-    color: var(--color-gray-200, #e5e7eb);
   }
   .text-gray-300 {
     color: var(--color-gray-300, #d1d5db);
@@ -1086,33 +965,14 @@ dialog#mobilemenu::backdrop {
   .text-gray-400 {
     color: var(--color-gray-400, #9ca3af);
   }
-  .text-gray-600 {
-    color: var(--color-gray-600, #4b5563);
-  }
-  .text-gray-900 {
-    color: var(--color-gray-900, #111827);
-  }
   .text-white {
     color: var(--color-white, #fff);
-  }
-  .underline {
-    text-decoration-line: underline;
-  }
-  .opacity-0 {
-    opacity: 0%;
   }
   .opacity-20 {
     opacity: 20%;
   }
-  .opacity-100 {
-    opacity: 100%;
-  }
   .ring-1 {
     --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(1px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentColor);
-    box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-  }
-  .ring-2 {
-    --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentColor);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
   .shadow-sm {
@@ -1120,28 +980,11 @@ dialog#mobilemenu::backdrop {
     --tw-shadow-colored: 0 1px 2px 0 var(--tw-shadow-color);
     box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
   }
-  .ring-gray-300 {
-    --tw-ring-color: var(--color-gray-300, #d1d5db);
-  }
-  .ring-white {
-    --tw-ring-color: var(--color-white, #fff);
-  }
   .ring-white\/10 {
     --tw-ring-color: color-mix(in srgb, var(--color-white, #fff) 10%, transparent);
   }
   .ring-white\/50 {
     --tw-ring-color: color-mix(in srgb, var(--color-white, #fff) 50%, transparent);
-  }
-  .ring-white\/60 {
-    --tw-ring-color: color-mix(in srgb, var(--color-white, #fff) 60%, transparent);
-  }
-  .outline {
-    outline-style: var(--tw-outline-style);
-    outline-width: 1px;
-  }
-  .blur {
-    --tw-blur: blur(8px);
-    filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
   }
   .blur-3xl {
     --tw-blur: blur(var(--blur-3xl, 64px));
@@ -1150,31 +993,16 @@ dialog#mobilemenu::backdrop {
   .filter {
     filter: var(--tw-blur,) var(--tw-brightness,) var(--tw-contrast,) var(--tw-grayscale,) var(--tw-hue-rotate,) var(--tw-invert,) var(--tw-saturate,) var(--tw-sepia,) var(--tw-drop-shadow,);
   }
-  .backdrop-filter {
-    -webkit-backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
-    backdrop-filter: var(--tw-backdrop-blur,) var(--tw-backdrop-brightness,) var(--tw-backdrop-contrast,) var(--tw-backdrop-grayscale,) var(--tw-backdrop-hue-rotate,) var(--tw-backdrop-invert,) var(--tw-backdrop-opacity,) var(--tw-backdrop-saturate,) var(--tw-backdrop-sepia,);
-  }
   .transition {
     transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform, translate, scale, rotate, filter, -webkit-backdrop-filter, backdrop-filter;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
     transition-duration: 150ms;
-  }
-  .transition-opacity {
-    transition-property: opacity;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 150ms;
-  }
-  .duration-300 {
-    transition-duration: 300ms;
   }
   .ease-in {
     transition-timing-function: var(--transition-timing-function-in, cubic-bezier(0.4, 0, 1, 1));
   }
   .ease-in-out {
     transition-timing-function: var(--transition-timing-function-in-out, cubic-bezier(0.4, 0, 0.2, 1));
-  }
-  .ease-linear {
-    transition-timing-function: var(--transition-timing-function-linear, linear);
   }
   .ease-out {
     transition-timing-function: var(--transition-timing-function-out, cubic-bezier(0, 0, 0.2, 1));
@@ -1204,16 +1032,6 @@ dialog#mobilemenu::backdrop {
   .group-focus-visible\:ring-white {
     &:is(:where(.group):focus-visible *) {
       --tw-ring-color: var(--color-white, #fff);
-    }
-  }
-  .group-active\:text-gray-100 {
-    &:is(:where(.group):active *) {
-      color: var(--color-gray-100, #f3f4f6);
-    }
-  }
-  .placeholder\:text-gray-400 {
-    &::placeholder {
-      color: var(--color-gray-400, #9ca3af);
     }
   }
   .backdrop\:bg-gray-900\/80 {
@@ -1265,11 +1083,6 @@ dialog#mobilemenu::backdrop {
       cursor: pointer;
     }
   }
-  .hover\:bg-gray-50 {
-    &:hover {
-      background-color: var(--color-gray-50, #f9fafb);
-    }
-  }
   .hover\:bg-gray-800 {
     &:hover {
       background-color: var(--color-gray-800, #1f2937);
@@ -1280,45 +1093,14 @@ dialog#mobilemenu::backdrop {
       background-color: var(--color-indigo-400, #818cf8);
     }
   }
-  .hover\:bg-white\/4 {
-    &:hover {
-      background-color: color-mix(in srgb, var(--color-white, #fff) 4%, transparent);
-    }
-  }
   .hover\:bg-white\/7 {
     &:hover {
       background-color: color-mix(in srgb, var(--color-white, #fff) 7%, transparent);
     }
   }
-  .hover\:text-gray-500 {
-    &:hover {
-      color: var(--color-gray-500, #6b7280);
-    }
-  }
   .hover\:text-white {
     &:hover {
       color: var(--color-white, #fff);
-    }
-  }
-  .focus\:ring-2 {
-    &:focus {
-      --tw-ring-shadow: var(--tw-ring-inset,) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color, currentColor);
-      box-shadow: var(--tw-inset-shadow), var(--tw-inset-ring-shadow), var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow);
-    }
-  }
-  .focus\:ring-indigo-500 {
-    &:focus {
-      --tw-ring-color: var(--color-indigo-500, #6366f1);
-    }
-  }
-  .focus\:ring-indigo-600 {
-    &:focus {
-      --tw-ring-color: var(--color-indigo-600, #4f46e5);
-    }
-  }
-  .focus\:ring-inset {
-    &:focus {
-      --tw-ring-inset: inset;
     }
   }
   .focus-visible\:ring-0 {
@@ -1347,16 +1129,6 @@ dialog#mobilemenu::backdrop {
   .focus-visible\:outline-indigo-400 {
     &:focus-visible {
       outline-color: var(--color-indigo-400, #818cf8);
-    }
-  }
-  .focus-visible\:outline-indigo-500 {
-    &:focus-visible {
-      outline-color: var(--color-indigo-500, #6366f1);
-    }
-  }
-  .motion-reduce\:duration-0 {
-    @media (prefers-reduced-motion: reduce) {
-      transition-duration: 0ms;
     }
   }
   .sm\:-top-80 {
@@ -1405,19 +1177,9 @@ dialog#mobilemenu::backdrop {
       flex-direction: row;
     }
   }
-  .sm\:items-center {
-    @media (width >= 40rem) {
-      align-items: center;
-    }
-  }
   .sm\:items-start {
     @media (width >= 40rem) {
       align-items: flex-start;
-    }
-  }
-  .sm\:justify-center {
-    @media (width >= 40rem) {
-      justify-content: center;
     }
   }
   .sm\:py-24 {
@@ -1436,17 +1198,6 @@ dialog#mobilemenu::backdrop {
     @media (width >= 40rem) {
       font-size: var(--font-size-6xl, 3.75rem);
       line-height: var(--font-size-6xl--line-height, 1);
-    }
-  }
-  .sm\:text-sm {
-    @media (width >= 40rem) {
-      font-size: var(--font-size-sm, 0.875rem);
-      line-height: var(--font-size-sm--line-height, 1.25rem);
-    }
-  }
-  .sm\:leading-6 {
-    @media (width >= 40rem) {
-      line-height: var(--line-height-6, 1.5rem);
     }
   }
   .md\:h-48 {
@@ -1506,11 +1257,6 @@ dialog#mobilemenu::backdrop {
       padding-left: var(--spacing-72, 18rem);
     }
   }
-  .xl\:col-span-3 {
-    @media (width >= 80rem) {
-      grid-column: span 3 / span 3;
-    }
-  }
   .starting\:open\:-translate-x-full {
     @starting-style {
       &:is([open], :popover-open) {
@@ -1546,7 +1292,6 @@ dialog {
       --tw-skew-x: skewX(0);
       --tw-skew-y: skewY(0);
       --tw-space-y-reverse: 0;
-      --tw-divide-y-reverse: 0;
       --tw-border-style: solid;
       --tw-gradient-from: #0000;
       --tw-gradient-to: #0000;
@@ -1568,7 +1313,6 @@ dialog {
       --tw-ring-offset-width: 0px;
       --tw-ring-offset-color: #fff;
       --tw-ring-offset-shadow: 0 0 #0000;
-      --tw-outline-style: solid;
       --tw-blur:  ;
       --tw-brightness:  ;
       --tw-contrast:  ;
@@ -1578,15 +1322,7 @@ dialog {
       --tw-opacity:  ;
       --tw-saturate:  ;
       --tw-sepia:  ;
-      --tw-backdrop-blur:  ;
-      --tw-backdrop-brightness:  ;
-      --tw-backdrop-contrast:  ;
-      --tw-backdrop-grayscale:  ;
-      --tw-backdrop-hue-rotate:  ;
-      --tw-backdrop-invert:  ;
-      --tw-backdrop-opacity:  ;
-      --tw-backdrop-saturate:  ;
-      --tw-backdrop-sepia:  ;
+      --tw-outline-style: solid;
     }
   }
 }
@@ -1657,11 +1393,6 @@ dialog {
   initial-value: skewY(0);
 }
 @property --tw-space-y-reverse {
-  syntax: "<number>";
-  inherits: false;
-  initial-value: 0;
-}
-@property --tw-divide-y-reverse {
   syntax: "<number>";
   inherits: false;
   initial-value: 0;
@@ -1766,11 +1497,6 @@ dialog {
   inherits: false;
   initial-value: 0 0 #0000;
 }
-@property --tw-outline-style {
-  syntax: "<custom-ident>";
-  inherits: false;
-  initial-value: solid;
-}
 @property --tw-blur {
   syntax: "*";
   inherits: false;
@@ -1807,39 +1533,8 @@ dialog {
   syntax: "*";
   inherits: false;
 }
-@property --tw-backdrop-blur {
-  syntax: "*";
+@property --tw-outline-style {
+  syntax: "<custom-ident>";
   inherits: false;
-}
-@property --tw-backdrop-brightness {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-backdrop-contrast {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-backdrop-grayscale {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-backdrop-hue-rotate {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-backdrop-invert {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-backdrop-opacity {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-backdrop-saturate {
-  syntax: "*";
-  inherits: false;
-}
-@property --tw-backdrop-sepia {
-  syntax: "*";
-  inherits: false;
+  initial-value: solid;
 }

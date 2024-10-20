@@ -55,13 +55,15 @@ CREATE TABLE IF NOT EXISTS cases
 (
     id     TEXT PRIMARY KEY,
     name   TEXT NOT NULL UNIQUE,
-    author TEXT NOT NULL
+    author TEXT NOT NULL,
+    image_path TEXT NOT NULL
 ) STRICT;
 
-INSERT INTO cases(id, name, author)
-VALUES ('rue-morgue', 'The Murders in the Rue Morgue', 'Edgar Allan Poe')
+INSERT INTO cases(id, name, author, image_path)
+VALUES ('rue-morgue', 'The Murders in the Rue Morgue', 'Edgar Allan Poe', '/images/rue_morgue.webp')
 ON CONFLICT(id) DO UPDATE SET name   = excluded.name,
-                              author = excluded.author;
+                              author = excluded.author,
+                              image_path = excluded.image_path;
 
 CREATE TABLE IF NOT EXISTS investigation_targets
 (
@@ -75,11 +77,12 @@ CREATE TABLE IF NOT EXISTS investigation_targets
 ) STRICT;
 
 INSERT INTO investigation_targets(id, name, short_name, type, image_path, case_id)
-VALUES ('le-bon', 'Adolphe Le Bon', 'Adolphe', 'person', '/images/adolphe_le-bon.webp', 'rue-morgue'),
-       ('rue-morgue', 'Rue Morgue Murder Scene', 'Rue Morgue', 'scene', '/images/adolphe_le-bon.webp', 'rue-morgue')
+VALUES ('le-bon', 'Adolphe Le Bon', 'Adolphe', 'person', 'https://myrjola.twic.pics/sheerluck/adolphe_le-bon.webp', 'rue-morgue'),
+       ('rue-morgue', 'Rue Morgue Murder Scene', 'Rue Morgue', 'scene', 'https://myrjola.twic.pics/sheerluck/rue-morgue.webp', 'rue-morgue')
 ON CONFLICT (id) DO UPDATE SET name       = excluded.name,
                                short_name = excluded.short_name,
-                               case_id    = excluded.case_id;
+                               case_id    = excluded.case_id,
+                               image_path = excluded.image_path;
 
 CREATE TABLE IF NOT EXISTS clues
 (

@@ -1,32 +1,45 @@
 package components
 
-import "github.com/myrjola/sheerluck/db"
-import "fmt"
+import (
+	"github.com/myrjola/sheerluck/db"
+	"fmt"
+)
+
+templ investigationTarget(investigationTarget db.InvestigationTarget) {
+	<div>
+		<a
+			hx-swap="show:none"
+			href={ templ.SafeURL(fmt.Sprintf("/cases/%s/investigation-targets/%s", investigationTarget.CaseID, investigationTarget.ID)) }
+		>
+			<img
+				class="aspect-square w-52 flex-none rounded-2xl object-cover"
+				src={ investigationTarget.ImagePath + "?twic=v1/max=208" }
+				alt=""
+				loading="lazy"
+			/>
+			<div>
+				{ investigationTarget.Name }
+			</div>
+		</a>
+	</div>
+}
 
 templ CaseHome(persons []db.InvestigationTarget, scenes []db.InvestigationTarget) {
 	<div>
-	    <h1>Murders in the Rue Morgue</h1>
-	    <h2 class="text-3xl">Scenes</h2>
-	    for _, scene := range scenes {
-            <div>
-                <a
-                    hx-swap="show:none"
-                    href={ templ.SafeURL(fmt.Sprintf("/cases/%s/investigation-targets/%s", scene.CaseID, scene.ID)) }
-                >
-                    { scene.Name }
-                </a>
-            </div>
-        }
-	    <h2 class="text-3xl">Suspects</h2>
-	    for _, person := range persons {
-            <div>
-                <a
-                    hx-swap="show:none"
-                    href={ templ.SafeURL(fmt.Sprintf("/cases/%s/investigation-targets/%s", person.CaseID, person.ID)) }
-                >
-                    { person.Name }
-                </a>
-            </div>
-        }
+		<h1>Murders in the Rue Morgue</h1>
+		<h2 class="text-3xl">
+			Scenes
+			<img class="h-10 w-auto inline" src="/images/chalk-outline-murder.svg" alt=""/>
+		</h2>
+		for _, scene := range scenes {
+			@investigationTarget(scene)
+		}
+		<h2 class="text-3xl">
+			Suspects
+			<img class="h-10 w-auto inline" src="/images/talk.svg" alt=""/>
+		</h2>
+		for _, person := range persons {
+			@investigationTarget(person)
+		}
 	</div>
 }

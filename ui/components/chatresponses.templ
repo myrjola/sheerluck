@@ -15,11 +15,11 @@ templ ActiveChatResponse(chatResponse ChatResponse) {
 		</span>
 	</div>
 	<img
-        class="h-12 w-auto rounded-full"
-        alt=""
-        src="https://myrjola.twic.pics/sheerluck/adolphe_le-bon.webp?twic=v1/max=48"
-        loading="lazy"
-    >
+		class="h-12 aspect-square rounded-full"
+		alt=""
+		src="https://myrjola.twic.pics/sheerluck/adolphe_le-bon.webp?twic=v1/max=48"
+		loading="lazy"
+	/>
 	if chatResponse.CompletionID == "" {
 		<div>
 			<span class="font-semibold">Adolphe:</span>
@@ -28,23 +28,23 @@ templ ActiveChatResponse(chatResponse ChatResponse) {
 			</span>
 		</div>
 	} else {
-		<div id={"chat-streaming-content-" + chatResponse.CompletionID}>
+		<div id={ "chat-streaming-content-" + chatResponse.CompletionID }>
 			<span class="font-semibold">Adolphe: </span>
 		</div>
 		// This listener is closed after the stream completes using hx-swap-oob.
 		<div
-			id={"chat-listener-" + chatResponse.CompletionID}
+			id={ "chat-listener-" + chatResponse.CompletionID }
 			hx-ext="sse"
-	        sse-connect={ "/completions/stream/" + chatResponse.CompletionID }
+			sse-connect={ "/completions/stream/" + chatResponse.CompletionID }
 			sse-swap="message"
 			hx-swap="beforeend"
-			hx-target={"#chat-streaming-content-" + chatResponse.CompletionID}
+			hx-target={ "#chat-streaming-content-" + chatResponse.CompletionID }
 		></div>
 	}
 }
 
 templ ChatResponses(chatResponses []ChatResponse) {
 	for _, chatResponse := range chatResponses {
-        @ActiveChatResponse(chatResponse)
+		@ActiveChatResponse(chatResponse)
 	}
 }
