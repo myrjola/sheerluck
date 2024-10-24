@@ -15,6 +15,7 @@ import (
 	"github.com/myrjola/sheerluck/internal/models"
 	"github.com/myrjola/sheerluck/ui/components"
 	"github.com/sashabaranov/go-openai"
+	"html/template"
 	"io"
 	"log/slog"
 	"net/http"
@@ -27,6 +28,35 @@ func init() {
 }
 
 type slotFunc func(w http.ResponseWriter, r *http.Request, h *htmx.HxRequestHeader) (*templ.Component, error)
+
+func (app *application) pageTemplateHander() http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		var (
+			err error
+			t   *template.Template
+		)
+
+		if t, err = template.ParseFiles("internal/templates/base.gohtml", "internal/templates/page-home.gohtml"); err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		templateData := struct {
+			Title string
+		}{
+			Title: "Home",
+		}
+
+		if err = t.ExecuteTemplate(w, "base", templateData); err != nil {
+			app.serverError(w, r, err)
+			return
+		}
+
+		return
+	}
+
+	return http.HandlerFunc(fn)
+}
 
 func (app *application) htmxHandler(slotF slotFunc) http.Handler {
 	fn := func(w http.ResponseWriter, r *http.Request) {

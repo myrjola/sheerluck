@@ -30,8 +30,10 @@ func NewDB(url string) (*sqlx.DB, *sqlx.DB, error) {
 	if isInMemory {
 		cacheConfig = "&cache=shared"
 	}
+	readConfig := fmt.Sprintf("file:%s?mode=ro&_txlock=deferred&_journal_mode=wal&_busy_timeout=5000&_synchronous=normal%s", url, cacheConfig)
+	readWriteConfig := fmt.Sprintf("file:%s?mode=rwc&_txlock=immediate&_journal_mode=wal&_busy_timeout=5000&_synchronous=normal%s", url, cacheConfig)
 
-	if readWriteDB, err = sqlx.ConnectContext(ctx, "sqlite3", fmt.Sprintf("file:%s?_txlock=immediate%s", url, cacheConfig)); err != nil {
+	if readWriteDB, err = sqlx.ConnectContext(ctx, "sqlite3", readWriteConfig); err != nil {
 		return nil, nil, err
 	}
 
@@ -39,17 +41,11 @@ func NewDB(url string) (*sqlx.DB, *sqlx.DB, error) {
 	readWriteDB.SetMaxIdleConns(1)
 	readWriteDB.SetConnMaxLifetime(time.Hour)
 	readWriteDB.SetConnMaxIdleTime(time.Hour)
-	readWriteDB.MustExec(`
-		PRAGMA journal_mode = WAL;
-		PRAGMA busy_timeout = 5000;
-		PRAGMA foreign_keys = ON;
-        PRAGMA synchronous = NORMAL;
-	`)
 
 	// Initialize the database schema
 	readWriteDB.MustExec(initialiseSchemaScript)
 
-	if readDB, err = sqlx.ConnectContext(ctx, "sqlite3", fmt.Sprintf("file:%s?mode=ro%s", url, cacheConfig)); err != nil {
+	if readDB, err = sqlx.ConnectContext(ctx, "sqlite3", readConfig); err != nil {
 		return nil, nil, err
 	}
 

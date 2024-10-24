@@ -27,7 +27,7 @@ func QuestionPeople(chatResponses []ChatResponse) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templ.WriteWatchModeString(templ_7745c5c3_Buffer, 1)
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<h2 class=\"mb-1 text-lg font-bold\">Question people</h2><div id=\"answers\" class=\"mx-auto max-w-md [overflow-anchor:none]\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -35,7 +35,7 @@ func QuestionPeople(chatResponses []ChatResponse) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.WriteWatchModeString(templ_7745c5c3_Buffer, 2)
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</div><form action=\"/question-target\" method=\"post\" hx-swap=\"beforeend show:none\" hx-target=\"#answers\" hx-push-url=\"false\" hx-form-reset-on-success class=\"mx-auto max-w-md\"><input type=\"hidden\" name=\"csrf_token\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -48,7 +48,7 @@ func QuestionPeople(chatResponses []ChatResponse) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templ.WriteWatchModeString(templ_7745c5c3_Buffer, 3)
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\"><div class=\"flex flex-col gap-2\"><label for=\"question\" class=\"block text-md font-medium leading-6 text-white\">Detective:</label><div class=\"flex rounded-md\"><div class=\"isolate flex flex-1 items-stretch focus-within:z-10\"><input name=\"question\" type=\"text\" id=\"question\" class=\"block w-full rounded-none rounded-l-md border-0 py-1.5 pl-1.5 bg-white/5 ring-1 ring-inset ring-white/50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 leading-8\"></div><button type=\"submit\" hx-disabled-elt=\"this\" class=\"relative -ml-px inline-flex items-center gap-x-1.5 rounded-r-md px-3 py-2 bg-white/5 ring-1 ring-inset ring-white/50 focus-within:ring-2 focus-within:ring-inset focus-within:ring-indigo-500 hover:bg-white/7 hover:cursor-pointer\"><img class=\"h-6 w-auto\" src=\"/images/talk.svg\" alt=\"\"> Ask</button></div></div></form>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

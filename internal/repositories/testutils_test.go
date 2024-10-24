@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"github.com/jmoiron/sqlx"
+	"github.com/myrjola/sheerluck/db"
 	"os"
 	"testing"
 )

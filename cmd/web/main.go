@@ -16,6 +16,7 @@ import (
 	"github.com/myrjola/sheerluck/internal/broker"
 	"github.com/myrjola/sheerluck/internal/pprofserver"
 	"github.com/myrjola/sheerluck/internal/repositories"
+	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -39,14 +40,10 @@ type application struct {
 	}]
 }
 
-type configuration struct {
-	Addr      string `env:"SHEERLUCK_ADDR" default:"localhost:4000"`
-	FQDN      string `env:"SHEERLUCK_FQDN" default:"localhost"`
-	PprofPort string `env:"SHEERLUCK_PPROF_PORT" default:":6060"`
-	SqliteURL string `env:"SHEERLUCK_SQLITE_URL" default:"./sheerluck.sqlite"`
-}
+func run(ctx context.Context, w io.Writer, args []string, getenv func(string) string) error {
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	defer cancel()
 
-func main() {
 	loggerHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level:     slog.LevelInfo,
 		AddSource: true,
@@ -59,29 +56,32 @@ func main() {
 		os.Exit(1)
 	}
 
-	defaultAddr := os.Getenv("SHEERLUCK_ADDR")
+	defaultAddr := getenv("SHEERLUCK_ADDR")
 	if len(defaultAddr) == 0 {
 		defaultAddr = "localhost:4000"
 	}
-	defaultFQDN := os.Getenv("SHEERLUCK_FQDN")
+	defaultFQDN := getenv("SHEERLUCK_FQDN")
 	if len(defaultFQDN) == 0 {
 		defaultFQDN = "localhost"
 	}
-	defaultPprofPort := os.Getenv("SHEERLUCK_PPROF_ADDR")
+	defaultPprofPort := getenv("SHEERLUCK_PPROF_ADDR")
 	if len(defaultPprofPort) == 0 {
 		defaultPprofPort = "localhost:6060"
 	}
-	defaultSqliteURL := os.Getenv("SHEERLUCK_SQLITE_URL")
+	defaultSqliteURL := getenv("SHEERLUCK_SQLITE_URL")
 	if len(defaultSqliteURL) == 0 {
 		defaultSqliteURL = "./sheerluck.sqlite"
 	}
 
-	addr := flag.String("addr", defaultAddr, "HTTP network address")
-	fqdn := flag.String("fqdn", defaultFQDN, "Fully qualified domain name for setting up Webauthn")
-	pprofPort := flag.String("pprof-addr", defaultPprofPort, "HTTP network address for pprof")
-	sqliteURL := flag.String("sqlite-url", defaultSqliteURL, "SQLite URL")
-	proxyPort := flag.String("proxyport", "", "Proxy port for configuring webauthn in dev environment")
-	flag.Parse()
+	flagSet := flag.NewFlagSet(args[0], flag.ExitOnError)
+	addr := flagSet.String("addr", defaultAddr, "HTTP network address")
+	fqdn := flagSet.String("fqdn", defaultFQDN, "Fully qualified domain name for setting up Webauthn")
+	pprofPort := flagSet.String("pprof-addr", defaultPprofPort, "HTTP network address for pprof")
+	sqliteURL := flagSet.String("sqlite-url", defaultSqliteURL, "SQLite URL")
+	proxyPort := flagSet.String("proxyport", "", "Proxy port for configuring webauthn in dev environment")
+	if err = flagSet.Parse(args[1:]); err != nil {
+		return err
+	}
 
 	// Initialise pprof listening on localhost so that it's not open to the world
 	pprofserver.Launch(*pprofPort, logger)
@@ -141,7 +141,7 @@ func main() {
 	go func() {
 		defer func() {
 			if err := recover(); err != nil {
-				// Safest to gracefully shutdown the server in case of a panic
+				// Safest to gracefully shut down the server in case of a panic
 				app.logger.Error("channel broker: %w", err)
 				if err = syscall.Kill(syscall.Getpid(), syscall.SIGINT); err != nil {
 					panic(err)
@@ -187,5 +187,14 @@ func main() {
 		os.Exit(1)
 	}
 	<-shutdownComplete
-	os.Exit(1)
+
+	return nil
+}
+
+func main() {
+	ctx := context.Background()
+	if err := run(ctx, os.Stdout, os.Args, os.Getenv); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
 }
