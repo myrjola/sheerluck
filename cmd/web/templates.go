@@ -9,6 +9,16 @@ import (
 	"net/http"
 )
 
+type BaseTemplateData struct {
+	Authenticated bool
+}
+
+func newBaseTemplateData(r *http.Request) BaseTemplateData {
+	return BaseTemplateData{
+		Authenticated: contexthelpers.IsAuthenticated(r.Context()),
+	}
+}
+
 func (app *application) Home(_ http.ResponseWriter, _ *http.Request, _ *htmx.HxRequestHeader) (*templ.Component, error) {
 	home := components.Home()
 	return &home, nil

@@ -39,3 +39,12 @@ func CSRFToken(ctx context.Context) string {
 
 	return csrfToken
 }
+
+func CSPNonce(ctx context.Context) string {
+	cspNonce, ok := ctx.Value(cspNonceContextKey).(string)
+	if !ok {
+		return ""
+	}
+
+	return cspNonce
+}

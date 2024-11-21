@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/a-h/templ"
 	"github.com/justinas/nosurf"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/internal/random"
@@ -18,8 +17,9 @@ func secureHeaders(next http.Handler) http.Handler {
 			return
 		}
 		csp := fmt.Sprintf(`script-src 'nonce-%s' 'strict-dynamic' https: http:;
+style-src 'nonce-%s' 'strict-dynamic' https: http:;
 object-src 'none';
-base-uri 'none';`, cspNonce)
+base-uri 'none';`, cspNonce, cspNonce)
 
 		w.Header().Set("Content-Security-Policy", csp)
 		w.Header().Set("Referrer-Policy", "origin-when-cross-origin")
@@ -27,10 +27,9 @@ base-uri 'none';`, cspNonce)
 		w.Header().Set("X-Frame-Options", "deny")
 		w.Header().Set("X-XSS-Protection", "0")
 
-		// Modify context so that Templ is aware of the CSP nonce.
-		ctx := templ.WithNonce(r.Context(), cspNonce)
+		r = contexthelpers.SetCSPNonce(r, cspNonce)
 
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next.ServeHTTP(w, r)
 	})
 }
 

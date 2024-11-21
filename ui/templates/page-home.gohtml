@@ -1,0 +1,302 @@
+{{- /*gotype: github.com/myrjola/sheerluck/cmd/web.homeTemplateData*/ -}}
+
+{{ define "logout-button" }}
+    <form
+            action="/api/logout"
+            method="post"
+            class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm"
+    >
+        <input type="hidden" name="csrf_token" value={{ csrfToken }}/>
+        <button type="submit">
+            <span>Log out</span>
+        </button>
+    </form>
+{{ end }}
+
+{{ define "case-card" }}
+    <a href="/cases/rue-morgue">
+        <style nonce="{{ cspNonce }}">
+            @scope {
+                :scope {
+                    display: flex;
+                    flex-direction: column;
+                    gap: var(--size-10);
+                    margin-top: var(--size-12);
+                    align-items: center;
+
+                    :hover h2 {
+                        /* TODO: add hover effect on text */
+                    }
+
+                    @container style(--sm: true) {
+                        flex-direction: row;
+                        align-items: start;
+                    }
+
+                    img {
+                        aspect-ratio: 1;
+                        width: 200px;
+                        flex: none;
+                        border-radius: var(--radius-3);
+                        object-fit: cover;
+                    }
+                }
+            }
+        </style>
+        <img
+                src="https://myrjola.twic.pics/sheerluck/rue-morgue.webp?twic=v1/max=208"
+                alt="spooky street"
+                loading="lazy"
+        >
+        <div>
+            <style nonce="{{ cspNonce }}">
+                @scope {
+                    :scope {
+                        max-width: 36rem;
+                        flex: 1 1 auto;
+
+                        h2 {
+                            font-size: var(--font-size-3);
+                            line-height: var(--font-lineheight-3);
+                            font-weight: var(--font-weight-6);
+                            letter-spacing: var(--font-letterspacing-0);
+                        }
+                    }
+                }
+            </style>
+            <h2 class="text-lg font-semibold leading-8 tracking-tight text-gray-300 group-hover:text-gray-100">Murders
+                in the Rue Morgue</h2>
+            <p class="text-base leading-7 text-gray-300">Edgar Allan Poe</p>
+            <p class="mt-6 text-base leading-7 text-gray-300"> You are the brilliant detective Auguste Dupin solving a
+                gruesome murder of two women in 19th century Paris.</p>
+        </div>
+    </a>
+{{ end }}
+
+{{ define "backdrop-blur-top" }}
+    <div
+            class="-top-40 -z-10 transform-gpu overflow-hidden blur-3xl sm:-top-80"
+            aria-hidden="true"
+    >
+        <style nonce="{{ cspNonce }}">
+            @scope {
+                :scope {
+                    position: absolute;
+                    right: 0;
+                    left: 0;
+                }
+
+                div {
+                    clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%)
+                }
+            }
+        </style>
+        <div
+                class="relative left-[calc(50%-11rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 rotate-[30deg] bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:left-[calc(50%-30rem)] sm:w-[72.1875rem]"
+        >
+        </div>
+    </div>
+{{ end }}
+
+{{ define "backdrop-blur-bottom" }}
+    <div
+            class="absolute inset-x-0 top-[calc(100%-13rem)] -z-10 transform-gpu overflow-hidden blur-3xl sm:top-[calc(100%-30rem)]"
+            aria-hidden="true"
+    >
+        <div
+                class="relative left-[calc(50%+3rem)] aspect-[1155/678] w-[36.125rem] -translate-x-1/2 bg-gradient-to-tr from-[#ff80b5] to-[#9089fc] opacity-20 sm:left-[calc(50%+36rem)] sm:w-[72.1875rem]"
+        >
+            <style nonce="{{ cspNonce }}">
+                @scope {
+                    :scope {
+                        clip-path: polygon(74.1% 44.1%, 100% 61.6%, 97.5% 26.9%, 85.5% 0.1%, 80.7% 2%, 72.5% 32.5%, 60.2% 62.4%, 52.4% 68.1%, 47.5% 58.3%, 45.2% 34.5%, 27.5% 76.7%, 0.1% 64.9%, 17.9% 100%, 27.6% 76.8%, 76.1% 97.7%, 74.1% 44.1%);
+                    }
+                }
+            </style>
+        </div>
+    </div>
+{{ end }}
+
+{{ define "webauthn-script" }}
+    <script nonce="{{ cspNonce }}">
+      // URLBase64 to Uint8Array
+      function bufferDecode(base64String) {
+        const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+        const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+
+        return outputArray;
+      }
+
+      // ArrayBuffer to URLBase64
+      function bufferEncode(value) {
+        return btoa(String.fromCharCode.apply(null, new Uint8Array(value)))
+          .replace(/\+/g, "-")
+          .replace(/\//g, "_")
+          .replace(/=/g, "");
+      }
+
+      function registerUser() {
+        fetch("/api/registration/start", {method: "post"})
+          .then((resp) => resp.json())
+          .then((credentialCreationOptions) => {
+            credentialCreationOptions.publicKey.challenge = bufferDecode(
+              credentialCreationOptions.publicKey.challenge,
+            );
+            credentialCreationOptions.publicKey.user.id = bufferDecode(
+              credentialCreationOptions.publicKey.user.id,
+            );
+            if (credentialCreationOptions.publicKey.excludeCredentials) {
+              for (
+                var i = 0;
+                i < credentialCreationOptions.publicKey.excludeCredentials.length;
+                i++
+              ) {
+                credentialCreationOptions.publicKey.excludeCredentials[i].id =
+                  bufferDecode(
+                    credentialCreationOptions.publicKey.excludeCredentials[i].id,
+                  );
+              }
+            }
+            return navigator.credentials.create({
+              publicKey: credentialCreationOptions.publicKey,
+            });
+          })
+          .then((credential) => {
+            let attestationObject = credential.response.attestationObject;
+            let clientDataJSON = credential.response.clientDataJSON;
+            let rawId = credential.rawId;
+
+            return fetch("/api/registration/finish", {
+              method: "post",
+              body: JSON.stringify({
+                id: credential.id,
+                rawId: bufferEncode(rawId),
+                type: credential.type,
+                response: {
+                  attestationObject: bufferEncode(attestationObject),
+                  clientDataJSON: bufferEncode(clientDataJSON),
+                },
+              }),
+            }).then((resp) => {
+              if (!resp.ok) {
+                throw new Error("Finishing registration failed!");
+              }
+            });
+          })
+          .then(() => {
+            window.location.reload();
+          })
+          .catch((error) => {
+            console.log(error);
+            alert("failed to register");
+          });
+      }
+
+      function loginUser() {
+        fetch("/api/login/start", {method: "post"})
+          .then((resp) => resp.json())
+          .then((credentialRequestOptions) => {
+            credentialRequestOptions.publicKey.challenge = bufferDecode(
+              credentialRequestOptions.publicKey.challenge,
+            );
+            return navigator.credentials.get({
+              publicKey: credentialRequestOptions.publicKey,
+            });
+          })
+          .then((assertion) => {
+            let authData = assertion.response.authenticatorData;
+            let clientDataJSON = assertion.response.clientDataJSON;
+            let rawId = assertion.rawId;
+            let sig = assertion.response.signature;
+            let userHandle = assertion.response.userHandle;
+
+            return fetch("/api/login/finish", {
+              method: "post",
+              body: JSON.stringify({
+                id: assertion.id,
+                rawId: bufferEncode(rawId),
+                type: assertion.type,
+                response: {
+                  authenticatorData: bufferEncode(authData),
+                  clientDataJSON: bufferEncode(clientDataJSON),
+                  signature: bufferEncode(sig),
+                  userHandle: bufferEncode(userHandle),
+                },
+              }),
+            }).then((resp) => {
+              if (!resp.ok) {
+                throw new Error(`failed response: ${resp.status} ${resp.statusText}`);
+              }
+              window.location.reload();
+            });
+          })
+          .catch((error) => {
+            console.log(error);
+            alert("failed to login!");
+          });
+      }
+    </script>
+{{ end }}
+
+{{ define "page" }}
+    <div class="pt-14">
+        <style nonce="{{ cspNonce }}">
+            @scope {
+                :scope {
+                    position: relative;
+                    isolation: isolate;
+                }
+            }
+        </style>
+        {{ template "backdrop-blur-top" . }}
+        <div class="py-12 sm:py-24 lg:pb-40">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <div class="mx-auto max-w-2xl text-center">
+                    <img
+                            class="mx-auto mb-4 aspect-square h-36 md:h-48"
+                            src="/logo.svg"
+                            alt="Four-leaf clover inside a magnifying glass"
+                    />
+                    <h1 class="text-4xl font-bold tracking-tight text-white sm:text-6xl">
+                        Sheerluck
+                    </h1>
+                    <p class="mt-6 text-lg leading-8 text-gray-300">
+                        AI-powered murder mysteries. Question suspects and investigate crime scenes to solve the case.
+                        Your first case is “The Murders in the Rue Morgue” by Edgar Allan Poe.
+                    </p>
+                    <div class="mt-10 flex items-center justify-center gap-x-6">
+                        {{ if .BaseTemplateData.Authenticated }}
+                            {{ template "logout-button" . }}
+                        {{ else }}
+                            {{ template "webauthn-script" . }}
+                            <button type="button">
+                                <span>Sign in</span>
+                                <script nonce="{{ cspNonce }}">
+                                  document.currentScript.parentElement.addEventListener("click", loginUser)
+                                </script>
+                            </button>
+                            <button type="button">
+                                <span>Register</span>
+                                <script nonce="{{ cspNonce }}">
+                                  me().addEventListener("click", registerUser)
+                                </script>
+                            </button>
+                        {{ end }}
+                    </div>
+                    {{ with .BaseTemplateData.Authenticated }}
+                        {{ template "case-card" }}
+                    {{ end }}
+                </div>
+            </div>
+        </div>
+        {{ template "backdrop-blur-bottom" . }}
+    </div>
+{{ end }}
+

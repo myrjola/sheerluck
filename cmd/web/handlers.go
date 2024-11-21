@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/gob"
 	"encoding/json"
@@ -56,6 +57,58 @@ func (app *application) pageTemplateHander() http.Handler {
 	}
 
 	return http.HandlerFunc(fn)
+}
+
+func (app *application) pageTemplate(file string) (*template.Template, error) {
+	files := []string{
+		"ui/templates/base.gohtml",
+		fmt.Sprintf("ui/templates/%s", file),
+	}
+
+	// We need to initialize the FuncMap before parsing the files.
+	return template.New(file).Funcs(template.FuncMap{
+		"cspNonce": func() string {
+			panic("not implemented")
+			return "cspNonce"
+		},
+		"csrfToken": func() string {
+			panic("not implemented")
+			return "csrfToken"
+		},
+	}).ParseFiles(files...)
+}
+
+func (app *application) render(w http.ResponseWriter, r *http.Request, status int, file string, data any) {
+	var (
+		err error
+		t   *template.Template
+	)
+
+	if t, err = app.pageTemplate(file); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	buf := new(bytes.Buffer)
+	ctx := r.Context()
+	cspNonce := contexthelpers.CSPNonce(ctx)
+	csrfToken := contexthelpers.CSRFToken(ctx)
+	t.Funcs(template.FuncMap{
+		"cspNonce": func() string {
+			return cspNonce
+		},
+		"csrfToken": func() string {
+			return csrfToken
+		},
+	})
+	if err = t.ExecuteTemplate(buf, "base", data); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	w.WriteHeader(status)
+
+	_, _ = buf.WriteTo(w)
 }
 
 func (app *application) htmxHandler(slotF slotFunc) http.Handler {
