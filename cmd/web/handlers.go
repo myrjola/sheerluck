@@ -20,6 +20,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"path/filepath"
 	"strings"
 	"sync"
 )
@@ -30,50 +31,29 @@ func init() {
 
 type slotFunc func(w http.ResponseWriter, r *http.Request, h *htmx.HxRequestHeader) (*templ.Component, error)
 
-func (app *application) pageTemplateHander() http.Handler {
-	fn := func(w http.ResponseWriter, r *http.Request) {
-		var (
-			err error
-			t   *template.Template
-		)
-
-		if t, err = template.ParseFiles("internal/templates/base.gohtml", "internal/templates/page-home.gohtml"); err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		templateData := struct {
-			Title string
-		}{
-			Title: "Home",
-		}
-
-		if err = t.ExecuteTemplate(w, "base", templateData); err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		return
-	}
-
-	return http.HandlerFunc(fn)
-}
-
-func (app *application) pageTemplate(file string) (*template.Template, error) {
+// pageTemplate returns a template for the given page name.
+//
+// pageName corresponds to directory inside ui/templates/pages folder. It has to include a template named "page".
+func (app *application) pageTemplate(pageName string) (*template.Template, error) {
 	files := []string{
 		"ui/templates/base.gohtml",
-		fmt.Sprintf("ui/templates/%s", file),
 	}
 
-	// We need to initialize the FuncMap before parsing the files.
-	return template.New(file).Funcs(template.FuncMap{
-		"cspNonce": func() string {
+	pageTemplateFiles, err := filepath.Glob(fmt.Sprintf("ui/templates/pages/%s/*.gohtml", pageName))
+	if err != nil {
+		return nil, fmt.Errorf("glob page template files: %w", err)
+	}
+	for _, ptf := range pageTemplateFiles {
+		files = append(files, ptf)
+	}
+
+	// We need to initialize the FuncMap before parsing the files. These will be overridden in the render function.
+	return template.New(pageName).Funcs(template.FuncMap{
+		"nonce": func() string {
 			panic("not implemented")
-			return "cspNonce"
 		},
-		"csrfToken": func() string {
+		"csrf": func() string {
 			panic("not implemented")
-			return "csrfToken"
 		},
 	}).ParseFiles(files...)
 }
@@ -91,14 +71,14 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 
 	buf := new(bytes.Buffer)
 	ctx := r.Context()
-	cspNonce := contexthelpers.CSPNonce(ctx)
-	csrfToken := contexthelpers.CSRFToken(ctx)
+	nonce := fmt.Sprintf("nonce=\"%s\"", contexthelpers.CSPNonce(ctx))
+	csrf := fmt.Sprintf("<input type=\"hidden\" name=\"csrf_token\" value=\"%s\"/>", contexthelpers.CSRFToken(ctx))
 	t.Funcs(template.FuncMap{
-		"cspNonce": func() string {
-			return cspNonce
+		"nonce": func() template.HTMLAttr {
+			return template.HTMLAttr(nonce)
 		},
-		"csrfToken": func() string {
-			return csrfToken
+		"csrf": func() template.HTML {
+			return template.HTML(csrf)
 		},
 	})
 	if err = t.ExecuteTemplate(buf, "base", data); err != nil {

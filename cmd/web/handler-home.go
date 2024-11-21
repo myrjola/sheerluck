@@ -13,6 +13,5 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 		BaseTemplateData: newBaseTemplateData(r),
 	}
 
-	// Render the home page.
-	app.render(w, r, http.StatusOK, "page-home.gohtml", data)
+	app.render(w, r, http.StatusOK, "home", data)
 }

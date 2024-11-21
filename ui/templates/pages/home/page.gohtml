@@ -1,0 +1,45 @@
+{{- /*gotype: github.com/myrjola/sheerluck/cmd/web.homeTemplateData*/ -}}
+
+{{ define "page" }}
+    <div class="pt-14">
+        <style {{ nonce }}>
+            @scope {
+                :scope {
+                    position: relative;
+                    isolation: isolate;
+                }
+            }
+        </style>
+        {{ template "backdrop-blur-top" }}
+        <div class="py-12 sm:py-24 lg:pb-40">
+            <div class="mx-auto max-w-7xl px-6 lg:px-8">
+                <div class="mx-auto max-w-2xl text-center">
+                    <img
+                            class="mx-auto mb-4 aspect-square h-36 md:h-48"
+                            src="/logo.svg"
+                            alt="Four-leaf clover inside a magnifying glass"
+                    />
+                    <h1 class="text-4xl font-bold tracking-tight text-white sm:text-6xl">
+                        Sheerluck
+                    </h1>
+                    <p class="mt-6 text-lg leading-8 text-gray-300">
+                        AI-powered murder mysteries. Question suspects and investigate crime scenes to solve the case.
+                        Your first case is “The Murders in the Rue Morgue” by Edgar Allan Poe.
+                    </p>
+                    <div class="mt-10 flex items-center justify-center gap-x-6">
+                        {{ if .BaseTemplateData.Authenticated }}
+                            {{ template "logout-button" }}
+                        {{ else }}
+                            {{ template "webauthn-buttons" }}
+                        {{ end }}
+                    </div>
+                    {{ if .BaseTemplateData.Authenticated }}
+                        {{ template "case-card" }}
+                    {{ end }}
+                </div>
+            </div>
+        </div>
+        {{ template "backdrop-blur-bottom" }}
+    </div>
+{{ end }}
+

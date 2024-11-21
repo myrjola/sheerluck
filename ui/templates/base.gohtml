@@ -20,12 +20,12 @@
         <meta name="theme-color" content="#111827"/>
     </head>
     <body>
-    <script nonce="{{ cspNonce }}">
+    <script {{ nonce }}>
       function me() {
         return document.currentScript.parentElement
       }
     </script>
-    {{ template "page" .}}
+    {{ template "page" . }}
     </body>
     </html>
 {{ end }}

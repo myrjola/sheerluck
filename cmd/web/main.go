@@ -45,7 +45,7 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 	defer cancel()
 
 	loggerHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     slog.LevelInfo,
+		Level:     slog.LevelDebug,
 		AddSource: true,
 	})
 	logger := slog.New(loggerHandler)
