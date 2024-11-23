@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -47,6 +48,15 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 	loggerHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level:     slog.LevelDebug,
 		AddSource: true,
+		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
+			if a.Key == "error" {
+				return slog.Group("error",
+
+					strings.Fields(a.Value.String()))
+			}
+
+			return a
+		},
 	})
 	logger := slog.New(loggerHandler)
 

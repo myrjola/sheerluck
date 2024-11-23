@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/gob"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/a-h/templ"
 	"github.com/donseba/go-htmx"
@@ -13,6 +12,7 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
+	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/models"
 	"github.com/myrjola/sheerluck/ui/components"
 	"github.com/sashabaranov/go-openai"
@@ -65,7 +65,7 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 	)
 
 	if t, err = app.pageTemplate(file); err != nil {
-		app.serverError(w, r, err)
+		app.serverError(w, r, errors.New("parse template", slog.String("template", file)).Wrap(err))
 		return
 	}
 
@@ -82,7 +82,7 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 		},
 	})
 	if err = t.ExecuteTemplate(buf, "base", data); err != nil {
-		app.serverError(w, r, err)
+		app.serverError(w, r, errors.New("execute template", slog.String("template", file)).Wrap(err))
 		return
 	}
 
