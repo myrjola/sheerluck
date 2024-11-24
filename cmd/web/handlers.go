@@ -65,7 +65,7 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 	)
 
 	if t, err = app.pageTemplate(file); err != nil {
-		app.serverError(w, r, errors.New("parse template", slog.String("template", file)).Wrap(err))
+		app.serverError(w, r, errors.Wrap(err, "parse template", slog.String("template", file)))
 		return
 	}
 
@@ -82,7 +82,7 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 		},
 	})
 	if err = t.ExecuteTemplate(buf, "base", data); err != nil {
-		app.serverError(w, r, errors.New("execute template", slog.String("template", file)).Wrap(err))
+		app.serverError(w, r, errors.Wrap(err, "execute template", slog.String("template", file)))
 		return
 	}
 

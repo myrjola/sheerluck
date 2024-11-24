@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"github.com/alexedwards/scs/sqlite3store"
@@ -14,6 +13,7 @@ import (
 	"github.com/myrjola/sheerluck/db"
 	"github.com/myrjola/sheerluck/internal/ai"
 	"github.com/myrjola/sheerluck/internal/broker"
+	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/pprofserver"
 	"github.com/myrjola/sheerluck/internal/repositories"
 	"io"
@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 )
@@ -46,17 +45,7 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 	defer cancel()
 
 	loggerHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level:     slog.LevelDebug,
-		AddSource: true,
-		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
-			if a.Key == "error" {
-				return slog.Group("error",
-
-					strings.Fields(a.Value.String()))
-			}
-
-			return a
-		},
+		Level: slog.LevelDebug,
 	})
 	logger := slog.New(loggerHandler)
 
