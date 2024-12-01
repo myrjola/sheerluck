@@ -1,7 +1,7 @@
 {{- /*gotype: github.com/myrjola/sheerluck/cmd/web.BaseTemplateData*/ -}}
 {{ define "base" }}
     <!DOCTYPE html>
-    <html lang="en" class="h-full bg-gray-900 text-white">
+    <html lang="en">
     <head>
         <meta charset="utf-8"/>
         <meta http-equiv="x-ua-compatible" content="ie=edge"/>
@@ -14,13 +14,13 @@
         />
         <link rel="stylesheet" href="/main.css"/>
         <link rel="icon" href="/logo.svg"/>
-        <link rel="mask-icon" href="/logo.svg" color="#f1febe"/>
+        <link rel="mask-icon" href="/logo.svg" color="#ecfccb"/>
         <link rel="apple-touch-icon" href="https://myrjola.twic.pics/sheerluck/apple-touch-icon.png"/>
         <link rel="manifest" href="/manifest.json"/>
         <meta name="theme-color" content="#111827"/>
     </head>
     <body>
-    <script {{ nonceasdf  }}>
+    <script {{ nonce }}>
       function me() {
         return document.currentScript.parentElement
       }

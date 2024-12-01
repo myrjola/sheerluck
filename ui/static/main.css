@@ -1,370 +1,245 @@
+@layer reset, props, layout, components;
+
 /* CSS reset based on https://www.joshwcomeau.com/css/custom-css-reset/ */
+@layer reset {
+    *, *::before, *::after {
+        box-sizing: border-box;
+    }
 
-*, *::before, *::after {
-    box-sizing: border-box;
-}
-* {
-    margin: 0;
-}
-body {
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-}
-img, picture, video, canvas, svg {
-    display: block;
-    max-width: 100%;
-}
-input, button, textarea, select {
-    font: inherit;
-}
-p, h1, h2, h3, h4, h5, h6 {
-    overflow-wrap: break-word;
-}
-p {
-    text-wrap: pretty;
-}
-h1, h2, h3, h4, h5, h6 {
-    text-wrap: balance;
+    * {
+        margin: 0;
+    }
+
+    body {
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        font-family: var(--font-serif);
+        height: 100%;
+    }
+
+    img, picture, video, canvas, svg {
+        display: block;
+        max-width: 100%;
+    }
+
+    input, button, textarea, select {
+        font: inherit;
+    }
+
+    p, h1, h2, h3, h4, h5, h6 {
+        overflow-wrap: break-word;
+    }
+
+    p {
+        text-wrap: pretty;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        text-wrap: balance;
+        font-family: var(--font-sans);
+    }
+
 }
 
-/*
- * CSS props based on MIT licensed https://open-props.style/ Copyright (c) 2021 Adam Argyle
- */
-:where(html) {
-    /* spacing */
-    --size-1: .25rem;
-    --size-2: .5rem;
-    --size-3: 1rem;
-    --size-4: 1.25rem;
-    --size-5: 1.5rem;
-    --size-6: 1.75rem;
-    --size-7: 2rem;
-    --size-8: 3rem;
-    --size-9: 4rem;
-    --size-10: 5rem;
-    --size-11: 7.5rem;
-    --size-12: 10rem;
-    --size-13: 15rem;
-    --size-14: 20rem;
-    --size-15: 30rem;
-
+@layer props {
     /*
-     * Media queries
-     *
-     * Since @custom-media is not yet supported https://drafts.csswg.org/mediaqueries-5/#custom-mq,
-     * we can use style queries instead https://thathtml.blog/2024/03/superpowered-container-style-queries/.
-     * No Firefox support at time of writing https://bugzilla.mozilla.org/show_bug.cgi?id=1795622.
+     * CSS props based on MIT licensed https://open-props.style/ Copyright (c) 2021 Adam Argyle
      */
-    --motionOK: true;
-    @media (prefers-reduced-motion: reduce) {
-        --motionOK: false;
+    :where(html) {
+        /* spacing */
+        --size-1: .25rem;
+        --size-2: .5rem;
+        --size-3: 1rem;
+        --size-4: 1.25rem;
+        --size-5: 1.5rem;
+        --size-6: 1.75rem;
+        --size-7: 2rem;
+        --size-8: 3rem;
+        --size-9: 4rem;
+        --size-10: 5rem;
+        --size-11: 7.5rem;
+        --size-12: 10rem;
+        --size-13: 15rem;
+        --size-14: 20rem;
+        --size-15: 30rem;
+
+        /*
+         * Media queries
+         *
+         * Since @custom-media is not yet supported https://drafts.csswg.org/mediaqueries-5/#custom-mq,
+         * we can use style queries instead https://thathtml.blog/2024/03/superpowered-container-style-queries/.
+         * No Firefox support at time of writing https://bugzilla.mozilla.org/show_bug.cgi?id=1795622.
+         */
+        --motionOK: true;
+        @media (prefers-reduced-motion: reduce) {
+            --motionOK: false;
+        }
+        --sm: false;
+        @media (min-width: 640px) {
+            --sm: true;
+        }
+        --md: false;
+        @media (min-width: 768px) {
+            --md: true;
+        }
+        --lg: false;
+        @media (min-width: 1024px) {
+            --lg: true;
+        }
+
+        /* Borders */
+        --border-size-1: 1px;
+        --border-size-2: 2px;
+        --border-size-3: 5px;
+        --border-size-4: 10px;
+        --border-size-5: 25px;
+        --radius-1: 2px;
+        --radius-2: 5px;
+        --radius-3: 1rem;
+        --radius-4: 2rem;
+        --radius-5: 4rem;
+        --radius-6: 8rem;
+        --radius-round: 9999px;
+
+        /* Fonts */
+        --font-system-ui: system-ui, sans-serif;
+        --font-monospace-code: Dank Mono, Operator Mono, Inconsolata, Fira Mono, ui-monospace, SF Mono, Monaco, Droid Sans Mono, Source Code Pro, Cascadia Code, Menlo, Consolas, DejaVu Sans Mono, monospace;
+        --font-sans: var(--font-system-ui);
+        --font-serif: ui-serif, serif;
+        --font-mono: var(--font-monospace-code);
+        --font-weight-1: 100;
+        --font-weight-2: 200;
+        --font-weight-3: 300;
+        --font-weight-4: 400;
+        --font-weight-5: 500;
+        --font-weight-6: 600;
+        --font-weight-7: 700;
+        --font-weight-8: 800;
+        --font-weight-9: 900;
+        --font-lineheight-00: .95;
+        --font-lineheight-0: 1.1;
+        --font-lineheight-1: 1.25;
+        --font-lineheight-2: 1.375;
+        --font-lineheight-3: 1.5;
+        --font-lineheight-4: 1.75;
+        --font-lineheight-5: 2;
+        --font-letterspacing-0: -.05em;
+        --font-letterspacing-1: .025em;
+        --font-letterspacing-2: .050em;
+        --font-letterspacing-3: .075em;
+        --font-letterspacing-4: .150em;
+        --font-letterspacing-5: .500em;
+        --font-letterspacing-6: .750em;
+        --font-letterspacing-7: 1em;
+        --font-size-00: .5rem;
+        --font-size-0: .75rem;
+        --font-size-1: 1rem;
+        --font-size-2: 1.1rem;
+        --font-size-3: 1.25rem;
+        --font-size-4: 1.5rem;
+        --font-size-5: 2rem;
+        --font-size-6: 2.5rem;
+        --font-size-7: 3rem;
+        --font-size-8: 3.5rem;
+        --font-size-fluid-0: clamp(.75rem, 2vw, 1rem);
+        --font-size-fluid-1: clamp(1rem, 4vw, 1.5rem);
+        --font-size-fluid-2: clamp(1.5rem, 6vw, 2.5rem);
+        --font-size-fluid-3: clamp(2rem, 9vw, 3.5rem);
+
+        /* Colors */
+        --white: #fff;
+        --black: #000;
+        --gray-0: #f9fafb;
+        --gray-1: #f3f4f6;
+        --gray-2: #e5e7eb;
+        --gray-3: #d1d5db;
+        --gray-4: #9ca3af;
+        --gray-5: #6b7280;
+        --gray-6: #4b5563;
+        --gray-7: #374151;
+        --gray-8: #1f2937;
+        --gray-9: #111827;
+        --gray-10: #030712;
+        --sky-0: #f0f9ff;
+        --sky-1: #e0f2fe;
+        --sky-2: #bae6fd;
+        --sky-3: #7dd3fc;
+        --sky-4: #38bdf8;
+        --sky-5: #0ea5e9;
+        --sky-6: #0284c7;
+        --sky-7: #0369a1;
+        --sky-8: #075985;
+        --sky-9: #0c4a6e;
+        --sky-10: #082f49;
+        --lime-0: #f7fee7;
+        --lime-1: #ecfccb;
+        --lime-2: #d9f99d;
+        --lime-3: #bef264;
+        --lime-4: #a3e635;
+        --lime-5: #84cc16;
+        --lime-6: #65a30d;
+        --lime-7: #4d7c0f;
+        --lime-8: #3f6212;
+        --lime-9: #365314;
+        --lime-10: #1a2e05;
+        --red-0: #fff5f5;
+        --red-1: #ffe3e3;
+        --red-2: #ffc9c9;
+        --red-3: #ffa8a8;
+        --red-4: #ff8787;
+        --red-5: #ff6b6b;
+        --red-6: #fa5252;
+        --red-7: #f03e3e;
+        --red-8: #e03131;
+        --red-9: #c92a2a;
+        --red-10: #b02525;
+        --red-11: #962020;
+        --red-12: #7d1a1a;
+        --yellow-0: #fff9db;
+        --yellow-1: #fff3bf;
+        --yellow-2: #ffec99;
+        --yellow-3: #ffe066;
+        --yellow-4: #ffd43b;
+        --yellow-5: #fcc419;
+        --yellow-6: #fab005;
+        --yellow-7: #f59f00;
+        --yellow-8: #f08c00;
+        --yellow-9: #e67700;
+        --yellow-10: #b35c00;
+        --yellow-11: #804200;
+        --yellow-12: #663500;
     }
-    --sm: false;
-    @media (min-width: 640px) {
-        --sm: true;
+}
+
+@layer layout {
+    html {
+        height: 100%;
+        background-color: var(--gray-10);
+        color: var(--white);
     }
-    --md: false;
-    @media (min-width: 768px) {
-        --md: true;
+}
+
+@layer components {
+    button {
+        display: inline-flex;
+        border-radius: var(--radius-2);
+        background-color: var(--sky-10);
+        color: var(--white);
+        font-family: var(--font-sans);
+        font-size: var(--font-size-1);
+        font-weight: var(--font-weight-7);
+        letter-spacing: var(--font-letterspacing-3);
+        padding: var(--size-2) var(--size-3);
+        border: none;
+        white-space: nowrap;
+
+        &:hover {
+            cursor: pointer;
+            background-color: var(--sky-7);
+        }
+
+        &:focus-visible {
+            outline: var(--white) solid 2px;
+        }
     }
-    --lg: false;
-    @media (min-width: 1024px) {
-        --lg: true;
-    }
-
-    /* Borders */
-    --border-size-1: 1px;
-    --border-size-2: 2px;
-    --border-size-3: 5px;
-    --border-size-4: 10px;
-    --border-size-5: 25px;
-    --radius-1: 2px;
-    --radius-2: 5px;
-    --radius-3: 1rem;
-    --radius-4: 2rem;
-    --radius-5: 4rem;
-    --radius-6: 8rem;
-    --radius-round: 9999px;
-
-    /* Fonts */
-    --font-system-ui: system-ui, sans-serif;
-    --font-monospace-code: Dank Mono,Operator Mono,Inconsolata,Fira Mono,ui-monospace,SF Mono,Monaco,Droid Sans Mono,Source Code Pro,Cascadia Code,Menlo,Consolas,DejaVu Sans Mono,monospace;
-    --font-sans: var(--font-system-ui);
-    --font-serif: ui-serif, serif;
-    --font-mono: var(--font-monospace-code);
-    --font-weight-1: 100;
-    --font-weight-2: 200;
-    --font-weight-3: 300;
-    --font-weight-4: 400;
-    --font-weight-5: 500;
-    --font-weight-6: 600;
-    --font-weight-7: 700;
-    --font-weight-8: 800;
-    --font-weight-9: 900;
-    --font-lineheight-00: .95;
-    --font-lineheight-0: 1.1;
-    --font-lineheight-1: 1.25;
-    --font-lineheight-2: 1.375;
-    --font-lineheight-3: 1.5;
-    --font-lineheight-4: 1.75;
-    --font-lineheight-5: 2;
-    --font-letterspacing-0: -.05em;
-    --font-letterspacing-1: .025em;
-    --font-letterspacing-2: .050em;
-    --font-letterspacing-3: .075em;
-    --font-letterspacing-4: .150em;
-    --font-letterspacing-5: .500em;
-    --font-letterspacing-6: .750em;
-    --font-letterspacing-7: 1em;
-    --font-size-00: .5rem;
-    --font-size-0: .75rem;
-    --font-size-1: 1rem;
-    --font-size-2: 1.1rem;
-    --font-size-3: 1.25rem;
-    --font-size-4: 1.5rem;
-    --font-size-5: 2rem;
-    --font-size-6: 2.5rem;
-    --font-size-7: 3rem;
-    --font-size-8: 3.5rem;
-    --font-size-fluid-0: clamp(.75rem, 2vw, 1rem);
-    --font-size-fluid-1: clamp(1rem, 4vw, 1.5rem);
-    --font-size-fluid-2: clamp(1.5rem, 6vw, 2.5rem);
-    --font-size-fluid-3: clamp(2rem, 9vw, 3.5rem);
-
-    /* Colors
-
-     TODO: Figure out how to pass Nonce in templates or figure out auto noncing.
-     TODO: Figure out the color palette by reading from refactoring UI and maybe Josh's courses.
-           I probably want to create my own palette with HSL colors. The light green front and dark blue background are a good starting point. I probably also need some other color for buttons maybe indigo.
-           I likely need red and yellow for errors and warnings.
-     */
-    --gray-0: #f8f9fa;
-    --gray-1: #f1f3f5;
-    --gray-2: #e9ecef;
-    --gray-3: #dee2e6;
-    --gray-4: #ced4da;
-    --gray-5: #adb5bd;
-    --gray-6: #868e96;
-    --gray-7: #495057;
-    --gray-8: #343a40;
-    --gray-9: #212529;
-    --gray-10: #16191d;
-    --gray-11: #0d0f12;
-    --gray-12: #030507;
-    --theme-color: #111827;
-    --red-0: #fff5f5;
-    --red-1: #ffe3e3;
-    --red-2: #ffc9c9;
-    --red-3: #ffa8a8;
-    --red-4: #ff8787;
-    --red-5: #ff6b6b;
-    --red-6: #fa5252;
-    --red-7: #f03e3e;
-    --red-8: #e03131;
-    --red-9: #c92a2a;
-    --red-10: #b02525;
-    --red-11: #962020;
-    --red-12: #7d1a1a;
-    --indigo-0: #edf2ff;
-    --indigo-1: #dbe4ff;
-    --indigo-2: #bac8ff;
-    --indigo-3: #91a7ff;
-    --indigo-4: #748ffc;
-    --indigo-5: #5c7cfa;
-    --indigo-6: #4c6ef5;
-    --indigo-7: #4263eb;
-    --indigo-8: #3b5bdb;
-    --indigo-9: #364fc7;
-    --indigo-10: #2f44ad;
-    --indigo-11: #283a94;
-    --indigo-12: #21307a;
-    --theme-color: #111827;
-    --blue-0: #e7f5ff;
-    --blue-1: #d0ebff;
-    --blue-2: #a5d8ff;
-    --blue-3: #74c0fc;
-    --blue-4: #4dabf7;
-    --blue-5: #339af0;
-    --blue-6: #228be6;
-    --blue-7: #1c7ed6;
-    --blue-8: #1971c2;
-    --blue-9: #1864ab;
-    --blue-10: #145591;
-    --blue-11: #114678;
-    --blue-12: #0d375e;
-    --theme-color: #111827;
-    --cyan-0: #e3fafc;
-    --cyan-1: #c5f6fa;
-    --cyan-2: #99e9f2;
-    --cyan-3: #66d9e8;
-    --cyan-4: #3bc9db;
-    --cyan-5: #22b8cf;
-    --cyan-6: #15aabf;
-    --cyan-7: #1098ad;
-    --cyan-8: #0c8599;
-    --cyan-9: #0b7285;
-    --cyan-10: #095c6b;
-    --cyan-11: #074652;
-    --cyan-12: #053038;
-    --teal-0: #e6fcf5;
-    --teal-1: #c3fae8;
-    --teal-2: #96f2d7;
-    --teal-3: #63e6be;
-    --teal-4: #38d9a9;
-    --teal-5: #20c997;
-    --teal-6: #12b886;
-    --teal-7: #0ca678;
-    --teal-8: #099268;
-    --teal-9: #087f5b;
-    --teal-10: #066649;
-    --teal-11: #054d37;
-    --teal-12: #033325;
-    --green-0: #ebfbee;
-    --green-1: #d3f9d8;
-    --green-2: #b2f2bb;
-    --green-3: #8ce99a;
-    --green-4: #69db7c;
-    --green-5: #51cf66;
-    --green-6: #40c057;
-    --green-7: #37b24d;
-    --green-8: #2f9e44;
-    --green-9: #2b8a3e;
-    --green-10: #237032;
-    --green-11: #1b5727;
-    --green-12: #133d1b;
-    --lime-0: #f4fce3;
-    --lime-1: #e9fac8;
-    --lime-2: #d8f5a2;
-    --lime-3: #c0eb75;
-    --lime-4: #a9e34b;
-    --lime-5: #94d82d;
-    --lime-6: #82c91e;
-    --lime-7: #74b816;
-    --lime-8: #66a80f;
-    --lime-9: #5c940d;
-    --lime-10: #4c7a0b;
-    --lime-11: #3c6109;
-    --lime-12: #2c4706;
-    --yellow-0: #fff9db;
-    --yellow-1: #fff3bf;
-    --yellow-2: #ffec99;
-    --yellow-3: #ffe066;
-    --yellow-4: #ffd43b;
-    --yellow-5: #fcc419;
-    --yellow-6: #fab005;
-    --yellow-7: #f59f00;
-    --yellow-8: #f08c00;
-    --yellow-9: #e67700;
-    --yellow-10: #b35c00;
-    --yellow-11: #804200;
-    --yellow-12: #663500;
-    --orange-0: #fff4e6;
-    --orange-1: #ffe8cc;
-    --orange-2: #ffd8a8;
-    --orange-3: #ffc078;
-    --orange-4: #ffa94d;
-    --orange-5: #ff922b;
-    --orange-6: #fd7e14;
-    --orange-7: #f76707;
-    --orange-8: #e8590c;
-    --orange-9: #d9480f;
-    --orange-10: #bf400d;
-    --orange-11: #99330b;
-    --orange-12: #802b09;
-    --choco-0: #fff8dc;
-    --choco-1: #fce1bc;
-    --choco-2: #f7ca9e;
-    --choco-3: #f1b280;
-    --choco-4: #e99b62;
-    --choco-5: #df8545;
-    --choco-6: #d46e25;
-    --choco-7: #bd5f1b;
-    --choco-8: #a45117;
-    --choco-9: #8a4513;
-    --choco-10: #703a13;
-    --choco-11: #572f12;
-    --choco-12: #3d210d;
-    --brown-0: #faf4eb;
-    --brown-1: #ede0d1;
-    --brown-2: #e0cab7;
-    --brown-3: #d3b79e;
-    --brown-4: #c5a285;
-    --brown-5: #b78f6d;
-    --brown-6: #a87c56;
-    --brown-7: #956b47;
-    --brown-8: #825b3a;
-    --brown-9: #6f4b2d;
-    --brown-10: #5e3a21;
-    --brown-11: #4e2b15;
-    --brown-12: #422412;
-    --sand-0: #f8fafb;
-    --sand-1: #e6e4dc;
-    --sand-2: #d5cfbd;
-    --sand-3: #c2b9a0;
-    --sand-4: #aea58c;
-    --sand-5: #9a9178;
-    --sand-6: #867c65;
-    --sand-7: #736a53;
-    --sand-8: #5f5746;
-    --sand-9: #4b4639;
-    --sand-10: #38352d;
-    --sand-11: #252521;
-    --sand-12: #121210;
-    --camo-0: #f9fbe7;
-    --camo-1: #e8ed9c;
-    --camo-2: #d2df4e;
-    --camo-3: #c2ce34;
-    --camo-4: #b5bb2e;
-    --camo-5: #a7a827;
-    --camo-6: #999621;
-    --camo-7: #8c851c;
-    --camo-8: #7e7416;
-    --camo-9: #6d6414;
-    --camo-10: #5d5411;
-    --camo-11: #4d460e;
-    --camo-12: #36300a;
-    --jungle-0: #ecfeb0;
-    --jungle-1: #def39a;
-    --jungle-2: #d0e884;
-    --jungle-3: #c2dd6e;
-    --jungle-4: #b5d15b;
-    --jungle-5: #a8c648;
-    --jungle-6: #9bbb36;
-    --jungle-7: #8fb024;
-    --jungle-8: #84a513;
-    --jungle-9: #7a9908;
-    --jungle-10: #658006;
-    --jungle-11: #516605;
-    --jungle-12: #3d4d04;
-    --gray-0: #f8f9fa;
-    --gray-1: #f1f3f5;
-    --gray-2: #e9ecef;
-    --gray-3: #dee2e6;
-    --gray-4: #ced4da;
-    --gray-5: #adb5bd;
-    --gray-6: #868e96;
-    --gray-7: #495057;
-    --gray-8: #343a40;
-    --gray-9: #212529;
-    --gray-10: #16191d;
-    --gray-11: #0d0f12;
-    --gray-12: #030507;
-
-    --lime-0: #f4fce3;
-    --lime-1: #e9fac8;
-    --theme-color: #f1febe;
-    --lime-2: #d8f5a2;
-    --lime-3: #c0eb75;
-    --lime-4: #a9e34b;
-    --lime-5: #94d82d;
-    --lime-6: #82c91e;
-    --lime-7: #74b816;
-    --lime-8: #66a80f;
-    --lime-9: #5c940d;
-    --lime-10: #4c7a0b;
-    --lime-11: #3c6109;
-    --lime-12: #2c4706;
-
-
-
 }
