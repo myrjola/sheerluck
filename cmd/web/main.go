@@ -14,6 +14,7 @@ import (
 	"github.com/myrjola/sheerluck/internal/ai"
 	"github.com/myrjola/sheerluck/internal/broker"
 	"github.com/myrjola/sheerluck/internal/errors"
+	"github.com/myrjola/sheerluck/internal/logging"
 	"github.com/myrjola/sheerluck/internal/pprofserver"
 	"github.com/myrjola/sheerluck/internal/repositories"
 	"io"
@@ -44,9 +45,9 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	loggerHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+	loggerHandler := logging.NewContextHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		Level: slog.LevelDebug,
-	})
+	}))
 	logger := slog.New(loggerHandler)
 
 	err := godotenv.Load()

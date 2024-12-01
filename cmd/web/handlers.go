@@ -75,10 +75,10 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 	csrf := fmt.Sprintf("<input type=\"hidden\" name=\"csrf_token\" value=\"%s\"/>", contexthelpers.CSRFToken(ctx))
 	t.Funcs(template.FuncMap{
 		"nonce": func() template.HTMLAttr {
-			return template.HTMLAttr(nonce)
+			return template.HTMLAttr(nonce) //nolint:gosec we trust the nonce since it's not provided by user.
 		},
 		"csrf": func() template.HTML {
-			return template.HTML(csrf)
+			return template.HTML(csrf) //nolint:gosec we trust the csrf since it's not provided by user.
 		},
 	})
 	if err = t.ExecuteTemplate(buf, "base", data); err != nil {
