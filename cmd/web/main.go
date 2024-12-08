@@ -6,12 +6,9 @@ import (
 	"fmt"
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
-	"github.com/donseba/go-htmx"
-	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/myrjola/sheerluck/db"
 	"github.com/myrjola/sheerluck/internal/ai"
-	"github.com/myrjola/sheerluck/internal/broker"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/logging"
 	"github.com/myrjola/sheerluck/internal/pprofserver"
@@ -32,27 +29,23 @@ type application struct {
 	webAuthnHandler *webauthnhandler.WebAuthnHandler
 	sessionManager  *scs.SessionManager
 	investigations  *repositories.InvestigationRepository
-	htmx            *htmx.HTMX
-	queries         *db.Queries
-	broker          *broker.ChannelBroker[uuid.UUID, struct {
-		string
-		error
-	}]
 }
 
 func run(ctx context.Context, w io.Writer, args []string, getenv func(string) string) error {
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	var cancel context.CancelFunc
+	ctx, cancel = signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	loggerHandler := logging.NewContextHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+	loggerHandler := logging.NewContextHandler(slog.NewTextHandler(w, &slog.HandlerOptions{
+		AddSource:   false,
+		Level:       slog.LevelDebug,
+		ReplaceAttr: nil,
 	}))
 	logger := slog.New(loggerHandler)
 
 	err := godotenv.Load()
 	if err != nil {
-		logger.Error(err.Error())
-		os.Exit(1)
+		return errors.Wrap(err, "load .env")
 	}
 
 	defaultAddr := getenv("SHEERLUCK_ADDR")
@@ -77,7 +70,6 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 	fqdn := flagSet.String("fqdn", defaultFQDN, "Fully qualified domain name for setting up Webauthn")
 	pprofPort := flagSet.String("pprof-addr", defaultPprofPort, "HTTP network address for pprof")
 	sqliteURL := flagSet.String("sqlite-url", defaultSqliteURL, "SQLite URL")
-	proxyPort := flagSet.String("proxyport", "", "Proxy port for configuring webauthn in dev environment")
 	if err = flagSet.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -89,33 +81,26 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 	if *fqdn != "localhost" {
 		rpOrigins = []string{fmt.Sprintf("https://%s", *fqdn)}
 	}
-	if *proxyPort != "" {
-		rpOrigins = []string{fmt.Sprintf("http://%s:%s", *fqdn, *proxyPort)}
-	}
-
 	dbs, err := db.NewDB(*sqliteURL)
 	if err != nil {
-		logger.Error("open database %s: %w", *sqliteURL, err)
-		os.Exit(1)
+		return errors.Wrap(err, "open db", slog.String("url", *sqliteURL))
 	}
-	logger.Info("connected to db")
+	logger.LogAttrs(ctx, slog.LevelInfo, "connected to db")
 
 	sessionManager := scs.New()
-	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWriteDB, 24*time.Hour)
-	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWriteDB, 24*time.Hour) //nolint:mnd
+	sessionManager.Lifetime = 12 * time.Hour                                                  //nolint:mnd
 	sessionManager.Cookie.Persist = true
 	sessionManager.Cookie.Secure = true
 	sessionManager.Cookie.HttpOnly = true
 	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 
-	webAuthnHandler, err := webauthnhandler.New(*fqdn, rpOrigins, logger, sessionManager, dbs)
+	var webAuthnHandler *webauthnhandler.WebAuthnHandler
+	if webAuthnHandler, err = webauthnhandler.New(*fqdn, rpOrigins, logger, sessionManager, dbs); err != nil {
+		return errors.Wrap(err, "new webauthn handler")
+	}
 
 	investigations := repositories.NewInvestigationRepository(dbs, logger)
-
-	channelBroker := broker.NewChannelBroker[uuid.UUID, struct {
-		string
-		error
-	}]()
 
 	app := application{
 		logger:          logger,
@@ -123,24 +108,7 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 		webAuthnHandler: webAuthnHandler,
 		sessionManager:  sessionManager,
 		investigations:  investigations,
-		htmx:            htmx.New(),
-		queries:         db.New(dbs.ReadDB),
-		broker:          channelBroker,
 	}
-
-	go func() {
-		defer func() {
-			if err := recover(); err != nil {
-				// Safest to gracefully shut down the server in case of a panic
-				app.logger.Error("channel broker: %w", err)
-				if err = syscall.Kill(syscall.Getpid(), syscall.SIGINT); err != nil {
-					panic(err)
-				}
-			}
-		}()
-
-		channelBroker.Start()
-	}()
 
 	logger.Info("starting server", slog.Any("addr", *addr))
 
@@ -173,8 +141,7 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 
 	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
 		// Error starting or closing listener:
-		logger.Error("HTTP server ListenAndServe: %v", err)
-		os.Exit(1)
+		return errors.Wrap(err, "listen and serve")
 	}
 	<-shutdownComplete
 

@@ -45,12 +45,6 @@ RUN go build -ldflags='-s -w -extldflags "-static"' -o /dist/sheerluck ./cmd/web
 
 # Minimize CSS and copy UI files to dist
 COPY /ui ./ui
-COPY /tailwind.config.js ./tailwind.config.js
-COPY /input.css ./input.css
-RUN curl -sLO https://github.com/tailwindlabs/tailwindcss/releases/download/v3.4.0/tailwindcss-linux-x64 && \
-  chmod +x tailwindcss-linux-x64 && \
-  mv tailwindcss-linux-x64 tailwindcss
-RUN ./tailwindcss --input ./input.css --output ./ui/static/main.css --minify
 RUN filehash=`md5sum ./ui/static/main.css | awk '{ print $1 }'` && \
     sed -i "s/\/main.css/\/main.${filehash}.css/g" ui/html/base.gohtml && \
     mv ./ui/static/main.css ui/static/main.${filehash}.css
