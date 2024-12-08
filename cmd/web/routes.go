@@ -12,9 +12,13 @@ func (app *application) routes() http.Handler {
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	mux.Handle("/", cacheForeverHeaders(fileServer))
 
-	session := alice.New(app.sessionManager.LoadAndSave, app.authenticate)
-	mustSession := alice.New(app.sessionManager.LoadAndSave, app.authenticate, app.mustAuthenticate)
-	sessionSSE := alice.New(app.serverSentEventMiddleware, app.authenticate)
+	session := alice.New(app.sessionManager.LoadAndSave, app.webAuthnHandler.AuthenticateMiddleware)
+	mustSession := alice.New(
+		app.sessionManager.LoadAndSave,
+		app.webAuthnHandler.AuthenticateMiddleware,
+		app.mustAuthenticate,
+	)
+	sessionSSE := alice.New(app.serverSentEventMiddleware, app.webAuthnHandler.AuthenticateMiddleware)
 
 	mux.Handle("GET /{$}", session.ThenFunc(app.home))
 	mux.Handle("GET /test", session.ThenFunc(app.home))
@@ -22,7 +26,7 @@ func (app *application) routes() http.Handler {
 	mux.Handle("GET /completions/stream/{completionID}", sessionSSE.ThenFunc(app.streamChat))
 	mux.Handle("GET /investigate-scenes", mustSession.Then(app.htmxHandler(app.InvestigateScenes)))
 	mux.Handle("GET /cases/{caseID}/{$}", mustSession.Then(app.htmxHandler(app.CaseView)))
-	mux.Handle("GET /cases/{caseID}/investigation-targets/{investigationTargetID}/{$}", mustSession.Then(app.htmxHandler(app.QuestionPeople)))
+	mux.Handle("GET /cases/{caseID}/investigation-targets/{investigationTargetID}/{$}", mustSession.ThenFunc(app.investigateTarget))
 
 	mux.Handle("POST /api/registration/start", session.ThenFunc(app.BeginRegistration))
 	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.FinishRegistration))

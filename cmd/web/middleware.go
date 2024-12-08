@@ -1,7 +1,6 @@
 package main
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/justinas/nosurf"
@@ -11,8 +10,6 @@ import (
 	"github.com/myrjola/sheerluck/internal/random"
 	"log/slog"
 	"net/http"
-	"runtime/debug"
-	"strings"
 )
 
 func secureHeaders(next http.Handler) http.Handler {
@@ -77,55 +74,10 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if excp := recover(); excp != nil {
-				stack := strings.ReplaceAll(string(debug.Stack()), "\t", " ")
-				attrs := []slog.Attr{slog.Any("stack", strings.Split(stack, "\n"))}
-				var err error
-				switch v := excp.(type) {
-				case string:
-					err = errors.New(v, attrs...)
-				case error:
-					err = errors.Wrap(v, "panic", attrs...)
-				default:
-					err = errors.New(fmt.Sprint(v), attrs...)
-				}
+				err := errors.DecoratePanic(excp)
 				app.serverError(w, r, err)
 			}
 		}()
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func (app *application) authenticate(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		userID := app.sessionManager.GetBytes(r.Context(), string(userIDSessionKey))
-
-		// User has not yet authenticated.
-		if userID == nil {
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		// If user exists, set context values.
-		exists, err := app.users.Exists(userID)
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-		if exists {
-			r = contexthelpers.AuthenticateContext(r, userID)
-		}
-
-		// Add session information to logging context.
-		token := app.sessionManager.Token(ctx)
-		// Hash token with sha256 to avoid leaking it in logs.
-		tokenHash := sha256.Sum256([]byte(token))
-		ctx = logging.WithAttrs(r.Context(),
-			slog.String("session_hash", fmt.Sprintf("%x", tokenHash)),
-			slog.String("user_id", fmt.Sprintf("%x", userID)),
-		)
-		r = r.WithContext(ctx)
 
 		next.ServeHTTP(w, r)
 	})

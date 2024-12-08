@@ -1,4 +1,4 @@
-package models
+package webauthnhandler
 
 import (
 	"crypto/rand"
@@ -8,26 +8,26 @@ import (
 	"time"
 )
 
-type User struct {
-	ID          []byte
-	DisplayName string
-	Credentials []webauthn.Credential
+type user struct {
+	id          []byte
+	displayName string
+	credentials []webauthn.Credential
 }
 
 const webauthnIDSize = 64
 
-func NewUser() (*User, error) {
+// newRandomUser initialises a new user with random ID and anonymous display name.
+func newRandomUser() (webauthn.User, error) {
 	id := make([]byte, webauthnIDSize)
 	if _, err := rand.Read(id); err != nil {
 		return nil, errors.Wrap(err, "generate user id")
 	}
-	user := User{
-		DisplayName: fmt.Sprintf("Anonymous user created at %s", time.Now().Format(time.RFC3339)),
-		ID:          id,
-		Credentials: []webauthn.Credential{},
-	}
 
-	return &user, nil
+	return &user{
+		displayName: fmt.Sprintf("Anonymous user created at %s", time.Now().Format(time.RFC3339)),
+		id:          id,
+		credentials: []webauthn.Credential{},
+	}, nil
 }
 
 // WebAuthnID provides the user handle of the user account. A user handle is an opaque byte sequence with a maximum
@@ -40,8 +40,8 @@ func NewUser() (*User, error) {
 //
 // Specification: §5.4.3. User Account Parameters for Credential Generation
 // (https://w3c.github.io/webauthn/#dom-publickeycredentialuserentity-id)
-func (u User) WebAuthnID() []byte {
-	return u.ID
+func (u user) WebAuthnID() []byte {
+	return u.id
 }
 
 // WebAuthnName provides the name attribute of the user account during registration and is a human-palatable name for
@@ -50,8 +50,8 @@ func (u User) WebAuthnID() []byte {
 //
 // Specification: §5.4.3. User Account Parameters for Credential Generation
 // (https://w3c.github.io/webauthn/#dictdef-publickeycredentialuserentity)
-func (u User) WebAuthnName() string {
-	return u.DisplayName
+func (u user) WebAuthnName() string {
+	return u.displayName
 }
 
 // WebAuthnDisplayName provides the name attribute of the user account during registration and is a human-palatable
@@ -60,22 +60,11 @@ func (u User) WebAuthnName() string {
 //
 // Specification: §5.4.3. User Account Parameters for Credential Generation
 // (https://www.w3.org/TR/webauthn/#dom-publickeycredentialuserentity-displayname)
-func (u User) WebAuthnDisplayName() string {
-	return u.DisplayName
+func (u user) WebAuthnDisplayName() string {
+	return u.displayName
 }
 
-// WebAuthnCredentials provides the list of Credentials owned by the user.
-func (u User) WebAuthnCredentials() []webauthn.Credential {
-	return u.Credentials
-}
-
-// AddWebAuthnCredentials adds Credential to the user.
-func (u User) AddWebAuthnCredential(credential webauthn.Credential) {
-	u.Credentials = append(u.Credentials, credential)
-}
-
-// WebAuthnIcon is a deprecated option.
-// Deprecated: this has been removed from the specification recommendation. Suggest a blank string.
-func (u User) WebAuthnIcon() string {
-	return ""
+// WebAuthnCredentials provides the list of [webauthn.Credential] owned by the user.
+func (u user) WebAuthnCredentials() []webauthn.Credential {
+	return u.credentials
 }

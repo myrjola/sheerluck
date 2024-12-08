@@ -7,7 +7,6 @@ import (
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 	"github.com/donseba/go-htmx"
-	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/joho/godotenv"
 	"github.com/myrjola/sheerluck/db"
@@ -17,6 +16,7 @@ import (
 	"github.com/myrjola/sheerluck/internal/logging"
 	"github.com/myrjola/sheerluck/internal/pprofserver"
 	"github.com/myrjola/sheerluck/internal/repositories"
+	"github.com/myrjola/sheerluck/internal/webauthnhandler"
 	"io"
 	"log/slog"
 	"net/http"
@@ -27,15 +27,14 @@ import (
 )
 
 type application struct {
-	logger         *slog.Logger
-	aiClient       ai.Client
-	webAuthn       *webauthn.WebAuthn
-	sessionManager *scs.SessionManager
-	users          *repositories.UserRepository
-	investigations *repositories.InvestigationRepository
-	htmx           *htmx.HTMX
-	queries        *db.Queries
-	broker         *broker.ChannelBroker[uuid.UUID, struct {
+	logger          *slog.Logger
+	aiClient        ai.Client
+	webAuthnHandler *webauthnhandler.WebAuthnHandler
+	sessionManager  *scs.SessionManager
+	investigations  *repositories.InvestigationRepository
+	htmx            *htmx.HTMX
+	queries         *db.Queries
+	broker          *broker.ChannelBroker[uuid.UUID, struct {
 		string
 		error
 	}]
@@ -94,32 +93,24 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 		rpOrigins = []string{fmt.Sprintf("http://%s:%s", *fqdn, *proxyPort)}
 	}
 
-	var webauthnConfig = &webauthn.Config{
-		RPDisplayName: "Sheerluck",
-		RPID:          *fqdn,
-		RPOrigins:     rpOrigins,
-	}
-
-	var webAuthn *webauthn.WebAuthn
-	if webAuthn, err = webauthn.New(webauthnConfig); err != nil {
-		logger.Error("webauthn: %w", err)
-		os.Exit(1)
-	}
-
-	readWriteDB, readDB, err := db.NewDB(*sqliteURL)
+	dbs, err := db.NewDB(*sqliteURL)
 	if err != nil {
 		logger.Error("open database %s: %w", *sqliteURL, err)
 		os.Exit(1)
 	}
-
 	logger.Info("connected to db")
 
 	sessionManager := scs.New()
-	sessionManager.Store = sqlite3store.NewWithCleanupInterval(readWriteDB.DB, 24*time.Hour)
+	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWriteDB, 24*time.Hour)
 	sessionManager.Lifetime = 12 * time.Hour
+	sessionManager.Cookie.Persist = true
+	sessionManager.Cookie.Secure = true
+	sessionManager.Cookie.HttpOnly = true
+	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 
-	users := repositories.NewUserRepository(readWriteDB, readDB, logger)
-	investigations := repositories.NewInvestigationRepository(readWriteDB, readDB, logger)
+	webAuthnHandler, err := webauthnhandler.New(*fqdn, rpOrigins, logger, sessionManager, dbs)
+
+	investigations := repositories.NewInvestigationRepository(dbs, logger)
 
 	channelBroker := broker.NewChannelBroker[uuid.UUID, struct {
 		string
@@ -127,15 +118,14 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 	}]()
 
 	app := application{
-		logger:         logger,
-		aiClient:       ai.NewClient(),
-		webAuthn:       webAuthn,
-		sessionManager: sessionManager,
-		users:          users,
-		investigations: investigations,
-		htmx:           htmx.New(),
-		queries:        db.New(readDB),
-		broker:         channelBroker,
+		logger:          logger,
+		aiClient:        ai.NewClient(),
+		webAuthnHandler: webAuthnHandler,
+		sessionManager:  sessionManager,
+		investigations:  investigations,
+		htmx:            htmx.New(),
+		queries:         db.New(dbs.ReadDB),
+		broker:          channelBroker,
 	}
 
 	go func() {

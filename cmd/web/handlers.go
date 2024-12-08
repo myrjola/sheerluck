@@ -4,16 +4,13 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"encoding/json"
 	"fmt"
 	"github.com/a-h/templ"
 	"github.com/donseba/go-htmx"
-	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/google/uuid"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/internal/errors"
-	"github.com/myrjola/sheerluck/internal/models"
 	"github.com/myrjola/sheerluck/ui/components"
 	"github.com/sashabaranov/go-openai"
 	"html/template"
@@ -43,9 +40,7 @@ func (app *application) pageTemplate(pageName string) (*template.Template, error
 	if err != nil {
 		return nil, fmt.Errorf("glob page template files: %w", err)
 	}
-	for _, ptf := range pageTemplateFiles {
-		files = append(files, ptf)
-	}
+	files = append(files, pageTemplateFiles...)
 
 	// We need to initialize the FuncMap before parsing the files. These will be overridden in the render function.
 	return template.New(pageName).Funcs(template.FuncMap{
@@ -75,10 +70,10 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 	csrf := fmt.Sprintf("<input type=\"hidden\" name=\"csrf_token\" value=\"%s\"/>", contexthelpers.CSRFToken(ctx))
 	t.Funcs(template.FuncMap{
 		"nonce": func() template.HTMLAttr {
-			return template.HTMLAttr(nonce) //nolint:gosec we trust the nonce since it's not provided by user.
+			return template.HTMLAttr(nonce) //nolint:gosec, we trust the nonce since it's not provided by user.
 		},
 		"csrf": func() template.HTML {
-			return template.HTML(csrf) //nolint:gosec we trust the csrf since it's not provided by user.
+			return template.HTML(csrf) //nolint:gosec, we trust the csrf since it's not provided by user.
 		},
 	})
 	if err = t.ExecuteTemplate(buf, "base", data); err != nil {
@@ -151,7 +146,13 @@ func (app *application) startCompletionStream(ctx context.Context, completionID 
 			response, err := stream.Recv()
 			if errors.Is(err, io.EOF) {
 				logger.Debug("stream finished")
-				if _, err := app.investigations.FinishCompletion(context.Background(), "le-bon", authenticatedUserID, question, answer); err != nil {
+				if err := app.investigations.FinishCompletion(
+					context.Background(),
+					"le-bon",
+					authenticatedUserID,
+					question,
+					answer,
+				); err != nil {
 					app.logger.Error("finish completion", slog.Any("error", err))
 					return
 				}
@@ -266,7 +267,7 @@ func (app *application) questionTarget(w http.ResponseWriter, r *http.Request) {
 		Answer:   resp.Choices[0].Message.Content,
 	}
 
-	if _, err := app.investigations.FinishCompletion(ctx, "le-bon", contexthelpers.AuthenticatedUserID(ctx), cr.Question, cr.Answer); err != nil {
+	if err := app.investigations.FinishCompletion(ctx, "le-bon", contexthelpers.AuthenticatedUserID(ctx), cr.Question, cr.Answer); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
@@ -347,181 +348,47 @@ func (app *application) streamChat(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) BeginRegistration(w http.ResponseWriter, r *http.Request) {
-	var (
-		user *models.User
-		err  error
-		ctx  = r.Context()
-	)
-	if user, err = models.NewUser(); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	authSelect := protocol.AuthenticatorSelection{
-		//AuthenticatorAttachment: protocol.AuthenticatorAttachment("platform"),
-		RequireResidentKey: protocol.ResidentKeyNotRequired(),
-		UserVerification:   protocol.VerificationDiscouraged,
-	}
-
-	opts, session, err := app.webAuthn.BeginRegistration(
-		user,
-		webauthn.WithAuthenticatorSelection(authSelect),
-		webauthn.WithResidentKeyRequirement(protocol.ResidentKeyRequirementRequired))
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	app.sessionManager.Put(ctx, string(webAuthnSessionKey), *session)
-	if err = app.users.Upsert(ctx, user); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
+	out, err := app.webAuthnHandler.BeginRegistration(r.Context())
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(opts)
-	if err != nil {
+	if _, err = w.Write(out); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
-}
-
-func (app *application) parseWebauthnSession(r *http.Request) (webauthn.SessionData, error) {
-	var (
-		session webauthn.SessionData
-		ok      bool
-		err     error
-	)
-	if session, ok = app.sessionManager.Get(r.Context(), string(webAuthnSessionKey)).(webauthn.SessionData); !ok {
-		err = errors.New("could not parse webauthn.SessionData")
-	}
-	return session, err
 }
 
 func (app *application) FinishRegistration(w http.ResponseWriter, r *http.Request) {
-	var (
-		session    webauthn.SessionData
-		credential *webauthn.Credential
-		user       *models.User
-		err        error
-		ctx        = r.Context()
-	)
-
-	if session, err = app.parseWebauthnSession(r); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	if user, err = app.users.Get(session.UserID); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	credential, err = app.webAuthn.FinishRegistration(user, session, r)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	user.AddWebAuthnCredential(*credential)
-	if err = app.users.Upsert(ctx, user); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	// Log in the newly registered user
-	if err = app.sessionManager.RenewToken(r.Context()); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-	app.sessionManager.Put(r.Context(), string(userIDSessionKey), user.ID)
-
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode("Registration Success")
-	if err != nil {
+	if err := app.webAuthnHandler.FinishRegistration(r); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 }
 
 func (app *application) BeginLogin(w http.ResponseWriter, r *http.Request) {
-	options, session, err := app.webAuthn.BeginDiscoverableLogin()
+	out, err := app.webAuthnHandler.BeginLogin(w, r)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
-
-	app.sessionManager.Put(r.Context(), string(webAuthnSessionKey), *session)
 
 	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(options)
+	_, err = w.Write(out)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
-}
-
-func (app *application) findUserHandler(_, userHandle []byte) (webauthn.User, error) {
-	return app.users.Get(userHandle)
 }
 
 func (app *application) FinishLogin(w http.ResponseWriter, r *http.Request) {
-	var (
-		session webauthn.SessionData
-		err     error
-		user    *models.User
-	)
-	if session, err = app.parseWebauthnSession(r); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	// Validate login
-
-	parsedResponse, err := protocol.ParseCredentialRequestResponse(r)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-	credential, err := app.webAuthn.ValidateDiscoverableLogin(app.findUserHandler, session, parsedResponse)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	// If login was successful, update the credential object
-	if user, err = app.users.Get(parsedResponse.Response.UserHandle); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-	// TODO: would be good to do additional security check on signCount and cloneWarning.
-	user.AddWebAuthnCredential(*credential)
-
-	if err = app.users.Upsert(r.Context(), user); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	// Set userID in session
-	if err = app.sessionManager.RenewToken(r.Context()); err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-	app.sessionManager.Put(r.Context(), string(userIDSessionKey), user.ID)
-
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode("Login Success")
-	if err != nil {
+	if err := app.webAuthnHandler.FinishLogin(r); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 }
 
 func (app *application) Logout(w http.ResponseWriter, r *http.Request) {
-	if err := app.sessionManager.RenewToken(r.Context()); err != nil {
+	if err := app.webAuthnHandler.Logout(r.Context()); err != nil {
 		app.serverError(w, r, err)
 		return
 	}
-	app.sessionManager.Remove(r.Context(), string(userIDSessionKey))
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }

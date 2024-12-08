@@ -1,9 +1,8 @@
-package repositories
+package repositories_test
 
 import (
 	_ "embed"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"github.com/myrjola/sheerluck/db"
 	"os"
 	"testing"
@@ -13,54 +12,58 @@ import (
 var testFixtures string
 
 // newTestDB creates a new in-memory database for testing purposes.
-func newTestDB(t *testing.T) (*sqlx.DB, *sqlx.DB) {
+func newTestDB(t *testing.T) *db.DBs {
 	var (
-		readWriteDB, readDB *sqlx.DB
-		err                 error
+		dbs *db.DBs
+		err error
 	)
 
-	if readWriteDB, readDB, err = db.NewDB(":memory:"); err != nil {
+	if dbs, err = db.NewDB(":memory:"); err != nil {
 		t.Fatal(err)
 	}
 
 	// Set database to read-only mode.
 	// The mode=ro flag doesn't seem to work with :memory: and cache=shared.
-	readDB.MustExec("PRAGMA query_only = TRUE;")
+	if _, err = dbs.ReadDB.Exec("PRAGMA query_only = TRUE;"); err != nil {
+		t.Fatal(err)
+	}
 
 	// Add test data
-	readWriteDB.MustExec(testFixtures)
+	if _, err = dbs.ReadWriteDB.Exec(testFixtures); err != nil {
+		t.Fatal(err)
+	}
 
 	t.Cleanup(func() {
 		defer func() {
-			if err := readWriteDB.Close(); err != nil {
+			if err = dbs.ReadWriteDB.Close(); err != nil {
 				t.Fatal(err)
 			}
-			if err := readDB.Close(); err != nil {
+			if err = dbs.ReadDB.Close(); err != nil {
 				t.Fatal(err)
 			}
 		}()
 	})
 
-	return readWriteDB, readDB
+	return dbs
 }
 
 // newBenchmarkDB creates database connection pools for benchmarking purposes.
-func newBenchmarkDB(b *testing.B) (*sqlx.DB, *sqlx.DB) {
+func newBenchmarkDB(b *testing.B) *db.DBs {
 	var (
-		readWriteDB, readDB *sqlx.DB
-		err                 error
-		benchmarkDBPath     = "./benchmark.sqlite"
+		dbs             *db.DBs
+		err             error
+		benchmarkDBPath = "./benchmark.sqlite"
 	)
 
-	if readWriteDB, readDB, err = db.NewDB(benchmarkDBPath); err != nil {
+	if dbs, err = db.NewDB(benchmarkDBPath); err != nil {
 		b.Fatal(err)
 	}
 
 	b.Cleanup(func() {
-		if err = readWriteDB.Close(); err != nil {
+		if err = dbs.ReadWriteDB.Close(); err != nil {
 			b.Fatal(err)
 		}
-		if err = readDB.Close(); err != nil {
+		if err = dbs.ReadDB.Close(); err != nil {
 			b.Fatal(err)
 		}
 		_ = os.Remove(benchmarkDBPath)
@@ -68,5 +71,5 @@ func newBenchmarkDB(b *testing.B) (*sqlx.DB, *sqlx.DB) {
 		_ = os.Remove(fmt.Sprintf("%s-wal", benchmarkDBPath))
 	})
 
-	return readWriteDB, readDB
+	return dbs
 }

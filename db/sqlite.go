@@ -1,40 +1,44 @@
 package db
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
+	"github.com/myrjola/sheerluck/internal/errors"
 	"time"
 
-	"github.com/jmoiron/sqlx"
-
 	_ "embed"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/mattn/go-sqlite3" // Enable sqlite3 driver
 )
 
 //go:embed init.sql
 var initialiseSchemaScript string
 
+type DBs struct {
+	ReadWriteDB *sql.DB
+	ReadDB      *sql.DB
+}
+
 // NewDB establishes two database connections, one for read/write operations and one for read-only operations.
 // This is a best practice mentioned in https://github.com/mattn/go-sqlite3/issues/1179#issuecomment-1638083995
-func NewDB(url string) (*sqlx.DB, *sqlx.DB, error) {
+func NewDB(url string) (*DBs, error) {
 	var (
 		err         error
-		readWriteDB *sqlx.DB
-		readDB      *sqlx.DB
-		ctx         = context.Background()
+		readWriteDB *sql.DB
+		readDB      *sql.DB
 	)
 
 	// For in-memory databases, we need shared cache mode so that both databases access the same data.
 	isInMemory := url == ":memory:"
-	cacheConfig := "&cache=private"
+	cacheConfig := "cache=private"
 	if isInMemory {
-		cacheConfig = "&cache=shared"
+		cacheConfig = "cache=shared"
 	}
-	readConfig := fmt.Sprintf("file:%s?mode=ro&_txlock=deferred&_journal_mode=wal&_busy_timeout=5000&_synchronous=normal%s", url, cacheConfig)
-	readWriteConfig := fmt.Sprintf("file:%s?mode=rwc&_txlock=immediate&_journal_mode=wal&_busy_timeout=5000&_synchronous=normal%s", url, cacheConfig)
+	commonConfig := "_journal_mode=wal&_busy_timeout=5000&_synchronous=normal&_foreign_keys=on"
+	readConfig := fmt.Sprintf("file:%s?mode=ro&_txlock=deferred&%s&%s", url, commonConfig, cacheConfig)
+	readWriteConfig := fmt.Sprintf("file:%s?mode=rwc&_txlock=immediate&%s&%s", url, commonConfig, cacheConfig)
 
-	if readWriteDB, err = sqlx.ConnectContext(ctx, "sqlite3", readWriteConfig); err != nil {
-		return nil, nil, err
+	if readWriteDB, err = sql.Open("sqlite3", readWriteConfig); err != nil {
+		return nil, errors.Wrap(err, "open read-write database")
 	}
 
 	readWriteDB.SetMaxOpenConns(1)
@@ -43,16 +47,22 @@ func NewDB(url string) (*sqlx.DB, *sqlx.DB, error) {
 	readWriteDB.SetConnMaxIdleTime(time.Hour)
 
 	// Initialize the database schema
-	readWriteDB.MustExec(initialiseSchemaScript)
-
-	if readDB, err = sqlx.ConnectContext(ctx, "sqlite3", readConfig); err != nil {
-		return nil, nil, err
+	if _, err = readWriteDB.Exec(initialiseSchemaScript); err != nil {
+		return nil, errors.Wrap(err, "initialize schema")
 	}
 
-	readDB.SetMaxOpenConns(10)
-	readDB.SetMaxIdleConns(10)
+	if readDB, err = sql.Open("sqlite3", readConfig); err != nil {
+		return nil, errors.Wrap(err, "open read database")
+	}
+
+	maxReadConns := 10
+	readDB.SetMaxOpenConns(maxReadConns)
+	readDB.SetMaxIdleConns(maxReadConns)
 	readDB.SetConnMaxLifetime(time.Hour)
 	readDB.SetConnMaxIdleTime(time.Hour)
 
-	return readWriteDB, readDB, nil
+	return &DBs{
+		ReadWriteDB: readWriteDB,
+		ReadDB:      readDB,
+	}, nil
 }

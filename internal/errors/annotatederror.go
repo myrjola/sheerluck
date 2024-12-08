@@ -6,6 +6,8 @@ import (
 	"iter"
 	"log/slog"
 	"runtime"
+	"runtime/debug"
+	"strings"
 )
 
 // AnnotatedError includes more context than a plain error that is useful for troubleshooting.
@@ -142,4 +144,20 @@ func Unwrap(err error) error {
 // Join exposes stdlib [errors.Join].
 func Join(errs ...error) error {
 	return errors.Join(errs...)
+}
+
+// DecoratePanic returns an annotated error with the stack trace of the panic.
+func DecoratePanic(excp any) error {
+	stack := strings.ReplaceAll(string(debug.Stack()), "\t", " ")
+	attrs := []slog.Attr{slog.Any("stack", strings.Split(stack, "\n"))}
+	var err error
+	switch v := excp.(type) {
+	case string:
+		err = New(fmt.Sprintf("panic: %s", v), attrs...)
+	case error:
+		err = Wrap(v, "panic", attrs...)
+	default:
+		err = New(fmt.Sprintf("panic: %v", v), attrs...)
+	}
+	return err
 }
