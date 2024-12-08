@@ -18,7 +18,6 @@ func (app *application) routes() http.Handler {
 
 	mux.Handle("GET /{$}", session.ThenFunc(app.home))
 	mux.Handle("GET /test", session.ThenFunc(app.home))
-	mux.Handle("GET /question-people", mustSession.Then(app.htmxHandler(app.QuestionPeople)))
 	mux.Handle("POST /question-target", mustSession.ThenFunc(app.questionTarget))
 	mux.Handle("GET /completions/stream/{completionID}", sessionSSE.ThenFunc(app.streamChat))
 	mux.Handle("GET /investigate-scenes", mustSession.Then(app.htmxHandler(app.InvestigateScenes)))

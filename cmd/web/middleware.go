@@ -6,10 +6,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/justinas/nosurf"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
+	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/logging"
 	"github.com/myrjola/sheerluck/internal/random"
 	"log/slog"
 	"net/http"
+	"runtime/debug"
+	"strings"
 )
 
 func secureHeaders(next http.Handler) http.Handler {
@@ -73,9 +76,19 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 func (app *application) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
-			if err := recover(); err != nil {
-				w.Header().Set("Connection", "close")
-				app.serverError(w, r, fmt.Errorf("%s", err))
+			if excp := recover(); excp != nil {
+				stack := strings.ReplaceAll(string(debug.Stack()), "\t", " ")
+				attrs := []slog.Attr{slog.Any("stack", strings.Split(stack, "\n"))}
+				var err error
+				switch v := excp.(type) {
+				case string:
+					err = errors.New(v, attrs...)
+				case error:
+					err = errors.Wrap(v, "panic", attrs...)
+				default:
+					err = errors.New(fmt.Sprint(v), attrs...)
+				}
+				app.serverError(w, r, err)
 			}
 		}()
 
