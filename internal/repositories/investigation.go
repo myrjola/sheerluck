@@ -3,7 +3,7 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"github.com/myrjola/sheerluck/db"
+	"github.com/myrjola/sheerluck/internal/db"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/models"
 	"log/slog"

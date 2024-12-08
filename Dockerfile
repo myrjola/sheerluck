@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 #  Build Stage
 # -----------------------------------------------------------------------------
-FROM golang:1.22rc1-alpine3.19 AS build
+FROM golang:1.23.4-alpine3.21 AS build
 
 ENV CGO_ENABLED=1
 ENV GOOS=linux
@@ -28,7 +28,7 @@ RUN adduser \
   --uid 65532 \
   sheerluck
 
-WORKDIR /workspace
+WORKDIR /github.com/myrjola/sheerluck/
 
 COPY /go.mod .
 COPY /go.sum .
@@ -38,7 +38,6 @@ RUN go mod verify
 
 COPY /cmd ./cmd
 COPY /internal ./internal
-COPY /sqlite ./sqlite
 
 # Build a statically linked binary
 RUN go build -ldflags='-s -w -extldflags "-static"' -o /dist/sheerluck ./cmd/web
@@ -46,7 +45,7 @@ RUN go build -ldflags='-s -w -extldflags "-static"' -o /dist/sheerluck ./cmd/web
 # Minimize CSS and copy UI files to dist
 COPY /ui ./ui
 RUN filehash=`md5sum ./ui/static/main.css | awk '{ print $1 }'` && \
-    sed -i "s/\/main.css/\/main.${filehash}.css/g" ui/html/base.gohtml && \
+    sed -i "s/\/main.css/\/main.${filehash}.css/g" ui/templates/base.gohtml && \
     mv ./ui/static/main.css ui/static/main.${filehash}.css
 RUN cp -r ./ui /dist/ui
 
@@ -61,7 +60,6 @@ COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
 COPY --from=build /dist /dist
 COPY /.env /dist
-COPY /sqlite/init.sql /dist/sqlite/init.sql
 
 # Configure Litestream for backups to object storage
 COPY /litestream.yml /etc/litestream.yml

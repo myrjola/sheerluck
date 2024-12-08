@@ -7,14 +7,13 @@ import (
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 	"github.com/joho/godotenv"
-	"github.com/myrjola/sheerluck/db"
 	"github.com/myrjola/sheerluck/internal/ai"
+	"github.com/myrjola/sheerluck/internal/db"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/logging"
 	"github.com/myrjola/sheerluck/internal/pprofserver"
 	"github.com/myrjola/sheerluck/internal/repositories"
 	"github.com/myrjola/sheerluck/internal/webauthnhandler"
-	"io"
 	"log/slog"
 	"net/http"
 	"os"
@@ -31,17 +30,10 @@ type application struct {
 	investigations  *repositories.InvestigationRepository
 }
 
-func run(ctx context.Context, w io.Writer, args []string, getenv func(string) string) error {
+func run(ctx context.Context, logger *slog.Logger, args []string, getenv func(string) string) error {
 	var cancel context.CancelFunc
 	ctx, cancel = signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
-
-	loggerHandler := logging.NewContextHandler(slog.NewTextHandler(w, &slog.HandlerOptions{
-		AddSource:   false,
-		Level:       slog.LevelDebug,
-		ReplaceAttr: nil,
-	}))
-	logger := slog.New(loggerHandler)
 
 	err := godotenv.Load()
 	if err != nil {
@@ -88,8 +80,8 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 	logger.LogAttrs(ctx, slog.LevelInfo, "connected to db")
 
 	sessionManager := scs.New()
-	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWriteDB, 24*time.Hour) //nolint:mnd
-	sessionManager.Lifetime = 12 * time.Hour                                                  //nolint:mnd
+	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWriteDB, 24*time.Hour) //nolint:mnd // day
+	sessionManager.Lifetime = 12 * time.Hour                                                  //nolint:mnd // half a day
 	sessionManager.Cookie.Persist = true
 	sessionManager.Cookie.Secure = true
 	sessionManager.Cookie.HttpOnly = true
@@ -150,8 +142,14 @@ func run(ctx context.Context, w io.Writer, args []string, getenv func(string) st
 
 func main() {
 	ctx := context.Background()
-	if err := run(ctx, os.Stdout, os.Args, os.Getenv); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "%s\n", err)
+	loggerHandler := logging.NewContextHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
+		AddSource:   false,
+		Level:       slog.LevelDebug,
+		ReplaceAttr: nil,
+	}))
+	logger := slog.New(loggerHandler)
+	if err := run(ctx, logger, os.Args, os.Getenv); err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "failure starting application", errors.SlogError(err))
 		os.Exit(1)
 	}
 }

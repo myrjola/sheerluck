@@ -3,7 +3,7 @@ package repositories_test
 import (
 	_ "embed"
 	"fmt"
-	"github.com/myrjola/sheerluck/db"
+	"github.com/myrjola/sheerluck/internal/db"
 	"os"
 	"testing"
 )

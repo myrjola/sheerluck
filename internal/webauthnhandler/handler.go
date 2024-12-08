@@ -6,7 +6,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/myrjola/sheerluck/db"
+	"github.com/myrjola/sheerluck/internal/db"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"log/slog"
 	"net/http"
