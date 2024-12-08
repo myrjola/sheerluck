@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 #  Build Stage
 # -----------------------------------------------------------------------------
-FROM golang:1.23.4-alpine3.21 AS build
+FROM --platform=linux/amd64 golang:1.23.4-alpine3.21 AS build
 
 ENV CGO_ENABLED=1
 ENV GOOS=linux
@@ -52,7 +52,7 @@ RUN cp -r ./ui /dist/ui
 # -----------------------------------------------------------------------------
 #  Main Stage
 # -----------------------------------------------------------------------------
-FROM scratch
+FROM --platform=linux/amd64 scratch
 
 COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/

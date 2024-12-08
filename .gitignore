@@ -41,3 +41,4 @@ node_modules
 /playwright/.cache/
 /spec/states/
 *_templ.txt
+/wireguard.conf
