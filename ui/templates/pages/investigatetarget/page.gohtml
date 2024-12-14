@@ -4,5 +4,35 @@
     <div>
         <h1>{{.Investigation.Target.Name}}</h1>
         <p>{{.Investigation.Target.Type}}</p>
+        <div>
+            <style {{ nonce }}>
+                @scope {
+                    :scope {
+                        display: flex;
+                        flex-direction: column;
+                        gap: var(--size-4);
+
+                        article:nth-child(odd) {
+                            margin-left: var(--size-4);
+                        }
+                    }
+                }
+            </style>
+            {{ range .Investigation.Completions }}
+                <article>
+                    <span>{{$.Investigation.Target.Name}}:</span>
+                    <span>{{.Question}}</span>
+                </article>
+                <article>
+                    <span>Detective:</span>
+                    <span>{{.Answer}}</span>
+                </article>
+            {{ end }}
+        </div>
+        <form method="POST">
+            <label for="question">Detective:</label>
+            <input type="text" id="question" name="question" placeholder="What happened?">
+            <button type="submit">Ask</button>
+        </form>
     </div>
 {{ end }}
