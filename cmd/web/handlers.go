@@ -10,6 +10,7 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"os"
 	"path/filepath"
 )
 
@@ -48,6 +49,8 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 		t   *template.Template
 	)
 
+	dir, _ := os.Getwd()
+	app.logger.Info("current directory", slog.String("dir", dir))
 	if t, err = app.pageTemplate(file); err != nil {
 		app.serverError(w, r, errors.Wrap(err, "parse template", slog.String("template", file)))
 		return

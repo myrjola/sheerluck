@@ -30,9 +30,19 @@
             {{ end }}
         </div>
         <form method="POST">
+            {{ csrf }}
             <label for="question">Detective:</label>
             <input type="text" id="question" name="question" placeholder="What happened?">
             <button type="submit">Ask</button>
+            <script {{nonce}}>
+              const form = me()
+                form.addEventListener('submit', function (event) {
+                  // Prevent double submission
+                  console.log(form.querySelector('button[type="submit"]').disabled)
+                  form.querySelector('button[type="submit"]').disabled = true
+                  return true
+                })
+            </script>
         </form>
     </div>
 {{ end }}

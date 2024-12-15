@@ -20,13 +20,17 @@ func (app *application) routes() http.Handler {
 
 	mux.Handle("GET /{$}", session.ThenFunc(app.home))
 	mux.Handle("GET /test", session.ThenFunc(app.home))
-	mux.Handle("GET /cases/{caseID}/investigation-targets/{investigationTargetID}/{$}", mustSession.ThenFunc(app.investigateTarget))
+	mux.Handle("GET /cases/{caseID}/investigation-targets/{investigationTargetID}",
+		mustSession.ThenFunc(app.investigateTargetGET))
+	mux.Handle("POST /cases/{caseID}/investigation-targets/{investigationTargetID}",
+		mustSession.ThenFunc(app.investigateTargetPOST))
 
 	mux.Handle("POST /api/registration/start", session.ThenFunc(app.BeginRegistration))
 	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.FinishRegistration))
 	mux.Handle("POST /api/login/start", session.ThenFunc(app.BeginLogin))
 	mux.Handle("POST /api/login/finish", session.ThenFunc(app.FinishLogin))
 	mux.Handle("POST /api/logout", session.ThenFunc(app.Logout))
+	mux.Handle("GET /api/healthy", session.ThenFunc(app.healthy))
 
 	common := alice.New(app.recoverPanic, app.logRequest, secureHeaders, noSurf, commonContext)
 

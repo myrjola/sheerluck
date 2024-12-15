@@ -2,11 +2,9 @@ package main
 
 import (
 	"context"
-	"flag"
 	"fmt"
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
-	"github.com/joho/godotenv"
 	"github.com/myrjola/sheerluck/internal/ai"
 	"github.com/myrjola/sheerluck/internal/db"
 	"github.com/myrjola/sheerluck/internal/errors"
@@ -15,6 +13,7 @@ import (
 	"github.com/myrjola/sheerluck/internal/repositories"
 	"github.com/myrjola/sheerluck/internal/webauthnhandler"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -30,52 +29,40 @@ type application struct {
 	investigations  *repositories.InvestigationRepository
 }
 
-func run(ctx context.Context, logger *slog.Logger, args []string, getenv func(string) string) error {
-	var cancel context.CancelFunc
+func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (string, bool)) error {
+	var (
+		cancel    context.CancelFunc
+		err       error
+		ok        bool
+		addr      string
+		fqdn      string
+		pprofAddr string
+		sqliteURL string
+	)
+
 	ctx, cancel = signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	err := godotenv.Load()
+	if addr, ok = lookupEnv("SHEERLUCK_ADDR"); !ok {
+		addr = "localhost:4000"
+	}
+	if fqdn, ok = lookupEnv("SHEERLUCK_FQDN"); !ok {
+		fqdn = "localhost"
+	}
+	if sqliteURL, ok = lookupEnv("SHEERLUCK_SQLITE_URL"); !ok {
+		sqliteURL = "./sheerluck.sqlite"
+	}
+	if pprofAddr, ok = lookupEnv("SHEERLUCK_PPROF_ADDR"); ok {
+		pprofserver.Launch(pprofAddr, logger)
+	}
+
+	rpOrigins := []string{fmt.Sprintf("http://%s", addr)}
+	if fqdn != "localhost" {
+		rpOrigins = []string{fmt.Sprintf("https://%s", fqdn)}
+	}
+	dbs, err := db.NewDB(sqliteURL)
 	if err != nil {
-		return errors.Wrap(err, "load .env")
-	}
-
-	defaultAddr := getenv("SHEERLUCK_ADDR")
-	if len(defaultAddr) == 0 {
-		defaultAddr = "localhost:4000"
-	}
-	defaultFQDN := getenv("SHEERLUCK_FQDN")
-	if len(defaultFQDN) == 0 {
-		defaultFQDN = "localhost"
-	}
-	defaultPprofPort := getenv("SHEERLUCK_PPROF_ADDR")
-	if len(defaultPprofPort) == 0 {
-		defaultPprofPort = "localhost:6060"
-	}
-	defaultSqliteURL := getenv("SHEERLUCK_SQLITE_URL")
-	if len(defaultSqliteURL) == 0 {
-		defaultSqliteURL = "./sheerluck.sqlite"
-	}
-
-	flagSet := flag.NewFlagSet(args[0], flag.ExitOnError)
-	addr := flagSet.String("addr", defaultAddr, "HTTP network address")
-	fqdn := flagSet.String("fqdn", defaultFQDN, "Fully qualified domain name for setting up Webauthn")
-	pprofPort := flagSet.String("pprof-addr", defaultPprofPort, "HTTP network address for pprof")
-	sqliteURL := flagSet.String("sqlite-url", defaultSqliteURL, "SQLite URL")
-	if err = flagSet.Parse(args[1:]); err != nil {
-		return err
-	}
-
-	// Initialise pprof listening on localhost so that it's not open to the world
-	pprofserver.Launch(*pprofPort, logger)
-
-	rpOrigins := []string{fmt.Sprintf("http://%s", *addr)}
-	if *fqdn != "localhost" {
-		rpOrigins = []string{fmt.Sprintf("https://%s", *fqdn)}
-	}
-	dbs, err := db.NewDB(*sqliteURL)
-	if err != nil {
-		return errors.Wrap(err, "open db", slog.String("url", *sqliteURL))
+		return errors.Wrap(err, "open db", slog.String("url", sqliteURL))
 	}
 	logger.LogAttrs(ctx, slog.LevelInfo, "connected to db")
 
@@ -88,7 +75,7 @@ func run(ctx context.Context, logger *slog.Logger, args []string, getenv func(st
 	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 
 	var webAuthnHandler *webauthnhandler.WebAuthnHandler
-	if webAuthnHandler, err = webauthnhandler.New(*fqdn, rpOrigins, logger, sessionManager, dbs); err != nil {
+	if webAuthnHandler, err = webauthnhandler.New(fqdn, rpOrigins, logger, sessionManager, dbs); err != nil {
 		return errors.Wrap(err, "new webauthn handler")
 	}
 
@@ -102,16 +89,15 @@ func run(ctx context.Context, logger *slog.Logger, args []string, getenv func(st
 		investigations:  investigations,
 	}
 
-	logger.Info("starting server", slog.Any("addr", *addr))
-
+	idleTimeout := time.Minute
+	defaultTimeout := 5 * time.Second //nolint:mnd // 5 seconds should be enough even for slow LLM APIs.
 	srv := &http.Server{
-		Addr:              *addr,
 		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
-		Handler:           app.routes(),
-		IdleTimeout:       time.Minute,
-		ReadTimeout:       time.Minute,
-		WriteTimeout:      time.Minute,
-		ReadHeaderTimeout: 5 * time.Second,
+		Handler:           timeoutHandler(app.routes(), defaultTimeout),
+		IdleTimeout:       idleTimeout,
+		ReadTimeout:       defaultTimeout,
+		WriteTimeout:      defaultTimeout,
+		ReadHeaderTimeout: time.Second,
 	}
 	shutdownComplete := make(chan struct{})
 	go func() {
@@ -121,19 +107,25 @@ func run(ctx context.Context, logger *slog.Logger, args []string, getenv func(st
 		signal.Notify(sigint, syscall.SIGTERM)
 
 		<-sigint
-		logger.Info("shutting down server")
+		logger.LogAttrs(ctx, slog.LevelInfo, "shutting down server")
 
 		// We received an interrupt signal, shut down.
-		if err := srv.Shutdown(context.Background()); err != nil {
-			// Error from closing listeners, or context timeout:
-			logger.Error("HTTP server shutdown: %v", err)
+		ctx, cancel = context.WithTimeout(context.Background(), defaultTimeout)
+		defer cancel()
+		if err = srv.Shutdown(ctx); err != nil {
+			err = errors.Wrap(err, "shutdown server")
+			logger.LogAttrs(ctx, slog.LevelError, "error shutting down server", errors.SlogError(err))
 		}
 		close(shutdownComplete)
 	}()
 
-	if err := srv.ListenAndServe(); !errors.Is(err, http.ErrServerClosed) {
-		// Error starting or closing listener:
-		return errors.Wrap(err, "listen and serve")
+	var listener net.Listener
+	if listener, err = net.Listen("tcp", addr); err != nil {
+		return errors.Wrap(err, "TCP listen")
+	}
+	logger.LogAttrs(ctx, slog.LevelInfo, "starting server", slog.Any("addr", listener.Addr().String()))
+	if err = srv.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
+		return errors.Wrap(err, "server serve")
 	}
 	<-shutdownComplete
 
@@ -148,7 +140,7 @@ func main() {
 		ReplaceAttr: nil,
 	}))
 	logger := slog.New(loggerHandler)
-	if err := run(ctx, logger, os.Args, os.Getenv); err != nil {
+	if err := run(ctx, logger, os.LookupEnv); err != nil {
 		logger.LogAttrs(ctx, slog.LevelError, "failure starting application", errors.SlogError(err))
 		os.Exit(1)
 	}

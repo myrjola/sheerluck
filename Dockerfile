@@ -72,4 +72,4 @@ ENV TZ=Europe/Helsinki
 EXPOSE 4000 6060
 
 WORKDIR /dist
-ENTRYPOINT [ "./litestream", "replicate", "-exec", "./sheerluck -addr :4000 -pprof-addr :6060" ]
+ENTRYPOINT [ "./litestream", "replicate", "-exec", "./sheerluck" ]
