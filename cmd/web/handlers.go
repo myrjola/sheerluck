@@ -11,36 +11,31 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
-	"path/filepath"
 )
 
+//nolint:gochecknoinits // unsure why not use init for this.
 func init() {
-	gob.Register(webauthn.SessionData{})
+	gob.Register(webauthn.SessionData{}) //nolint:exhaustruct // only need to register the struct.
 }
 
 // pageTemplate returns a template for the given page name.
 //
 // pageName corresponds to directory inside ui/templates/pages folder. It has to include a template named "page".
 func (app *application) pageTemplate(pageName string) (*template.Template, error) {
-	files := []string{
-		"ui/templates/base.gohtml",
-	}
-
-	pageTemplateFiles, err := filepath.Glob(fmt.Sprintf("ui/templates/pages/%s/*.gohtml", pageName))
-	if err != nil {
-		return nil, fmt.Errorf("glob page template files: %w", err)
-	}
-	files = append(files, pageTemplateFiles...)
-
+	var err error
 	// We need to initialize the FuncMap before parsing the files. These will be overridden in the render function.
-	return template.New(pageName).Funcs(template.FuncMap{
+	var t *template.Template
+	if t, err = template.New(pageName).Funcs(template.FuncMap{
 		"nonce": func() string {
 			panic("not implemented")
 		},
 		"csrf": func() string {
 			panic("not implemented")
 		},
-	}).ParseFiles(files...)
+	}).ParseFS(app.templateFS, "base.gohtml", fmt.Sprintf("pages/%s/*.gohtml", pageName)); err != nil {
+		return nil, errors.Wrap(err, "new template")
+	}
+	return t, nil
 }
 
 func (app *application) render(w http.ResponseWriter, r *http.Request, status int, file string, data any) {
@@ -79,7 +74,14 @@ func (app *application) render(w http.ResponseWriter, r *http.Request, status in
 }
 
 func (app *application) BeginRegistration(w http.ResponseWriter, r *http.Request) {
-	out, err := app.webAuthnHandler.BeginRegistration(r.Context())
+	var (
+		err error
+		out []byte
+	)
+	if out, err = app.webAuthnHandler.BeginRegistration(r.Context()); err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	if _, err = w.Write(out); err != nil {
 		app.serverError(w, r, err)

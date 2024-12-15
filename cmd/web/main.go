@@ -12,11 +12,13 @@ import (
 	"github.com/myrjola/sheerluck/internal/pprofserver"
 	"github.com/myrjola/sheerluck/internal/repositories"
 	"github.com/myrjola/sheerluck/internal/webauthnhandler"
+	"io/fs"
 	"log/slog"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 )
@@ -27,6 +29,7 @@ type application struct {
 	webAuthnHandler *webauthnhandler.WebAuthnHandler
 	sessionManager  *scs.SessionManager
 	investigations  *repositories.InvestigationRepository
+	templateFS      fs.FS
 }
 
 func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (string, bool)) error {
@@ -81,12 +84,48 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 
 	investigations := repositories.NewInvestigationRepository(dbs, logger)
 
+	// findModuleDir locates the directory containing the go.mod file.
+	findModuleDir := func() (string, error) {
+		dir, err := os.Getwd()
+		if err != nil {
+			return "", err
+		}
+
+		for {
+			if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+				return dir, nil
+			}
+
+			parentDir := filepath.Dir(dir)
+			if parentDir == dir { // If we reached the root directory
+				break
+			}
+			dir = parentDir
+		}
+
+		return "", os.ErrNotExist
+	}
+	var modulePath string
+	if modulePath, err = findModuleDir(); err != nil {
+		return errors.Wrap(err, "find module dir")
+	}
+	templatePath := filepath.Join(modulePath, "ui", "templates")
+	// check that templatePath exists
+	var stat os.FileInfo
+	if stat, err = os.Stat(templatePath); err != nil {
+		return errors.Wrap(err, "template path not found", slog.String("path", templatePath))
+	}
+	if !stat.IsDir() {
+		return errors.New("template path is not a directory", slog.String("path", templatePath))
+	}
+
 	app := application{
 		logger:          logger,
 		aiClient:        ai.NewClient(),
 		webAuthnHandler: webAuthnHandler,
 		sessionManager:  sessionManager,
 		investigations:  investigations,
+		templateFS:      os.DirFS(templatePath),
 	}
 
 	idleTimeout := time.Minute
