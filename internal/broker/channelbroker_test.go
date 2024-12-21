@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sync/atomic"
 	"testing"
@@ -45,9 +46,9 @@ func TestChannelBroker(t *testing.T) {
 				// Next subscriber
 				go func() {
 					nextSubscriptionChan, ok := <-b.Subscribe(id)
-					require.Nil(t, nextSubscriptionChan, "subsequent subscriber received content")
-					require.Falsef(t, ok, "channel not closed to signal producer is finished")
-					require.True(t, producerFinished.Load(), "producer not finished before subsequent subscriber unblocked")
+					assert.Nil(t, nextSubscriptionChan, "subsequent subscriber received content")
+					assert.Falsef(t, ok, "channel not closed to signal producer is finished")
+					assert.True(t, producerFinished.Load(), "producer not finished before subsequent subscriber unblocked")
 				}()
 
 				// Finish producer

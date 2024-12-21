@@ -17,10 +17,7 @@ import (
 
 // waitForReady calls the specified endpoint until it gets a HTTP 200 Success
 // response or until the context is cancelled or the 1-second timeout is reached.
-func waitForReady(
-	ctx context.Context,
-	endpoint string,
-) error {
+func waitForReady(ctx context.Context, endpoint string) error {
 	timeout := 1 * time.Second
 	client := http.Client{}
 	startTime := time.Now()
@@ -73,9 +70,7 @@ func testLookupEnv(key string) (string, bool) {
 
 // startTestServer starts the test server, waits for it to be ready, and return the server URL for testing.
 func startTestServer(t *testing.T, w io.Writer, lookupEnv func(string) (string, bool)) string {
-	ctx := context.Background()
-	ctx, cancel := context.WithCancel(ctx)
-	t.Cleanup(cancel)
+	ctx, cancel := context.WithCancel(t.Context())
 
 	// We need to grab the dynamically allocated port from the log output.
 	addrCh := make(chan string, 1)
@@ -92,15 +87,22 @@ func startTestServer(t *testing.T, w io.Writer, lookupEnv func(string) (string, 
 
 	// Start the server and wait for it to be ready.
 	go func() {
-		err := run(ctx, logger, lookupEnv)
-		assert.NoError(t, err)
+		if err := run(ctx, logger, lookupEnv); err != nil {
+			cancel()
+			assert.NoError(t, err)
+		}
 	}()
-	addr := <-addrCh
-	serverURL := fmt.Sprintf("http://%s", addr)
-	if err := waitForReady(ctx, fmt.Sprintf("%s/api/healthy", serverURL)); err != nil {
-		require.NoError(t, err)
+	select {
+	case <-ctx.Done():
+		t.Fatal("server failed to start")
+		return ""
+	case addr := <-addrCh:
+		serverURL := fmt.Sprintf("http://%s", addr)
+		if err := waitForReady(ctx, fmt.Sprintf("%s/api/healthy", serverURL)); err != nil {
+			require.NoError(t, err)
+		}
+		return serverURL
 	}
-	return serverURL
 }
 
 func Test_application_home(t *testing.T) {

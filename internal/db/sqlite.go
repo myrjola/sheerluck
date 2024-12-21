@@ -1,9 +1,11 @@
 package db
 
 import (
+	"crypto/rand"
 	"database/sql"
 	"fmt"
 	"github.com/myrjola/sheerluck/internal/errors"
+	"strings"
 	"time"
 
 	_ "embed"
@@ -20,6 +22,8 @@ type DBs struct {
 
 // NewDB establishes two database connections, one for read/write operations and one for read-only operations.
 // This is a best practice mentioned in https://github.com/mattn/go-sqlite3/issues/1179#issuecomment-1638083995
+//
+// The url parameter is the path to the SQLite database file or ":memory:" for an in-memory database.
 func NewDB(url string) (*DBs, error) {
 	var (
 		err         error
@@ -28,14 +32,21 @@ func NewDB(url string) (*DBs, error) {
 	)
 
 	// For in-memory databases, we need shared cache mode so that both databases access the same data.
-	isInMemory := url == ":memory:"
-	cacheConfig := "cache=private"
+	//
+	// For parallel tests, we need to use a different database file for each test to avoid sharing data.
+	// See https://www.sqlite.org/inmemorydb.html.
+	isInMemory := strings.Contains(url, ":memory:")
+	inMemoryConfig := ""
 	if isInMemory {
-		cacheConfig = "cache=shared"
+		url = fmt.Sprintf("file:%s", rand.Text())
+		inMemoryConfig = "mode=memory&cache=shared"
 	}
 	commonConfig := "_journal_mode=wal&_busy_timeout=5000&_synchronous=normal&_foreign_keys=on"
-	readConfig := fmt.Sprintf("file:%s?mode=ro&_txlock=deferred&%s&%s", url, commonConfig, cacheConfig)
-	readWriteConfig := fmt.Sprintf("file:%s?mode=rwc&_txlock=immediate&%s&%s", url, commonConfig, cacheConfig)
+
+	// The options prefixed with underscore '_' are SQLite pragmas documented at https://www.sqlite.org/pragma.html.
+	// The options without leading underscore are SQLite URI parameters documented at https://www.sqlite.org/uri.html.
+	readConfig := fmt.Sprintf("file:%s?mode=ro&_txlock=deferred&_query_only=true&%s&%s", url, commonConfig, inMemoryConfig)
+	readWriteConfig := fmt.Sprintf("file:%s?mode=rwc&_txlock=immediate&%s&%s", url, commonConfig, inMemoryConfig)
 
 	if readWriteDB, err = sql.Open("sqlite3", readWriteConfig); err != nil {
 		return nil, errors.Wrap(err, "open read-write database")

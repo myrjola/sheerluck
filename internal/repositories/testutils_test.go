@@ -22,12 +22,6 @@ func newTestDB(t *testing.T) *db.DBs {
 		t.Fatal(err)
 	}
 
-	// Set database to read-only mode.
-	// The mode=ro flag doesn't seem to work with :memory: and cache=shared.
-	if _, err = dbs.ReadDB.Exec("PRAGMA query_only = TRUE;"); err != nil {
-		t.Fatal(err)
-	}
-
 	// Add test data
 	if _, err = dbs.ReadWriteDB.Exec(testFixtures); err != nil {
 		t.Fatal(err)

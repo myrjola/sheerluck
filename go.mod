@@ -1,6 +1,6 @@
 module github.com/myrjola/sheerluck
 
-go 1.23
+go 1.24rc1
 
 require (
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20240316134038-7e11d57e8885

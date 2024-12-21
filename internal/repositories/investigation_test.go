@@ -11,7 +11,7 @@ import (
 )
 
 func TestInvestigationRepository_Get(t *testing.T) {
-	readWriteDB, readDB := newTestDB(t)
+	dbs := newTestDB(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	repo := repositories.NewInvestigationRepository(dbs, logger)
 
@@ -96,6 +96,7 @@ func TestInvestigationRepository_Get(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			investigation, err := repo.Get(context.TODO(), tt.investigationTargetID, tt.userID)
 
 			if tt.wantErr {
@@ -152,9 +153,10 @@ func TestInvestigationRepository_FinishCompletion(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			readWriteDB, readDB := newTestDB(t)
+			t.Parallel()
+			dbs := newTestDB(t)
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-			repo := repositories.NewInvestigationRepository(readWriteDB, readDB, logger)
+			repo := repositories.NewInvestigationRepository(dbs, logger)
 
 			err := repo.FinishCompletion(context.TODO(), tt.investigationTargetID, tt.userID, "question", "answer")
 
