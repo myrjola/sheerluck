@@ -1,10 +1,12 @@
 module github.com/myrjola/sheerluck
 
-go 1.24rc1
+go 1.23
 
 require (
+	github.com/PuerkitoBio/goquery v1.10.0
 	github.com/alexedwards/scs/sqlite3store v0.0.0-20240316134038-7e11d57e8885
 	github.com/alexedwards/scs/v2 v2.8.0
+	github.com/descope/virtualwebauthn v1.0.3
 	github.com/go-webauthn/webauthn v0.11.2
 	github.com/google/uuid v1.6.0
 	github.com/justinas/alice v1.2.0
@@ -15,7 +17,6 @@ require (
 )
 
 require (
-	github.com/PuerkitoBio/goquery v1.10.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.7.0 // indirect

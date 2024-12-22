@@ -73,7 +73,8 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWriteDB, 24*time.Hour) //nolint:mnd // day
 	sessionManager.Lifetime = 12 * time.Hour                                                  //nolint:mnd // half a day
 	sessionManager.Cookie.Persist = true
-	sessionManager.Cookie.Secure = true
+	// TODO: Set to true in production. This is now false to bypass cookiejar https://github.com/golang/go/issues/60997
+	sessionManager.Cookie.Secure = false
 	sessionManager.Cookie.HttpOnly = true
 	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 

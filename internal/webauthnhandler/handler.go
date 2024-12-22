@@ -81,8 +81,9 @@ func (h *WebAuthnHandler) parseWebAuthnSession(ctx context.Context) (webauthn.Se
 		ok      bool
 		err     error
 	)
-	if session, ok = h.sessionManager.Get(ctx, string(webAuthnSessionKey)).(webauthn.SessionData); !ok {
-		err = errors.New("could not parse webauthn.SessionData")
+	ses := h.sessionManager.Get(ctx, string(webAuthnSessionKey))
+	if session, ok = ses.(webauthn.SessionData); !ok {
+		err = errors.New("could not parse webauthn.SessionData", slog.Any("data", ses))
 	}
 	return session, err
 }

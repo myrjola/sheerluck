@@ -2,6 +2,7 @@ package logging
 
 import (
 	"context"
+	"github.com/myrjola/sheerluck/internal/errors"
 	"log/slog"
 )
 
@@ -27,7 +28,10 @@ func (h ContextHandler) Handle(ctx context.Context, r slog.Record) error {
 		}
 	}
 
-	return h.Handler.Handle(ctx, r)
+	if err := h.Handler.Handle(ctx, r); err != nil {
+		return errors.Wrap(err, "handle log record")
+	}
+	return nil
 }
 
 // WithAttrs adds [...slog.Attr] to the [context.Context] that enriches the log messages handled by [ContextHandler].

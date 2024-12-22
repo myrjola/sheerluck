@@ -1,10 +1,10 @@
 package db
 
 import (
-	"crypto/rand"
 	"database/sql"
 	"fmt"
 	"github.com/myrjola/sheerluck/internal/errors"
+	"github.com/myrjola/sheerluck/internal/random"
 	"strings"
 	"time"
 
@@ -38,7 +38,11 @@ func NewDB(url string) (*DBs, error) {
 	isInMemory := strings.Contains(url, ":memory:")
 	inMemoryConfig := ""
 	if isInMemory {
-		url = fmt.Sprintf("file:%s", rand.Text())
+		var randomID string
+		if randomID, err = random.RandomLetters(20); err != nil {
+			return nil, errors.Wrap(err, "generate random ID")
+		}
+		url = fmt.Sprintf("file:%s", randomID)
 		inMemoryConfig = "mode=memory&cache=shared"
 	}
 	commonConfig := "_journal_mode=wal&_busy_timeout=5000&_synchronous=normal&_foreign_keys=on"

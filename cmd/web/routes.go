@@ -25,11 +25,12 @@ func (app *application) routes() http.Handler {
 	mux.Handle("POST /cases/{caseID}/investigation-targets/{investigationTargetID}",
 		mustSession.ThenFunc(app.investigateTargetPOST))
 
-	mux.Handle("POST /api/registration/start", session.ThenFunc(app.BeginRegistration))
-	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.FinishRegistration))
-	mux.Handle("POST /api/login/start", session.ThenFunc(app.BeginLogin))
-	mux.Handle("POST /api/login/finish", session.ThenFunc(app.FinishLogin))
-	mux.Handle("POST /api/logout", session.ThenFunc(app.Logout))
+	mux.Handle("POST /api/registration/start", session.ThenFunc(app.beginRegistration))
+	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.finishRegistration))
+	mux.Handle("POST /api/login/start", session.ThenFunc(app.beginLogin))
+	mux.Handle("POST /api/login/finish", session.ThenFunc(app.finishLogin))
+	mux.Handle("POST /api/logout", session.ThenFunc(app.logout))
+
 	mux.Handle("GET /api/healthy", session.ThenFunc(app.healthy))
 
 	common := alice.New(app.recoverPanic, app.logRequest, secureHeaders, noSurf, commonContext)
