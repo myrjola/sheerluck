@@ -18,12 +18,7 @@ func (app *application) serverError(w http.ResponseWriter, r *http.Request, err 
 }
 
 func (app *application) clientError(w http.ResponseWriter, r *http.Request, status int) {
-	var (
-		method = r.Method
-		uri    = r.URL.RequestURI()
-	)
-
-	app.logger.Debug(http.StatusText(status), "method", method, "uri", uri, slog.Any("formdata", r.Form))
+	app.logger.Debug(http.StatusText(status), slog.Any("formdata", r.Form))
 	http.Error(w, http.StatusText(status), status)
 }
 

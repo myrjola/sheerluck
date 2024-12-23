@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/descope/virtualwebauthn"
@@ -116,8 +114,11 @@ func startTestServer(t *testing.T, w io.Writer, lookupEnv func(string) (string, 
 
 func Test_application_home(t *testing.T) {
 	url := startTestServer(t, os.Stdout, testLookupEnv)
+	jar, err := cookiejar.New(nil)
+	require.NoError(t, err)
+	client := &http.Client{Jar: jar}
 
-	res, err := http.Get(url)
+	res, err := client.Get(url)
 	require.NoError(t, err)
 	defer func(Body io.ReadCloser) {
 		err = Body.Close()
@@ -136,46 +137,23 @@ func Test_application_home(t *testing.T) {
 	authenticator := virtualwebauthn.NewAuthenticator()
 	credential := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
 
-	// Ask the server to start a register flow for a user. The server and user here
-	// are placeholders for whatever the system being tested uses.
-	jar, err := cookiejar.New(nil)
-	require.NoError(t, err)
-	client := &http.Client{Jar: jar}
 	resp, err := client.Post(url+"/api/registration/start", "application/json", nil)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	// Print out headers
-	fmt.Printf("headers: %v+", resp.Header)
-
 	bodyBytes, err := io.ReadAll(resp.Body)
 	err = resp.Body.Close()
-	fmt.Printf("start: %s", bodyBytes)
 	require.NoError(t, err)
-	parsedAttestationOptions, err := virtualwebauthn.ParseAttestationOptions(string(bodyBytes))
+	attOpts, err := virtualwebauthn.ParseAttestationOptions(string(bodyBytes))
 	require.NoError(t, err)
-
-	// Creates an attestation response that we can send to the relying party as if it came from
-	// an actual browser and authenticator.
-	attestationResponse := virtualwebauthn.CreateAttestationResponse(rp, authenticator, credential, *parsedAttestationOptions)
-
-	// Finish the register flow by sending the attestation response. Again the server and
-	// user here are placeholders for whatever the system being tested uses.
-	var buf bytes.Buffer
-	err = json.NewEncoder(&buf).Encode(attestationResponse)
-	require.NoError(t, err)
-	parsedUrl, err := url2.Parse(url)
-	require.NoError(t, err)
-	fmt.Printf("cookie jar: %v+", client.Jar)
-	cookies := client.Jar.Cookies(parsedUrl)
-	fmt.Printf("cookies: %v+", cookies)
-	fmt.Printf("buf: %s", buf.String())
+	attestationResponse := virtualwebauthn.CreateAttestationResponse(rp, authenticator, credential, *attOpts)
 	resp, err = client.Post(url+"/api/registration/finish", "application/json", strings.NewReader(attestationResponse))
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	// at this point, our credential is ready for logging in
+	// At this point, our credential is ready for logging in.
 	authenticator.AddCredential(credential)
+	// This option is needed for making Passkey login work.
+	authenticator.Options.UserHandle = []byte(attOpts.UserID)
 
 	res, err = client.Get(url)
 	require.NoError(t, err)
@@ -189,12 +167,61 @@ func Test_application_home(t *testing.T) {
 	doc, err = goquery.NewDocumentFromReader(res.Body)
 	require.NoError(t, err)
 	require.Equal(t, 1, doc.Find("button:contains('Log out')").Length())
+
+	// Log out and log back in
+	doc = submitForm(t, client, url, "/api/logout", doc)
+	require.Equal(t, 1, doc.Find("button:contains('Sign in')").Length())
+
+	resp, err = client.Post(url+"/api/login/start", "application/json", nil)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	bodyBytes, err = io.ReadAll(resp.Body)
+	err = resp.Body.Close()
+	require.NoError(t, err)
+	asOpts, err := virtualwebauthn.ParseAssertionOptions(string(bodyBytes))
+
+	require.NoError(t, err)
+	asResp := virtualwebauthn.CreateAssertionResponse(rp, authenticator, credential, *asOpts)
+	require.NoError(t, err)
+	resp, err = client.Post(url+"/api/login/finish", "application/json", strings.NewReader(asResp))
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
 	// TODOs for nicer test setup:
 	// - http client with
-	//     - cookie jar
-	//     - json endcode/decode support
 	//     - html assertion helper
 	//     - form submission helper
 	// - webauthn glue for setting up users for tests
+}
 
+func submitForm(t *testing.T, client *http.Client, baseURL, url string, doc *goquery.Document) *goquery.Document {
+	html, err := doc.Html()
+	require.NoError(t, err)
+
+	// Find the form
+	formSelector := fmt.Sprintf("form[action='%s']", url)
+	form := doc.Find(formSelector)
+	require.Equal(t, 1, form.Length(), "form %s not found in document:\n%s", formSelector, html)
+
+	// Find the CSRF token
+	csrfToken, ok := form.Find("input[name=csrf_token]").Attr("value")
+	require.True(t, ok, "csrf_token not found in form %s", formSelector)
+
+	// Build form data
+	formData := url2.Values{}
+	formData.Add("csrf_token", csrfToken)
+	data := strings.NewReader(formData.Encode())
+
+	// Submit the form
+	resp, err := client.Post(baseURL+url, "application/x-www-form-urlencoded", data)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+	defer func(Body io.ReadCloser) {
+		err = Body.Close()
+		assert.NoError(t, err)
+	}(resp.Body)
+
+	// Parse the response
+	doc, err = goquery.NewDocumentFromReader(resp.Body)
+	require.NoError(t, err)
+	return doc
 }

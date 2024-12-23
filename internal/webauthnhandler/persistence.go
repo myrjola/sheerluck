@@ -33,7 +33,7 @@ func (h *WebAuthnHandler) getUser(ctx context.Context, id []byte) (*user, error)
 	)
 
 	stmt := `SELECT id, display_name FROM users WHERE id = ?`
-	user := user{} //nolint:exhaustruct, empty struct initialised from database.
+	var user user
 	if err = h.dbs.ReadDB.QueryRowContext(ctx, stmt, id).Scan(&user.id, &user.displayName); err != nil {
 		return nil, errors.Wrap(err, "read user")
 	}

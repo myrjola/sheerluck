@@ -51,8 +51,10 @@ func (h *WebAuthnHandler) BeginRegistration(ctx context.Context) ([]byte, error)
 	}
 
 	authSelect := protocol.AuthenticatorSelection{
-		RequireResidentKey: protocol.ResidentKeyNotRequired(),
-		UserVerification:   protocol.VerificationDiscouraged,
+		AuthenticatorAttachment: protocol.CrossPlatform,
+		RequireResidentKey:      protocol.ResidentKeyNotRequired(),
+		ResidentKey:             protocol.ResidentKeyRequirementRequired,
+		UserVerification:        protocol.VerificationDiscouraged,
 	}
 
 	opts, session, err := h.webAuthn.BeginRegistration(
@@ -161,7 +163,7 @@ func (h *WebAuthnHandler) FinishLogin(r *http.Request) error {
 	}
 	user, credential, err := h.webAuthn.ValidatePasskeyLogin(h.findUserHandler(ctx), session, parsedResponse)
 	if err != nil {
-		return errors.Wrap(err, "validate PassKey login")
+		return errors.Wrap(err, "validate Passkey login")
 	}
 
 	if err = h.upsertCredential(ctx, user.WebAuthnID(), credential); err != nil {
