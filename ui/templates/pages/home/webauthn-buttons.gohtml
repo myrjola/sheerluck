@@ -23,8 +23,12 @@
           .replace(/=/g, "");
       }
 
-      function registerUser() {
-        fetch("/api/registration/start", {method: "post"})
+      function registerUser(e) {
+        e.preventDefault()
+        const data = new FormData(e.target)
+        const headers = {'X-CSRF-Token': data.get('csrf_token')}
+        const registerStartURLPath = e.target.action
+        fetch(registerStartURLPath, {method: "post", headers })
           .then((resp) => resp.json())
           .then((credentialCreationOptions) => {
             credentialCreationOptions.publicKey.challenge = bufferDecode(
@@ -56,6 +60,7 @@
 
             return fetch("/api/registration/finish", {
               method: "post",
+              headers,
               body: JSON.stringify({
                 id: credential.id,
                 rawId: bufferEncode(rawId),
@@ -80,8 +85,12 @@
           });
       }
 
-      function loginUser() {
-        fetch("/api/login/start", {method: "post"})
+      function loginUser(e) {
+        e.preventDefault()
+        const data = new FormData(e.target)
+        const headers = {'X-CSRF-Token': data.get('csrf_token')}
+        const loginStartURLPath = e.target.action
+        fetch(loginStartURLPath, {method: "post", headers })
           .then((resp) => resp.json())
           .then((credentialRequestOptions) => {
             credentialRequestOptions.publicKey.challenge = bufferDecode(
@@ -100,6 +109,7 @@
 
             return fetch("/api/login/finish", {
               method: "post",
+              headers,
               body: JSON.stringify({
                 id: assertion.id,
                 rawId: bufferEncode(rawId),
@@ -124,18 +134,20 @@
           });
       }
     </script>
-    <button type="button">
-        <span>Sign in</span>
+    <form method="post" action="/api/login/start">
+        {{ csrf }}
+        <button type="submit">Sign in</button>
         <script {{ nonce }}>
-          document.currentScript.parentElement.addEventListener("click", loginUser)
+          document.currentScript.parentElement.addEventListener("submit", loginUser)
         </script>
-    </button>
-    <button type="button">
-        <span>Register</span>
+    </form>
+    <form action="/api/registration/start">
+        {{ csrf }}
+        <button type="submit">Register</button>
         <script {{ nonce }}>
-          me().addEventListener("click", registerUser)
+          me().addEventListener("submit", registerUser)
         </script>
-    </button>
+    </form>
 {{ end }}
 
 {{ define "logout-button" }}

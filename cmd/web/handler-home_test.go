@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/descope/virtualwebauthn"
+	"github.com/justinas/nosurf"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/logging"
 	"github.com/stretchr/testify/assert"
@@ -137,7 +138,19 @@ func Test_application_home(t *testing.T) {
 	authenticator := virtualwebauthn.NewAuthenticator()
 	credential := virtualwebauthn.NewCredential(virtualwebauthn.KeyTypeEC2)
 
-	resp, err := client.Post(url+"/api/registration/start", "application/json", nil)
+	// Find the form
+	registrationStartURLPath := "/api/registration/start"
+	formSelector := fmt.Sprintf("form[action='%s']", registrationStartURLPath)
+	form := doc.Find(formSelector)
+	// Find the CSRF token
+	csrfToken, ok := form.Find("input[name=csrf_token]").Attr("value")
+	require.True(t, ok, "csrf_token not found in form %s", formSelector)
+
+	req, err := http.NewRequest(http.MethodPost, url+registrationStartURLPath, nil)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(nosurf.HeaderName, csrfToken)
+	resp, err := client.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	bodyBytes, err := io.ReadAll(resp.Body)
@@ -146,7 +159,11 @@ func Test_application_home(t *testing.T) {
 	attOpts, err := virtualwebauthn.ParseAttestationOptions(string(bodyBytes))
 	require.NoError(t, err)
 	attestationResponse := virtualwebauthn.CreateAttestationResponse(rp, authenticator, credential, *attOpts)
-	resp, err = client.Post(url+"/api/registration/finish", "application/json", strings.NewReader(attestationResponse))
+	req, err = http.NewRequest(http.MethodPost, url+"/api/registration/finish", strings.NewReader(attestationResponse))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(nosurf.HeaderName, csrfToken)
+	resp, err = client.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -170,9 +187,20 @@ func Test_application_home(t *testing.T) {
 
 	// Log out and log back in
 	doc = submitForm(t, client, url, "/api/logout", doc)
-	require.Equal(t, 1, doc.Find("button:contains('Sign in')").Length())
 
-	resp, err = client.Post(url+"/api/login/start", "application/json", nil)
+	// Find the form
+	loginStartURLPath := "/api/login/start"
+	formSelector = fmt.Sprintf("form[action='%s']", loginStartURLPath)
+	form = doc.Find(formSelector)
+	// Find the CSRF token
+	csrfToken, ok = form.Find("input[name=csrf_token]").Attr("value")
+	require.True(t, ok, "csrf_token not found in form %s", formSelector)
+
+	req, err = http.NewRequest(http.MethodPost, url+loginStartURLPath, nil)
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(nosurf.HeaderName, csrfToken)
+	resp, err = client.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	bodyBytes, err = io.ReadAll(resp.Body)
@@ -183,7 +211,11 @@ func Test_application_home(t *testing.T) {
 	require.NoError(t, err)
 	asResp := virtualwebauthn.CreateAssertionResponse(rp, authenticator, credential, *asOpts)
 	require.NoError(t, err)
-	resp, err = client.Post(url+"/api/login/finish", "application/json", strings.NewReader(asResp))
+	req, err = http.NewRequest(http.MethodPost, url+"/api/login/finish", strings.NewReader(asResp))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(nosurf.HeaderName, csrfToken)
+	resp, err = client.Do(req)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 	// TODOs for nicer test setup:

@@ -131,8 +131,5 @@ func noSurf(next http.Handler) http.Handler {
 		// TODO: Set to true in production. This is now false to bypass cookiejar https://github.com/golang/go/issues/60997
 		Secure: false,
 	})
-	// TODO: Enable CSRF protection for the JSON API endpoints.
-	csrfHandler.ExemptPaths("/api/registration/start", "/api/registration/finish", "/api/login/start", "/api/login/finish")
-
 	return csrfHandler
 }

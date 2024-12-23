@@ -51,7 +51,7 @@ func (h *WebAuthnHandler) BeginRegistration(ctx context.Context) ([]byte, error)
 	}
 
 	authSelect := protocol.AuthenticatorSelection{
-		AuthenticatorAttachment: protocol.CrossPlatform,
+		AuthenticatorAttachment: protocol.Platform,
 		RequireResidentKey:      protocol.ResidentKeyNotRequired(),
 		ResidentKey:             protocol.ResidentKeyRequirementRequired,
 		UserVerification:        protocol.VerificationDiscouraged,
