@@ -34,13 +34,14 @@ type application struct {
 
 func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (string, bool)) error {
 	var (
-		cancel    context.CancelFunc
-		err       error
-		ok        bool
-		addr      string
-		fqdn      string
-		pprofAddr string
-		sqliteURL string
+		cancel           context.CancelFunc
+		err              error
+		ok               bool
+		addr             string
+		fqdn             string
+		pprofAddr        string
+		sqliteURL        string
+		htmlTemplatePath string
 	)
 
 	ctx, cancel = signal.NotifyContext(ctx, os.Interrupt)
@@ -53,10 +54,38 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		fqdn = "localhost"
 	}
 	if sqliteURL, ok = lookupEnv("SHEERLUCK_SQLITE_URL"); !ok {
-		sqliteURL = "./sheerluck.sqlite"
+		sqliteURL = "./sheerluck.sqlite3"
 	}
 	if pprofAddr, ok = lookupEnv("SHEERLUCK_PPROF_ADDR"); ok {
 		pprofserver.Launch(pprofAddr, logger)
+	}
+	if htmlTemplatePath, ok = lookupEnv("SHEERLUCK_TEMPLATE_PATH"); !ok {
+		// findModuleDir locates the directory containing the go.mod file.
+		findModuleDir := func() (string, error) {
+			dir, err := os.Getwd()
+			if err != nil {
+				return "", err
+			}
+
+			for {
+				if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+					return dir, nil
+				}
+
+				parentDir := filepath.Dir(dir)
+				if parentDir == dir { // If we reached the root directory
+					break
+				}
+				dir = parentDir
+			}
+
+			return "", os.ErrNotExist
+		}
+		var modulePath string
+		if modulePath, err = findModuleDir(); err != nil {
+			return errors.Wrap(err, "find module dir")
+		}
+		htmlTemplatePath = filepath.Join(modulePath, "ui", "templates")
 	}
 
 	rpOrigins := []string{fmt.Sprintf("http://%s", addr)}
@@ -85,39 +114,13 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 
 	investigations := repositories.NewInvestigationRepository(dbs, logger)
 
-	// findModuleDir locates the directory containing the go.mod file.
-	findModuleDir := func() (string, error) {
-		dir, err := os.Getwd()
-		if err != nil {
-			return "", err
-		}
-
-		for {
-			if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-				return dir, nil
-			}
-
-			parentDir := filepath.Dir(dir)
-			if parentDir == dir { // If we reached the root directory
-				break
-			}
-			dir = parentDir
-		}
-
-		return "", os.ErrNotExist
-	}
-	var modulePath string
-	if modulePath, err = findModuleDir(); err != nil {
-		return errors.Wrap(err, "find module dir")
-	}
-	templatePath := filepath.Join(modulePath, "ui", "templates")
 	// check that templatePath exists
 	var stat os.FileInfo
-	if stat, err = os.Stat(templatePath); err != nil {
-		return errors.Wrap(err, "template path not found", slog.String("path", templatePath))
+	if stat, err = os.Stat(htmlTemplatePath); err != nil {
+		return errors.Wrap(err, "template path not found", slog.String("path", htmlTemplatePath))
 	}
 	if !stat.IsDir() {
-		return errors.New("template path is not a directory", slog.String("path", templatePath))
+		return errors.New("template path is not a directory", slog.String("path", htmlTemplatePath))
 	}
 
 	app := application{
@@ -126,7 +129,7 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		webAuthnHandler: webAuthnHandler,
 		sessionManager:  sessionManager,
 		investigations:  investigations,
-		templateFS:      os.DirFS(templatePath),
+		templateFS:      os.DirFS(htmlTemplatePath),
 	}
 
 	idleTimeout := time.Minute

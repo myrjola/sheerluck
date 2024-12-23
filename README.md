@@ -20,20 +20,26 @@ Navigate to http://localhost:4000 to see the service in action.
 
 This project uses [Fly.io](https://fly.io/) for infrastructure and [Litestream](https://litestream.io/) for [SQLite](https://www.sqlite.org/) database backups. It's a single instance Dockerized application with a persistent volume. Try `fly launch` to configure your own. You might also need to add some secrets to with `fly secrets`.
 
+### Database access
+
+The container image contains sqlite3 binary to make it easy to manipulate the live production database.
+
+```sh
+fly ssh console -s --pty --user sheerluck -C "/dist/sqlite3 /data/sheerluck.sqlite3"
+```
+
+
 ### Recovering database
 
 One way to recover a lost or broken database is to restore it with Litestream. The process could still use some improvements but at least it works. Notably, you need to have a working machine running so that you can run commands on it. Another alternative is to clone the machine with an empty volume and populate it yourself using the `fly sftp shell` command.
 
 ```
 # list databases
-fly ssh console -s -C "/dist/litestream databases"
+fly ssh console -s --user sheerluck -C "/dist/litestream databases"
 # list snapshot generations of selected database
-fly ssh console -s -C "/dist/litestream snapshots /data/sheerluck3.sqlite"
+fly ssh console -s --user sheerluck -C "/dist/litestream snapshots /data/sheerluck.sqlite3"
 # restore latest snapshot to /data/sheerluck4.sqlite
-fly ssh console -s -C "/dist/litestream restore -o /data/sheerluck4.sqlite -generation db5b998e60a203a3 /data/sheerluck3.sqlite"
-
-# You might need to do chmod 777 on the database files so that the app can write to them.
-fly sftp shell
+fly ssh console -s --user sheerluck -C "/dist/litestream restore -o /data/sheerluck4.sqlite -generation db5b998e60a203a3 /data/sheerluck.sqlite3"
 
 # Edit fly.toml env SHEERLUCK_SQLITE_URL = "/data/sheerluck4.sqlite" before deploying to take new database into use
 vim fly.toml

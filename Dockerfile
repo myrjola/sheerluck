@@ -50,6 +50,12 @@ RUN filehash=`md5sum ./ui/static/main.css | awk '{ print $1 }'` && \
 RUN cp -r ./ui /dist/ui
 
 # -----------------------------------------------------------------------------
+#  Dependency Images
+# -----------------------------------------------------------------------------
+FROM --platform=linux/amd64 litestream/litestream:0.3.13 AS litestream
+FROM --platform=linux/amd64 keinos/sqlite3:3.47.2 AS sqlite3
+
+# -----------------------------------------------------------------------------
 #  Main Stage
 # -----------------------------------------------------------------------------
 FROM --platform=linux/amd64 scratch
@@ -63,11 +69,20 @@ COPY /.env /dist
 
 # Configure Litestream for backups to object storage
 COPY /litestream.yml /etc/litestream.yml
-COPY --from=litestream/litestream:0.3.13 /usr/local/bin/litestream /dist/litestream
+COPY --from=litestream /usr/local/bin/litestream /dist/litestream
+
+# Copy sqlite3 binary for database ops
+COPY --from=sqlite3 /usr/bin/sqlite3 /usr/bin/sqlite3
+COPY --from=sqlite3 /usr/lib/libz.so.1 /usr/lib/libz.so.1
+COPY --from=sqlite3 /lib/ld-musl-x86_64.so.1 /lib/ld-musl-x86_64.so.1
 
 USER sheerluck:sheerluck
 
 ENV TZ=Europe/Helsinki
+ENV SHEERLUCK_ADDR=":4000"
+# pprof only available from internal network
+ENV SHEERLUCK_PPROF_ADDR="localhost:6060"
+ENV SHEERLUCK_TEMPLATE_PATH="/dist/ui/templates"
 
 EXPOSE 4000 6060
 
