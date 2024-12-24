@@ -57,7 +57,7 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		sqliteURL = "./sheerluck.sqlite3"
 	}
 	if pprofAddr, ok = lookupEnv("SHEERLUCK_PPROF_ADDR"); ok {
-		pprofserver.Launch(pprofAddr, logger)
+		pprofserver.Launch(ctx, pprofAddr, logger)
 	}
 	if htmlTemplatePath, ok = lookupEnv("SHEERLUCK_TEMPLATE_PATH"); !ok {
 		// findModuleDir locates the directory containing the go.mod file.
@@ -152,9 +152,10 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		logger.LogAttrs(ctx, slog.LevelInfo, "shutting down server")
 
 		// We received an interrupt signal, shut down.
-		ctx, cancel = context.WithTimeout(context.Background(), defaultTimeout)
+		var shutdownContext context.Context
+		shutdownContext, cancel = context.WithTimeout(context.Background(), defaultTimeout)
 		defer cancel()
-		if err = srv.Shutdown(ctx); err != nil {
+		if err = srv.Shutdown(shutdownContext); err != nil {
 			err = errors.Wrap(err, "shutdown server")
 			logger.LogAttrs(ctx, slog.LevelError, "error shutting down server", errors.SlogError(err))
 		}

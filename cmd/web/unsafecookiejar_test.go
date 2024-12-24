@@ -4,7 +4,7 @@ import (
 	"github.com/myrjola/sheerluck/internal/errors"
 	"net/http"
 	"net/http/cookiejar"
-	url2 "net/url"
+	"net/url"
 )
 
 type unsafeCookieJar struct {
@@ -21,13 +21,13 @@ func newUnsafeCookieJar() (*unsafeCookieJar, error) {
 	return &unsafeCookieJar{jar: jar}, nil
 }
 
-func (u *unsafeCookieJar) SetCookies(url *url2.URL, cookies []*http.Cookie) {
+func (u *unsafeCookieJar) SetCookies(url *url.URL, cookies []*http.Cookie) {
 	for _, cookie := range cookies {
 		cookie.Secure = false
 	}
 	u.jar.SetCookies(url, cookies)
 }
 
-func (u *unsafeCookieJar) Cookies(url *url2.URL) []*http.Cookie {
+func (u *unsafeCookieJar) Cookies(url *url.URL) []*http.Cookie {
 	return u.jar.Cookies(url)
 }

@@ -1,9 +1,9 @@
-package errors
+package errors_test
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
+	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/stretchr/testify/require"
 	"log/slog"
 	"testing"
@@ -11,30 +11,31 @@ import (
 )
 
 func TestAnnotatedError(t *testing.T) {
-	annotatedError := New("test error", slog.Int("id", 123))
+	annotatedError := errors.New("test error", slog.Int("id", 123))
 	require.Equal(t, "test error", annotatedError.Error())
 
 	// Assert that wrapping sentinel errors work as expected.
-	sentinel := NewSentinel("test error")
-	require.NotErrorIs(t, annotatedError, NewSentinel("test error"))
-	wrapped := Join(annotatedError, sentinel)
+	sentinel := errors.NewSentinel("test error")
+	require.NotErrorIs(t, annotatedError, errors.NewSentinel("test error"))
+	wrapped := errors.Join(annotatedError, sentinel)
 	require.ErrorIs(t, wrapped, sentinel)
-	require.True(t, Is(wrapped, sentinel))
+	require.True(t, errors.Is(wrapped, sentinel))
 	require.Equal(t, "test error\ntest error", wrapped.Error())
 
 	// Ensure the latest annotations override older ones
-	wrapped = Wrap(wrapped, "wrap error 1", slog.String("user", "johndoe"))
-	wrapped = Wrap(wrapped, "wrap error 2", slog.Duration("duration", time.Second))
+	wrapped = errors.Wrap(wrapped, "wrap error 1", slog.String("user", "johndoe"))
+	wrapped = errors.Wrap(wrapped, "wrap error 2", slog.Duration("duration", time.Second))
+	//goland:noinspection GoDfaNilDereference
 	require.Equal(t, "wrap error 2: wrap error 1: test error\ntest error", wrapped.Error())
 
 	// Assert that we can find the annotated error
-	annotated := AnnotatedError{}
-	require.True(t, As(wrapped, &annotated))
-	require.Equal(t, annotated.Error(), "wrap error 2")
+	annotated := errors.AnnotatedError{} //nolint:exhaustruct // we only need the type
+	require.True(t, errors.As(wrapped, &annotated))
+	require.Equal(t, "wrap error 2", annotated.Error())
 
 	var buf bytes.Buffer
 	l := slog.New(slog.NewTextHandler(&buf, nil))
-	l.Info("test", "error", SlogError(wrapped))
+	l.Info("test", errors.SlogError(wrapped))
 	logLine := buf.String()
 	require.Contains(t, logLine, "id=123")
 	require.Contains(t, logLine, "user=johndoe")
@@ -46,11 +47,11 @@ func TestAnnotatedError(t *testing.T) {
 	require.NotContains(t, logLine, "annotatederror.go")
 
 	// Try to break things by passing a nil error and other wonkiness.
-	SlogError(Join(nil, nil, NewSentinel("sentinel"), newAnnotatedError("test")))
-	SlogError(nil)
-	SlogError(fmt.Errorf("test: %w", NewSentinel("sentinel")))
-	SlogError(Join(NewSentinel("sentinel1"), NewSentinel("sentinel2")))
-	SlogError(Wrap(nil, "wrap error"))
-	SlogError(Wrap(errors.Join(nil, nil), "wrap error"))
-	_ = Unwrap(Wrap(NewSentinel("sentinel"), "wrap error"))
+	errors.SlogError(errors.Join(nil, nil, errors.NewSentinel("sentinel"), errors.New("test")))
+	errors.SlogError(nil)
+	errors.SlogError(fmt.Errorf("test: %w", errors.NewSentinel("sentinel")))
+	errors.SlogError(errors.Join(errors.NewSentinel("sentinel1"), errors.NewSentinel("sentinel2")))
+	errors.SlogError(errors.Wrap(nil, "wrap error"))
+	errors.SlogError(errors.Wrap(errors.Join(nil, nil), "wrap error"))
+	_ = errors.Unwrap(errors.Wrap(errors.NewSentinel("sentinel"), "wrap error"))
 }

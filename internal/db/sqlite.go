@@ -39,7 +39,7 @@ func NewDB(url string) (*DBs, error) {
 	inMemoryConfig := ""
 	if isInMemory {
 		var randomID string
-		if randomID, err = random.RandomLetters(20); err != nil {
+		if randomID, err = random.Letters(20); err != nil {
 			return nil, errors.Wrap(err, "generate random ID")
 		}
 		url = fmt.Sprintf("file:%s", randomID)

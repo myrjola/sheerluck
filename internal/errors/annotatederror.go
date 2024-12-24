@@ -31,8 +31,8 @@ func New(msg string, attrs ...slog.Attr) AnnotatedError {
 // because it uses a fixed call depth to obtain the pc.
 func newAnnotatedError(msg string, attrs ...slog.Attr) AnnotatedError {
 	var pcs [1]uintptr
-	// Skip runtime.Callers, this function, and the function calling this function.
-	runtime.Callers(3, pcs[:])
+	runtime.Callers(3, pcs[:]) //nolint:mnd // Skip runtime.Callers, this function, and the calling function.
+
 	return AnnotatedError{
 		msg:   msg,
 		pc:    pcs[0],
@@ -46,7 +46,8 @@ func Wrap(err error, msg string, attrs ...slog.Attr) error {
 	return fmt.Errorf("%w: %w", wrapper, err)
 }
 
-// Creates a plain error without other context that can be used as sentinel error that can be detected with errors.Is.
+// NewSentinel creates a plain error without other context that can be used as sentinel error
+// that can be detected with errors.Is.
 func NewSentinel(msg string) error {
 	return errors.New(msg)
 }
@@ -56,7 +57,7 @@ func (err AnnotatedError) Error() string {
 	return err.msg
 }
 
-// AllAnnotated returns an iterator that iterates over all the [AnnotatedError] in err
+// AllAnnotated returns an iterator that iterates over all the [AnnotatedError] in err.
 func AllAnnotated(err error) iter.Seq[AnnotatedError] {
 	return func(yield func(annotatedError AnnotatedError) bool) {
 		traverseAnnotated(err, yield)
@@ -70,7 +71,9 @@ func traverseAnnotated(err error, yield func(annotatedError AnnotatedError) bool
 	}
 
 	// If the error is an AnnotatedError, yield it and return since it is a leaf node.
-	if annotated, ok := err.(AnnotatedError); ok {
+	if
+	//goland:noinspection GoTypeAssertionOnErrors //nolint:errorlint // with Is, we would not handle joined errors.
+	annotated, ok := err.(AnnotatedError); ok {
 		return yield(annotated)
 	}
 

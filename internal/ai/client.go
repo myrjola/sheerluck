@@ -2,6 +2,7 @@ package ai
 
 import (
 	"context"
+	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/sashabaranov/go-openai"
 	"os"
 )
@@ -21,7 +22,7 @@ const MaxTokens = 4096
 func (c *Client) SyncCompletion(messages []openai.ChatCompletionMessage) (openai.ChatCompletionResponse, error) {
 	return c.client.CreateChatCompletion(
 		context.TODO(),
-		openai.ChatCompletionRequest{
+		openai.ChatCompletionRequest{ //nolint:exhaustruct // this is better for readability
 			Model:     openai.GPT3Dot5Turbo1106,
 			MaxTokens: MaxTokens,
 			Messages:  messages,
@@ -30,11 +31,15 @@ func (c *Client) SyncCompletion(messages []openai.ChatCompletionMessage) (openai
 }
 
 func (c *Client) StreamCompletion(messages []openai.ChatCompletionMessage) (*openai.ChatCompletionStream, error) {
-	return c.client.CreateChatCompletionStream(
+	completion, err := c.client.CreateChatCompletionStream(
 		context.TODO(),
-		openai.ChatCompletionRequest{
+		openai.ChatCompletionRequest{ //nolint:exhaustruct // this is better for readability
 			Model:    openai.GPT3Dot5Turbo,
 			Messages: messages,
 		},
 	)
+	if err != nil {
+		return nil, errors.Wrap(err, "create chat completion stream")
+	}
+	return completion, nil
 }
