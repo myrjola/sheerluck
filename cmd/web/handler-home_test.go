@@ -13,7 +13,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"net/http/cookiejar"
 	url2 "net/url"
 	"os"
 	"strings"
@@ -103,9 +102,7 @@ func startTestServer(t *testing.T, w io.Writer, lookupEnv func(string) (string, 
 		t.Fatal("server failed to start")
 		return ""
 	case addr := <-addrCh:
-		// swap 127.0.0.1 with localhost to make secure cookies work in [cookiejar.Jar]
-		port := strings.Split(addr, ":")[1]
-		serverURL := fmt.Sprintf("http://localhost:%s", port)
+		serverURL := fmt.Sprintf("http://%s", addr)
 		if err := waitForReady(ctx, fmt.Sprintf("%s/api/healthy", serverURL)); err != nil {
 			require.NoError(t, err)
 		}
@@ -115,7 +112,7 @@ func startTestServer(t *testing.T, w io.Writer, lookupEnv func(string) (string, 
 
 func Test_application_home(t *testing.T) {
 	url := startTestServer(t, os.Stdout, testLookupEnv)
-	jar, err := cookiejar.New(nil)
+	jar, err := newUnsafeCookieJar()
 	require.NoError(t, err)
 	client := &http.Client{Jar: jar}
 

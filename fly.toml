@@ -7,26 +7,32 @@ app = "sheerluck"
 primary_region = "arn"
 
 [env]
-  SHEERLUCK_FQDN = "sheerluck.fly.dev"
-  SHEERLUCK_SQLITE_URL = "/data/sheerluck.sqlite3"
+SHEERLUCK_FQDN = "sheerluck.fly.dev"
+SHEERLUCK_SQLITE_URL = "/data/sheerluck.sqlite3"
 
 [build]
-  dockerfile = "Dockerfile"
+dockerfile = "Dockerfile"
 
 [mount]
-  source="data"
-  destination="/data"
+source="data"
+destination="/data"
 
 [http_service]
-  internal_port = 4000
-  force_https = true
-  auto_stop_machines = true
-  auto_start_machines = true
-  min_machines_running = 0
-  processes = ["app"]
+internal_port = 4000
+force_https = true
+auto_stop_machines = true
+auto_start_machines = true
+min_machines_running = 0
+processes = ["app"]
 
 [[vm]]
-  cpu_kind = "shared"
-  cpus = 1
-  memory_mb = 1024
+cpu_kind = "shared"
+cpus = 1
+memory_mb = 1024
 
+[[metrics]]
+port = 9090
+path = "/metrics"
+
+[deploy]
+strategy = "immediate"
