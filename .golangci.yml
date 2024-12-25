@@ -222,6 +222,12 @@ linters-settings:
     # Default: false
     all: true
 
+  custom:
+    nilaway:
+      type: "module"
+      description: Static analysis tool to detect potential nil panics in Go code.
+      settings:
+        include-pkgs: "github.com/myrjola/sheerluck"
 
 linters:
   disable-all: true
