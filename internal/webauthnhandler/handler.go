@@ -8,8 +8,10 @@ import (
 	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/myrjola/sheerluck/internal/db"
 	"github.com/myrjola/sheerluck/internal/errors"
+	"github.com/myrjola/sheerluck/internal/ptr"
 	"log/slog"
 	"net/http"
+	"time"
 )
 
 type WebAuthnHandler struct {
@@ -19,13 +21,45 @@ type WebAuthnHandler struct {
 	dbs            *db.DBs
 }
 
-func New(fqdn string, rpOrigins []string, logger *slog.Logger, sessionManager *scs.SessionManager, dbs *db.DBs) (*WebAuthnHandler, error) {
-	var err error
-
+func New(
+	fqdn string,
+	rpOrigins []string,
+	logger *slog.Logger,
+	sessionManager *scs.SessionManager,
+	dbs *db.DBs,
+) (*WebAuthnHandler, error) {
+	var (
+		err     error
+		timeout = time.Minute * 5
+	)
 	var webauthnConfig = &webauthn.Config{
-		RPDisplayName: "Sheerluck",
-		RPID:          fqdn,
-		RPOrigins:     rpOrigins,
+		RPID:                        fqdn,
+		RPDisplayName:               "Sheerluck",
+		RPOrigins:                   rpOrigins,
+		RPTopOrigins:                rpOrigins,
+		RPTopOriginVerificationMode: protocol.TopOriginExplicitVerificationMode,
+		AttestationPreference:       protocol.PreferNoAttestation,
+		AuthenticatorSelection: protocol.AuthenticatorSelection{
+			AuthenticatorAttachment: "platform",
+			RequireResidentKey:      ptr.Ref(true),
+			ResidentKey:             protocol.ResidentKeyRequirementRequired,
+			UserVerification:        protocol.VerificationDiscouraged,
+		},
+		Debug:                false,
+		EncodeUserIDAsString: false,
+		Timeouts: webauthn.TimeoutsConfig{
+			Login: webauthn.TimeoutConfig{
+				Enforce:    true,
+				Timeout:    timeout,
+				TimeoutUVD: timeout,
+			},
+			Registration: webauthn.TimeoutConfig{
+				Enforce:    true,
+				Timeout:    timeout,
+				TimeoutUVD: timeout,
+			},
+		},
+		MDS: nil,
 	}
 
 	var webAuthn *webauthn.WebAuthn
