@@ -15,7 +15,8 @@ import (
 func secureHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Generate a random nonce for use in CSP and set it in the context so that it can be added to the script tags.
-		cspNonce, err := random.Letters(24)
+		var nonceLength uint = 24
+		cspNonce, err := random.Letters(nonceLength)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return

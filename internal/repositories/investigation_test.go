@@ -11,6 +11,7 @@ import (
 )
 
 func TestInvestigationRepository_Get(t *testing.T) {
+	t.Parallel()
 	dbs := newTestDB(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	repo := repositories.NewInvestigationRepository(dbs, logger)
@@ -34,6 +35,7 @@ func TestInvestigationRepository_Get(t *testing.T) {
 					Type:      models.InvestigationTargetTypeScene,
 					ImagePath: "https://myrjola.twic.pics/sheerluck/rue-morgue.webp",
 				},
+				Completions: nil,
 			},
 			wantErr: false,
 		},
@@ -84,6 +86,7 @@ func TestInvestigationRepository_Get(t *testing.T) {
 					Type:      models.InvestigationTargetTypeScene,
 					ImagePath: "https://myrjola.twic.pics/sheerluck/rue-morgue.webp",
 				},
+				Completions: nil,
 			},
 			wantErr: false,
 		},
@@ -92,6 +95,7 @@ func TestInvestigationRepository_Get(t *testing.T) {
 			investigationTargetID: "nonexistent",
 			userID:                []byte{1},
 			wantErr:               true,
+			wantInvestigation:     models.Investigation{}, //nolint:exhaustruct // expected to be empty
 		},
 	}
 	for _, tt := range tests {
@@ -113,6 +117,7 @@ func TestInvestigationRepository_Get(t *testing.T) {
 	}
 }
 func TestInvestigationRepository_FinishCompletion(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                  string
 		investigationTargetID string
@@ -125,7 +130,10 @@ func TestInvestigationRepository_FinishCompletion(t *testing.T) {
 			investigationTargetID: "rue-morgue",
 			userID:                []byte{1},
 			wantCompletion: models.Completion{
-				Order: 0,
+				ID:       0,
+				Order:    0,
+				Question: "",
+				Answer:   "",
 			},
 			wantErr: false,
 		},
@@ -134,7 +142,10 @@ func TestInvestigationRepository_FinishCompletion(t *testing.T) {
 			investigationTargetID: "le-bon",
 			userID:                []byte{1},
 			wantCompletion: models.Completion{
-				Order: 3,
+				ID:       0,
+				Order:    3,
+				Question: "",
+				Answer:   "",
 			},
 			wantErr: false,
 		},
@@ -142,12 +153,14 @@ func TestInvestigationRepository_FinishCompletion(t *testing.T) {
 			name:                  "invalid investigation target",
 			investigationTargetID: "nonexistent",
 			userID:                []byte{1},
+			wantCompletion:        models.Completion{}, //nolint:exhaustruct // expected to be empty
 			wantErr:               true,
 		},
 		{
 			name:                  "invalid user",
 			investigationTargetID: "le-bon",
 			userID:                []byte("nonexistent"),
+			wantCompletion:        models.Completion{}, //nolint:exhaustruct // expected to be empty
 			wantErr:               true,
 		},
 	}
@@ -166,6 +179,7 @@ func TestInvestigationRepository_FinishCompletion(t *testing.T) {
 			}
 
 			require.NoError(t, err, "failed to read completion")
+			// TODO: better assertions
 			//require.NotNilf(t, completion, "completion not found")
 			//require.Equal(t, completion.Order, tt.wantCompletion.Order, "wrong order")
 			//require.Equal(t, completion.Question, "question", "question mismatch")

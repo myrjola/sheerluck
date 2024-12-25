@@ -72,7 +72,7 @@ func traverseAnnotated(err error, yield func(annotatedError AnnotatedError) bool
 
 	// If the error is an AnnotatedError, yield it and return since it is a leaf node.
 	if
-	//goland:noinspection GoTypeAssertionOnErrors //nolint:errorlint // with Is, we would not handle joined errors.
+	//goland:noinspection GoTypeAssertionOnErrors // with Is, we would not handle joined errors.
 	annotated, ok := err.(AnnotatedError); ok {
 		return yield(annotated)
 	}
@@ -116,7 +116,7 @@ func SlogError(err error) slog.Attr {
 	for {
 		frame, more := frames.Next()
 		// file:// prefix is used to make it clickable in Goland terminal.
-		sources = append(sources, fmt.Sprintf("file://%s:%d", frame.File, frame.Line))
+		sources = append(sources, fmt.Sprintf("file://%s:%d", frame.File, frame.Line)) //nolint:nosprintfhostport
 		if !more {
 			break
 		}
@@ -131,6 +131,7 @@ func SlogError(err error) slog.Attr {
 
 // As exposes stdlib [errors.As].
 func As(err error, target any) bool {
+	//goland:noinspection GoErrorsAs // this is exactly the same signature as stdlib errors.As.
 	return errors.As(err, target)
 }
 

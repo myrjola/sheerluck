@@ -15,12 +15,9 @@ import (
 	"github.com/myrjola/sheerluck/internal/webauthnhandler"
 	"io/fs"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
-	"path/filepath"
-	"syscall"
 	"time"
 )
 
@@ -64,43 +61,9 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		pprofserver.Launch(ctx, cfg.PProfAddr, logger)
 	}
 
-	var htmlTemplatePath = cfg.TemplatePath
-	if htmlTemplatePath == "" {
-		// findModuleDir locates the directory containing the go.mod file.
-		findModuleDir := func() (string, error) {
-			var dir string
-			dir, err = os.Getwd()
-			if err != nil {
-				return "", errors.Wrap(err, "get working directory")
-			}
-
-			for {
-				if _, err = os.Stat(filepath.Join(dir, "go.mod")); err == nil {
-					return dir, nil
-				}
-
-				parentDir := filepath.Dir(dir)
-				if parentDir == dir { // If we reached the root directory
-					break
-				}
-				dir = parentDir
-			}
-
-			return "", os.ErrNotExist
-		}
-		var modulePath string
-		if modulePath, err = findModuleDir(); err != nil {
-			return errors.Wrap(err, "find module dir")
-		}
-		htmlTemplatePath = filepath.Join(modulePath, "ui", "templates")
-	}
-	// check that TemplatePath exists
-	var stat os.FileInfo
-	if stat, err = os.Stat(htmlTemplatePath); err != nil {
-		return errors.Wrap(err, "template path not found", slog.String("path", htmlTemplatePath))
-	}
-	if !stat.IsDir() {
-		return errors.New("template path is not a directory", slog.String("path", htmlTemplatePath))
+	var htmlTemplatePath string
+	if htmlTemplatePath, err = resolveAndVerifyTemplatePath(cfg.TemplatePath); err != nil {
+		return errors.Wrap(err, "resolve template path")
 	}
 
 	var addr = cfg.Addr
@@ -108,19 +71,14 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 	if cfg.FQDN != "localhost" {
 		rpOrigins = []string{fmt.Sprintf("https://%s", cfg.FQDN)}
 	}
+
 	dbs, err := db.NewDB(cfg.SqliteURL)
 	if err != nil {
 		return errors.Wrap(err, "open db", slog.String("url", cfg.SqliteURL))
 	}
 	logger.LogAttrs(ctx, slog.LevelInfo, "connected to db")
 
-	sessionManager := scs.New()
-	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWriteDB, 24*time.Hour) //nolint:mnd // day
-	sessionManager.Lifetime = 12 * time.Hour                                                  //nolint:mnd // half a day
-	sessionManager.Cookie.Persist = true
-	sessionManager.Cookie.Secure = true
-	sessionManager.Cookie.HttpOnly = true
-	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
+	sessionManager := initializeSessionManager(dbs)
 
 	var webAuthnHandler *webauthnhandler.WebAuthnHandler
 	if webAuthnHandler, err = webauthnhandler.New(cfg.FQDN, rpOrigins, logger, sessionManager, dbs); err != nil {
@@ -138,48 +96,21 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		templateFS:      os.DirFS(htmlTemplatePath),
 	}
 
-	idleTimeout := time.Minute
-	defaultTimeout := 5 * time.Second //nolint:mnd // 5 seconds should be enough even for slow LLM APIs.
-	srv := &http.Server{
-		ErrorLog:          slog.NewLogLogger(logger.Handler(), slog.LevelError),
-		Handler:           timeoutHandler(app.routes(), defaultTimeout),
-		IdleTimeout:       idleTimeout,
-		ReadTimeout:       defaultTimeout,
-		WriteTimeout:      defaultTimeout,
-		ReadHeaderTimeout: time.Second,
+	if err = app.configureAndStartServer(ctx, addr); err != nil {
+		return errors.Wrap(err, "start server")
 	}
-	shutdownComplete := make(chan struct{})
-	go func() {
-		sigint := make(chan os.Signal, 1)
-
-		signal.Notify(sigint, os.Interrupt)
-		signal.Notify(sigint, syscall.SIGTERM)
-
-		<-sigint
-		logger.LogAttrs(ctx, slog.LevelInfo, "shutting down server")
-
-		// We received an interrupt signal, shut down.
-		var shutdownContext context.Context
-		shutdownContext, cancel = context.WithTimeout(context.Background(), defaultTimeout)
-		defer cancel()
-		if err = srv.Shutdown(shutdownContext); err != nil {
-			err = errors.Wrap(err, "shutdown server")
-			logger.LogAttrs(ctx, slog.LevelError, "error shutting down server", errors.SlogError(err))
-		}
-		close(shutdownComplete)
-	}()
-
-	var listener net.Listener
-	if listener, err = net.Listen("tcp", addr); err != nil {
-		return errors.Wrap(err, "TCP listen")
-	}
-	logger.LogAttrs(ctx, slog.LevelInfo, "starting server", slog.Any("Addr", listener.Addr().String()))
-	if err = srv.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
-		return errors.Wrap(err, "server serve")
-	}
-	<-shutdownComplete
-
 	return nil
+}
+
+func initializeSessionManager(dbs *db.DBs) *scs.SessionManager {
+	sessionManager := scs.New()
+	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWriteDB, 24*time.Hour) //nolint:mnd // day
+	sessionManager.Lifetime = 12 * time.Hour                                                  //nolint:mnd // half a day
+	sessionManager.Cookie.Persist = true
+	sessionManager.Cookie.Secure = true
+	sessionManager.Cookie.HttpOnly = true
+	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
+	return sessionManager
 }
 
 func main() {

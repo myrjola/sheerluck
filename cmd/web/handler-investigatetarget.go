@@ -52,7 +52,7 @@ func (app *application) investigateTargetPOST(w http.ResponseWriter, r *http.Req
 	ctx := r.Context()
 	ch := make(chan string, 1)
 	go func() {
-		time.Sleep(10000 * time.Second) //nolint:mnd
+		time.Sleep(10000 * time.Second) //nolint:mnd // 10000 seconds should be enough to trigger timeout.
 		ch <- "done"
 	}()
 

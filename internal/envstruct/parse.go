@@ -57,12 +57,16 @@ func Populate(v any, lookupEnv func(string) (string, bool)) error {
 				continue
 			}
 
-			if val, err := envLookupWithFallback(envVarName, tag, lookupEnv); err != nil {
+			var (
+				val string
+				err error
+			)
+			if val, err = envLookupWithFallback(envVarName, tag, lookupEnv); err != nil {
 				errorList = append(errorList, err)
 				continue
-			} else {
-				refField.Set(reflect.ValueOf(val))
 			}
+
+			refField.Set(reflect.ValueOf(val))
 		}
 	}
 
