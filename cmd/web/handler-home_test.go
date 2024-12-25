@@ -10,13 +10,12 @@ import (
 	"io"
 	"net/http"
 	url2 "net/url"
-	"os"
 	"strings"
 	"testing"
 )
 
 func Test_application_home(t *testing.T) {
-	url := startTestServer(t, os.Stdout, testLookupEnv)
+	url := startTestServer(t, io.Discard, testLookupEnv)
 	jar, err := newUnsafeCookieJar()
 	require.NoError(t, err)
 	client := &http.Client{Jar: jar}

@@ -20,7 +20,7 @@ func NewClient() Client {
 const MaxTokens = 4096
 
 func (c *Client) SyncCompletion(messages []openai.ChatCompletionMessage) (openai.ChatCompletionResponse, error) {
-	return c.client.CreateChatCompletion(
+	completion, err := c.client.CreateChatCompletion(
 		context.TODO(),
 		openai.ChatCompletionRequest{ //nolint:exhaustruct // this is better for readability
 			Model:     openai.GPT3Dot5Turbo1106,
@@ -28,6 +28,10 @@ func (c *Client) SyncCompletion(messages []openai.ChatCompletionMessage) (openai
 			Messages:  messages,
 		},
 	)
+	if err != nil {
+		return openai.ChatCompletionResponse{}, errors.Wrap(err, "create chat completion")
+	}
+	return completion, nil
 }
 
 func (c *Client) StreamCompletion(messages []openai.ChatCompletionMessage) (*openai.ChatCompletionStream, error) {

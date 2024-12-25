@@ -115,5 +115,5 @@ CREATE TABLE IF NOT EXISTS completions
 
     user_id                 BLOB    NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     investigation_target_id TEXT    NOT NULL REFERENCES investigation_targets (id) ON DELETE CASCADE,
-    UNIQUE (user_id, investigation_target_id, "order") ON CONFLICT REPLACE
+    UNIQUE (user_id, investigation_target_id, "order")
 ) STRICT;

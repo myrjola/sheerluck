@@ -8,7 +8,6 @@ import (
 	"testing"
 )
 
-//nolint:funlen
 func TestChannelBroker(t *testing.T) {
 	type testCase struct {
 		name     string

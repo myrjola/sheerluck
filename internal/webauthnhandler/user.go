@@ -17,13 +17,13 @@ type user struct {
 const webauthnIDSize = 64
 
 // newRandomUser initialises a new user with random ID and anonymous display name.
-func newRandomUser() (webauthn.User, error) {
+func newRandomUser() (user, error) {
 	id := make([]byte, webauthnIDSize)
 	if _, err := rand.Read(id); err != nil {
-		return nil, errors.Wrap(err, "generate user id")
+		return user{}, errors.Wrap(err, "generate user id")
 	}
 
-	return &user{
+	return user{
 		displayName: fmt.Sprintf("Anonymous user created at %s", time.Now().Format(time.RFC3339)),
 		id:          id,
 		credentials: []webauthn.Credential{},

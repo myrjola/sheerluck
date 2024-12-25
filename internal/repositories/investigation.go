@@ -78,25 +78,37 @@ func (r *InvestigationRepository) Get(
 	return &investigation, nil
 }
 
+// FinishCompletion adds a new completion to the investigation for given investigation target and user.
+//
+// The completion is added to the end of the completions list. The order of the completion is determined by the previous
+// completion. If no previous completion exists, set previousCompletionID to -1.
 func (r *InvestigationRepository) FinishCompletion(
 	ctx context.Context,
 	investigationTargetID string,
 	userID []byte,
+	previousCompletionID int64,
 	question string,
 	answer string,
 ) error {
-	stmt := `WITH new_order AS (SELECT COALESCE(MAX("order") + 1, 0) AS new_order
-                   FROM completions
-                   WHERE user_id = @user_id
-                     AND investigation_target_id = @investigation_target_id)
+	stmt := `WITH new_order AS (
+SELECT   
+       CASE WHEN @previous_completion_id IS -1
+       THEN 0
+       ELSE MAX("order") + 1
+       END AS "order"
+	   FROM completions
+	   WHERE id = @previous_completion_id
+		 AND investigation_target_id = @investigation_target_id
+		 AND user_id = @user_id)
 INSERT
 INTO completions (user_id, investigation_target_id, question, answer, "order")
-VALUES (@user_id, @investigation_target_id, @question, @answer, (SELECT new_order FROM new_order));`
+VALUES (@user_id, @investigation_target_id, @question, @answer, (SELECT "order" FROM new_order));`
 	params := []any{
 		sql.Named("user_id", userID),
 		sql.Named("investigation_target_id", investigationTargetID),
 		sql.Named("question", question),
 		sql.Named("answer", answer),
+		sql.Named("previous_completion_id", previousCompletionID),
 	}
 	if _, err := r.dbs.ReadWriteDB.ExecContext(ctx, stmt, params...); err != nil {
 		return errors.Wrap(err, "insert completion")

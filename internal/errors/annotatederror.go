@@ -65,14 +65,15 @@ func AllAnnotated(err error) iter.Seq[AnnotatedError] {
 }
 
 // traverseAnnotated recursively yields all the [AnnotatedError] in err.
+//
+//goland:noinspection GoTypeAssertionOnErrors
 func traverseAnnotated(err error, yield func(annotatedError AnnotatedError) bool) bool {
 	if err == nil {
 		return true
 	}
-
 	// If the error is an AnnotatedError, yield it and return since it is a leaf node.
 	if
-	//goland:noinspection GoTypeAssertionOnErrors // with Is, we would not handle joined errors.
+	//nolint:errorlint // This type assertion is deliberate so that we can traverse errors joined with [errors.Join].
 	annotated, ok := err.(AnnotatedError); ok {
 		return yield(annotated)
 	}
@@ -116,7 +117,8 @@ func SlogError(err error) slog.Attr {
 	for {
 		frame, more := frames.Next()
 		// file:// prefix is used to make it clickable in Goland terminal.
-		sources = append(sources, fmt.Sprintf("file://%s:%d", frame.File, frame.Line)) //nolint:nosprintfhostport
+		//nolint:nosprintfhostport // This is not host and port.
+		sources = append(sources, fmt.Sprintf("file://%s:%d", frame.File, frame.Line))
 		if !more {
 			break
 		}

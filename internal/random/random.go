@@ -6,9 +6,8 @@ import (
 	"math/big"
 )
 
-var allowedLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
 func Letters(n uint) (string, error) {
+	var allowedLetters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	letters := make([]rune, n)
 	for i := range letters {
 		letterIndex, err := rand.Int(rand.Reader, big.NewInt(int64(len(letters))))

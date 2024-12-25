@@ -2,7 +2,7 @@ package webauthnhandler
 
 import (
 	"crypto/sha256"
-	"fmt"
+	"encoding/hex"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/logging"
@@ -38,8 +38,8 @@ func (h *WebAuthnHandler) AuthenticateMiddleware(next http.Handler) http.Handler
 		// Hash token with sha256 to avoid leaking it in logs.
 		tokenHash := sha256.Sum256([]byte(token))
 		ctx = logging.WithAttrs(r.Context(),
-			slog.String("session_hash", fmt.Sprintf("%x", tokenHash)),
-			slog.String("user_id", fmt.Sprintf("%x", userID)),
+			slog.String("session_hash", hex.EncodeToString(tokenHash[:])),
+			slog.String("user_id", hex.EncodeToString(userID)),
 		)
 		r = r.WithContext(ctx)
 

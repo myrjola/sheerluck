@@ -38,8 +38,11 @@ func NewDB(url string) (*DBs, error) {
 	isInMemory := strings.Contains(url, ":memory:")
 	inMemoryConfig := ""
 	if isInMemory {
-		var randomID string
-		if randomID, err = random.Letters(20); err != nil {
+		var (
+			randomID     string
+			dbNameLength uint = 20
+		)
+		if randomID, err = random.Letters(dbNameLength); err != nil {
 			return nil, errors.Wrap(err, "generate random ID")
 		}
 		url = fmt.Sprintf("file:%s", randomID)
