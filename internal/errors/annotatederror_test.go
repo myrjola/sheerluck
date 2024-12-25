@@ -29,7 +29,7 @@ func TestAnnotatedError(t *testing.T) {
 	require.Equal(t, "wrap error 2: wrap error 1: test error\ntest error", wrapped.Error())
 
 	// Assert that we can find the annotated error
-	annotated := errors.AnnotatedError{} //nolint:exhaustruct // we only need the type
+	annotated := errors.AnnotatedError{}
 	require.True(t, errors.As(wrapped, &annotated))
 	require.Equal(t, "wrap error 2", annotated.Error())
 

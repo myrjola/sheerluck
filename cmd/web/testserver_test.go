@@ -69,6 +69,7 @@ func testLookupEnv(key string) (string, bool) {
 
 // startTestServer starts the test server, waits for it to be ready, and return the server URL for testing.
 func startTestServer(t *testing.T, w io.Writer, lookupEnv func(string) (string, bool)) string {
+	t.Helper()
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// We need to grab the dynamically allocated port from the log output.
@@ -77,7 +78,7 @@ func startTestServer(t *testing.T, w io.Writer, lookupEnv func(string) (string, 
 		AddSource: false,
 		Level:     slog.LevelDebug,
 		ReplaceAttr: func(_ []string, a slog.Attr) slog.Attr {
-			if a.Key == "addr" {
+			if a.Key == "Addr" {
 				addrCh <- a.Value.String()
 			}
 			return a

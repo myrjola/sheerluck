@@ -7,6 +7,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/myrjola/sheerluck/internal/ai"
 	"github.com/myrjola/sheerluck/internal/db"
+	"github.com/myrjola/sheerluck/internal/envstruct"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/logging"
 	"github.com/myrjola/sheerluck/internal/pprofserver"
@@ -32,43 +33,49 @@ type application struct {
 	templateFS      fs.FS
 }
 
+type config struct {
+	// Addr is the address to listen on.
+	Addr string `env:"SHEERLUCK_ADDR" envDefault:"localhost:4000"`
+	// FQDN is the fully qualified domain name of the server used for WebAuthn relying party configuration.
+	FQDN string `env:"SHEERLUCK_FQDN" envDefault:"localhost"`
+	// SqliteURL is the URL to the SQLite database. You can use ":memory:" for an ethereal in-memory database.
+	SqliteURL string `env:"SHEERLUCK_SQLITE_URL" envDefault:"./sheerluck.sqlite3"`
+	// PProfAddr is the optional address to listen on for the pprof server.
+	PProfAddr string `env:"SHEERLUCK_PPROF_ADDR" envDefault:""`
+	// TemplatePath is the path to the directory containing the HTML templates.
+	TemplatePath string `env:"SHEERLUCK_TEMPLATE_PATH" envDefault:""`
+}
+
 func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (string, bool)) error {
 	var (
-		cancel           context.CancelFunc
-		err              error
-		ok               bool
-		addr             string
-		fqdn             string
-		pprofAddr        string
-		sqliteURL        string
-		htmlTemplatePath string
+		cancel context.CancelFunc
+		err    error
 	)
 
 	ctx, cancel = signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	if addr, ok = lookupEnv("SHEERLUCK_ADDR"); !ok {
-		addr = "localhost:4000"
+	var cfg config
+	if err = envstruct.Populate(&cfg, lookupEnv); err != nil {
+		return errors.Wrap(err, "populate config")
 	}
-	if fqdn, ok = lookupEnv("SHEERLUCK_FQDN"); !ok {
-		fqdn = "localhost"
+
+	if cfg.PProfAddr != "" {
+		pprofserver.Launch(ctx, cfg.PProfAddr, logger)
 	}
-	if sqliteURL, ok = lookupEnv("SHEERLUCK_SQLITE_URL"); !ok {
-		sqliteURL = "./sheerluck.sqlite3"
-	}
-	if pprofAddr, ok = lookupEnv("SHEERLUCK_PPROF_ADDR"); ok {
-		pprofserver.Launch(ctx, pprofAddr, logger)
-	}
-	if htmlTemplatePath, ok = lookupEnv("SHEERLUCK_TEMPLATE_PATH"); !ok {
+
+	var htmlTemplatePath = cfg.TemplatePath
+	if htmlTemplatePath == "" {
 		// findModuleDir locates the directory containing the go.mod file.
 		findModuleDir := func() (string, error) {
-			dir, err := os.Getwd()
+			var dir string
+			dir, err = os.Getwd()
 			if err != nil {
-				return "", err
+				return "", errors.Wrap(err, "get working directory")
 			}
 
 			for {
-				if _, err := os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+				if _, err = os.Stat(filepath.Join(dir, "go.mod")); err == nil {
 					return dir, nil
 				}
 
@@ -87,14 +94,23 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		}
 		htmlTemplatePath = filepath.Join(modulePath, "ui", "templates")
 	}
-
-	rpOrigins := []string{fmt.Sprintf("http://%s", addr)}
-	if fqdn != "localhost" {
-		rpOrigins = []string{fmt.Sprintf("https://%s", fqdn)}
+	// check that TemplatePath exists
+	var stat os.FileInfo
+	if stat, err = os.Stat(htmlTemplatePath); err != nil {
+		return errors.Wrap(err, "template path not found", slog.String("path", htmlTemplatePath))
 	}
-	dbs, err := db.NewDB(sqliteURL)
+	if !stat.IsDir() {
+		return errors.New("template path is not a directory", slog.String("path", htmlTemplatePath))
+	}
+
+	var addr = cfg.Addr
+	rpOrigins := []string{fmt.Sprintf("http://%s", cfg.Addr)}
+	if cfg.FQDN != "localhost" {
+		rpOrigins = []string{fmt.Sprintf("https://%s", cfg.FQDN)}
+	}
+	dbs, err := db.NewDB(cfg.SqliteURL)
 	if err != nil {
-		return errors.Wrap(err, "open db", slog.String("url", sqliteURL))
+		return errors.Wrap(err, "open db", slog.String("url", cfg.SqliteURL))
 	}
 	logger.LogAttrs(ctx, slog.LevelInfo, "connected to db")
 
@@ -107,20 +123,11 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 	sessionManager.Cookie.SameSite = http.SameSiteStrictMode
 
 	var webAuthnHandler *webauthnhandler.WebAuthnHandler
-	if webAuthnHandler, err = webauthnhandler.New(fqdn, rpOrigins, logger, sessionManager, dbs); err != nil {
+	if webAuthnHandler, err = webauthnhandler.New(cfg.FQDN, rpOrigins, logger, sessionManager, dbs); err != nil {
 		return errors.Wrap(err, "new webauthn handler")
 	}
 
 	investigations := repositories.NewInvestigationRepository(dbs, logger)
-
-	// check that templatePath exists
-	var stat os.FileInfo
-	if stat, err = os.Stat(htmlTemplatePath); err != nil {
-		return errors.Wrap(err, "template path not found", slog.String("path", htmlTemplatePath))
-	}
-	if !stat.IsDir() {
-		return errors.New("template path is not a directory", slog.String("path", htmlTemplatePath))
-	}
 
 	app := application{
 		logger:          logger,
@@ -166,7 +173,7 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 	if listener, err = net.Listen("tcp", addr); err != nil {
 		return errors.Wrap(err, "TCP listen")
 	}
-	logger.LogAttrs(ctx, slog.LevelInfo, "starting server", slog.Any("addr", listener.Addr().String()))
+	logger.LogAttrs(ctx, slog.LevelInfo, "starting server", slog.Any("Addr", listener.Addr().String()))
 	if err = srv.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
 		return errors.Wrap(err, "server serve")
 	}
