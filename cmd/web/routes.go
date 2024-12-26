@@ -7,23 +7,21 @@ import (
 
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
+	common := alice.New(app.recoverPanic, app.logRequest, secureHeaders, noSurf, commonContext)
+	notStreaming := alice.New(timeout, common.Then)
+	session := alice.New(notStreaming.Then, app.sessionManager.LoadAndSave, app.webAuthnHandler.AuthenticateMiddleware)
+	mustSession := alice.New(session.Then, app.mustAuthenticate)
+	mustSessionStreaming := alice.New(common.Then, app.streamingAuthMiddleware,
+		app.webAuthnHandler.AuthenticateMiddleware, app.mustAuthenticate)
 
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("/", cacheForeverHeaders(fileServer))
-
-	session := alice.New(app.sessionManager.LoadAndSave, app.webAuthnHandler.AuthenticateMiddleware)
-	mustSession := alice.New(
-		app.sessionManager.LoadAndSave,
-		app.webAuthnHandler.AuthenticateMiddleware,
-		app.mustAuthenticate,
-	)
+	mux.Handle("/", notStreaming.Then(cacheForeverHeaders(fileServer)))
 
 	mux.Handle("GET /{$}", session.ThenFunc(app.home))
-	mux.Handle("GET /test", session.ThenFunc(app.home))
 	mux.Handle("GET /cases/{caseID}/investigation-targets/{investigationTargetID}",
 		mustSession.ThenFunc(app.investigateTargetGET))
 	mux.Handle("POST /cases/{caseID}/investigation-targets/{investigationTargetID}",
-		mustSession.ThenFunc(app.investigateTargetPOST))
+		mustSessionStreaming.ThenFunc(app.investigateTargetPOST))
 
 	mux.Handle("POST /api/registration/start", session.ThenFunc(app.beginRegistration))
 	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.finishRegistration))
@@ -33,7 +31,5 @@ func (app *application) routes() http.Handler {
 
 	mux.Handle("GET /api/healthy", session.ThenFunc(app.healthy))
 
-	common := alice.New(app.recoverPanic, app.logRequest, secureHeaders, noSurf, commonContext)
-
-	return common.Then(mux)
+	return mux
 }

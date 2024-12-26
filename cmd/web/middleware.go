@@ -98,7 +98,7 @@ func (app *application) mustAuthenticate(next http.Handler) http.Handler {
 // serverSentMiddleware makes our session library scs work with Server Sent Events (SSE).
 // Use this instead of app.sessionManager.LoadAndSave.
 // See https://github.com/alexedwards/scs/issues/141#issuecomment-1807075358
-func (app *application) serverSentEventMiddleware(next http.Handler) http.Handler {
+func (app *application) streamingAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var token string
 		cookie, err := r.Cookie(app.sessionManager.Cookie.Name)
