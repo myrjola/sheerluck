@@ -21,10 +21,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     outputs:
-        docker_image: ${{ env.DOCKER_IMAGE }}
+        docker_image_uri: ${{ steps.set_docker_image.outputs.DOCKER_IMAGE_URI }}
     steps:
-      - name: Set docker image env var
-        run: echo "DOCKER_IMAGE=${DOCKER_REGISTRY}/${DOCKER_TAG}" >> $GITHUB_ENV
+      - name: Set docker image to output
+        id: set_docker_image
+        run: echo "DOCKER_IMAGE_URI=${DOCKER_REGISTRY}/${DOCKER_TAG}" >> $GITHUB_OUTPUT
 
       - uses: actions/checkout@v4
 
@@ -57,4 +58,4 @@ jobs:
           context: .
           platforms: linux/amd64
           push: true
-          tags: ${{ env.DOCKER_IMAGE }}
+          tags: ${{ steps.set_docker_image.outputs.DOCKER_IMAGE_URI }}
