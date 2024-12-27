@@ -1,4 +1,4 @@
-.PHONY: ci gomod init build test dev lint build-docker fly-sqlite3 clean sec
+.PHONY: ci gomod init build test dev lint build-docker fly-sqlite3 clean sec cross-compile
 
 GOTOOLCHAIN=auto
 
@@ -8,8 +8,8 @@ init: gomod custom-gcl
 gomod:
 	@echo "Installing Go dependencies..."
 	go version
-	go mod tidy
 	go mod download
+	go mod verify
 
 custom-gcl:
 	@echo "Installing golangci-lint and building custom version for nilaway plugin to ./custom-gcl"
@@ -38,6 +38,13 @@ dev:
 	@echo "Running dev server with debug build..."
 	go build -gcflags="all=-N -l" -o bin/sheerluck github.com/myrjola/sheerluck/cmd/web
 	./bin/sheerluck
+
+cross-compile:
+	@echo "Cross-compiling..."
+	docker build --tag sheerluck-bin --file cross-compile.Dockerfile .
+	docker create --name sheerluck-bin-extract sheerluck-bin
+	docker cp sheerluck-bin-extract:/dist/sheerluck.linux_amd64 ./bin/sheerluck.linux_amd64
+	docker rm sheerluck-bin-extract
 
 build-docker:
 	@echo "Building Docker image..."
