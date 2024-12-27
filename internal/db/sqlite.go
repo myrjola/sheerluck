@@ -1,10 +1,12 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/random"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -24,7 +26,7 @@ type DBs struct {
 // This is a best practice mentioned in https://github.com/mattn/go-sqlite3/issues/1179#issuecomment-1638083995
 //
 // The url parameter is the path to the SQLite database file or ":memory:" for an in-memory database.
-func NewDB(url string) (*DBs, error) {
+func NewDB(ctx context.Context, url string) (*DBs, error) {
 	var (
 		err         error
 		readWriteDB *sql.DB
@@ -81,7 +83,7 @@ func NewDB(url string) (*DBs, error) {
 	readWriteDB.SetConnMaxIdleTime(time.Hour)
 
 	// Initialize the database schema
-	if _, err = readWriteDB.Exec(initialiseSchemaScript); err != nil {
+	if _, err = readWriteDB.ExecContext(ctx, initialiseSchemaScript); err != nil {
 		return nil, errors.Wrap(err, "initialize schema")
 	}
 
@@ -99,4 +101,24 @@ func NewDB(url string) (*DBs, error) {
 		ReadWriteDB: readWriteDB,
 		ReadDB:      readDB,
 	}, nil
+}
+
+// Runs optimize once per hour according to suggestion at https://www.sqlite.org/pragma.html#pragma_optimize.
+func StartDatabaseOptimizer(ctx context.Context, dbs *DBs, logger *slog.Logger) {
+	for {
+		start := time.Now()
+		if _, err := dbs.ReadWriteDB.ExecContext(ctx, "PRAGMA optimize;"); err != nil {
+			err = errors.Wrap(err, "optimize database")
+			logger.LogAttrs(ctx, slog.LevelError, "failed to optimize database", errors.SlogError(err))
+		} else {
+			logger.LogAttrs(ctx, slog.LevelInfo, "optimized database",
+				slog.Duration("duration", time.Since(start)))
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(time.Hour):
+			continue
+		}
+	}
 }

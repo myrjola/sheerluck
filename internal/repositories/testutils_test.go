@@ -1,6 +1,7 @@
 package repositories_test
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
 	"github.com/myrjola/sheerluck/internal/db"
@@ -18,7 +19,7 @@ func newTestDB(t *testing.T) *db.DBs {
 		err error
 	)
 
-	if dbs, err = db.NewDB(":memory:"); err != nil {
+	if dbs, err = db.NewDB(context.Background(), ":memory:"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -49,7 +50,7 @@ func newBenchmarkDB(b *testing.B) *db.DBs {
 		benchmarkDBPath = "./benchmark.sqlite"
 	)
 
-	if dbs, err = db.NewDB(benchmarkDBPath); err != nil {
+	if dbs, err = db.NewDB(context.Background(), benchmarkDBPath); err != nil {
 		b.Fatal(err)
 	}
 

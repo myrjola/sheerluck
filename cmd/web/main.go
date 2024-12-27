@@ -30,7 +30,7 @@ type application struct {
 }
 
 type config struct {
-	// Addr is the address to listen on.
+	// Addr is the address to listen on. It's possible to choose the address dynamically with localhost:0.
 	Addr string `env:"SHEERLUCK_ADDR" envDefault:"localhost:4000"`
 	// FQDN is the fully qualified domain name of the server used for WebAuthn Relying Party configuration.
 	FQDN string `env:"SHEERLUCK_FQDN" envDefault:"localhost"`
@@ -65,32 +65,13 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		return errors.Wrap(err, "resolve template path")
 	}
 
-	dbs, err := db.NewDB(cfg.SqliteURL)
+	dbs, err := db.NewDB(ctx, cfg.SqliteURL)
 	if err != nil {
 		return errors.Wrap(err, "open db", slog.String("url", cfg.SqliteURL))
 	}
 	logger.LogAttrs(ctx, slog.LevelInfo, "connected to db")
 
-	// Start goroutine that runs optimize once per hour according to suggestion at
-	// https://www.sqlite.org/pragma.html#pragma_optimize.
-	go func(ctx context.Context) {
-		for {
-			start := time.Now()
-			if _, err = dbs.ReadWriteDB.Exec("PRAGMA optimize;"); err != nil {
-				err = errors.Wrap(err, "optimize database")
-				logger.LogAttrs(ctx, slog.LevelError, "failed to optimize database", errors.SlogError(err))
-			} else {
-				logger.LogAttrs(ctx, slog.LevelInfo, "optimized database",
-					slog.Duration("duration", time.Since(start)))
-			}
-			select {
-			case <-ctx.Done():
-				return
-			case <-time.After(time.Hour):
-				continue
-			}
-		}
-	}(ctx)
+	go db.StartDatabaseOptimizer(ctx, dbs, logger)
 
 	sessionManager := initializeSessionManager(dbs)
 

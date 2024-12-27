@@ -1,15 +1,23 @@
-.PHONY: init test dev lint build-docker fly-sqlite3
+.PHONY: ci gomod init build test dev lint build-docker fly-sqlite3
 
-init:
+init: gomod custom-gcl
+	@echo "Dependencies installed"
+
+gomod:
 	@echo "Installing Go dependencies..."
 	go mod tidy
 	go mod download
 
+custom-gcl:
 	@echo "Installing golangci-lint and building custom version for nilaway plugin to ./custom-gcl"
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.62.2
 	golangci-lint custom
 
-	@echo "Dependencies installed successfully."
+ci: init build lint test
+
+build:
+	@echo "Building..."
+	go build -o bin/sheerluck github.com/myrjola/sheerluck/cmd/web
 
 test:
 	@echo "Running tests..."
