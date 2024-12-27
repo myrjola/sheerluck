@@ -48,7 +48,23 @@ func NewDB(url string) (*DBs, error) {
 		url = fmt.Sprintf("file:%s", randomID)
 		inMemoryConfig = "mode=memory&cache=shared"
 	}
-	commonConfig := "_journal_mode=wal&_busy_timeout=5000&_synchronous=normal&_foreign_keys=on"
+	commonConfig := strings.Join([]string{
+		// Write-ahead logging enables higher performance and concurrent readers.
+		"_journal_mode=wal",
+		// Avoids SQLITE_BUSY errors when database is under load.
+		"_busy_timeout=5000",
+		// Increases performance at the cost of durability https://www.sqlite.org/pragma.html#pragma_synchronous.
+		"_synchronous=normal",
+		// Enables foreign key constraints.
+		"_foreign_keys=on",
+		// Performance enhancement by storing temporary tables indices in memory instead of files.
+		"_temp_store=memory",
+		// Performance enhancement for reducing syscalls by having the pages in memory-mapped I/O.
+		"_mmap_size=30000000000",
+		// Recommended performance enhancement for long-lived connections.
+		// See https://www.sqlite.org/pragma.html#pragma_optimize.
+		"_optimize=0x10002",
+	}, "&")
 
 	// The options prefixed with underscore '_' are SQLite pragmas documented at https://www.sqlite.org/pragma.html.
 	// The options without leading underscore are SQLite URI parameters documented at https://www.sqlite.org/uri.html.

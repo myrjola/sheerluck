@@ -78,6 +78,24 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 	}
 	logger.LogAttrs(ctx, slog.LevelInfo, "connected to db")
 
+	// Start goroutine that runs optimize once per hour according to suggestion at
+	// https://www.sqlite.org/pragma.html#pragma_optimize.
+	go func(ctx context.Context) {
+		for {
+			logger.LogAttrs(ctx, slog.LevelDebug, "optimizing database")
+			if _, err = dbs.ReadWriteDB.Exec("PRAGMA optimize;"); err != nil {
+				err = errors.Wrap(err, "optimize database")
+				logger.LogAttrs(ctx, slog.LevelError, "failed to optimize database", errors.SlogError(err))
+			}
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(time.Hour):
+				continue
+			}
+		}
+	}(ctx)
+
 	sessionManager := initializeSessionManager(dbs)
 
 	var webAuthnHandler *webauthnhandler.WebAuthnHandler
