@@ -73,6 +73,10 @@ Capture a goroutine stack traces.
 go tool pprof -top "http://localhost:6060/debug/pprof/goroutine"
 ```
 
+### CI/CD and preview environments
+
+This project uses [GitHub Actions](https://docs.github.com/en/actions) for CI/CD.
+
 ## Attribution
 
 Sheerluck logo made by Martin Yrjölä.

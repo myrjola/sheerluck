@@ -34,6 +34,8 @@ type config struct {
 	Addr string `env:"SHEERLUCK_ADDR" envDefault:"localhost:4000"`
 	// FQDN is the fully qualified domain name of the server used for WebAuthn Relying Party configuration.
 	FQDN string `env:"SHEERLUCK_FQDN" envDefault:"localhost"`
+	// FlyAppName is the name of the Fly application. It's used to override the FQDN.
+	FlyAppName string `env:"FLY_APP_NAME" envDefault:""`
 	// SqliteURL is the URL to the SQLite database. You can use ":memory:" for an ethereal in-memory database.
 	SqliteURL string `env:"SHEERLUCK_SQLITE_URL" envDefault:"./sheerluck.sqlite3"`
 	// PProfAddr is the optional address to listen on for the pprof server.
@@ -75,8 +77,12 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 
 	sessionManager := initializeSessionManager(dbs)
 
+	fqdn := cfg.FQDN
+	if cfg.FlyAppName != "" {
+		fqdn = cfg.FlyAppName + ".fly.dev"
+	}
 	var webAuthnHandler *webauthnhandler.WebAuthnHandler
-	if webAuthnHandler, err = webauthnhandler.New(cfg.Addr, cfg.FQDN, logger, sessionManager, dbs); err != nil {
+	if webAuthnHandler, err = webauthnhandler.New(cfg.Addr, fqdn, logger, sessionManager, dbs); err != nil {
 		return errors.Wrap(err, "new webauthn handler")
 	}
 
