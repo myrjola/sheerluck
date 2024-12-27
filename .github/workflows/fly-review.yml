@@ -9,8 +9,14 @@ env:
   FLY_ORG: personal
 
 jobs:
+  build_and_push:
+    uses: ./.github/workflows/docker-build-and-push.yml
+    with:
+      docker_tag: 'pr-${{ github.event.number }}'
+
   review_app:
     runs-on: ubuntu-latest
+    needs: [build_and_push]
     outputs:
       url: ${{ steps.deploy.outputs.url }}
     concurrency:
@@ -28,4 +34,5 @@ jobs:
         id: deploy
         uses: superfly/fly-pr-review-apps@1.3.0
         with:
+          image: ${{ needs.build_and_push.outputs.docker_image }}
           secrets: "LITESTREAM_REPLICA_PATH=/data/backup"
