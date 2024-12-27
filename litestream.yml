@@ -1,13 +1,14 @@
 dbs:
   - path: ${SHEERLUCK_SQLITE_URL}
     replicas:
-      - type: s3
+      - type: ${LITESTREAM_REPLICA_TYPE}
+        path: ${LITESTREAM_REPLICA_PATH}
         endpoint: ${LITESTREAM_URL}
-        bucket: sheerluck-backup
+        bucket: ${LITESTREAM_BUCKET}
         access-key-id: ${LITESTREAM_ACCESS_KEY}
         secret-access-key: ${LITESTREAM_SECRET_KEY}
 addr: ":9090"
 logging:
   level: WARN
-  type: json
+  type: text
   stderr: false
