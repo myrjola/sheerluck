@@ -13,6 +13,7 @@ jobs:
     uses: ./.github/workflows/docker-build-and-push.yml
     with:
       docker_tag: 'pr-${{ github.event.number }}'
+    secrets: inherit
 
   review_app:
     runs-on: ubuntu-latest
