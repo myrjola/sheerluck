@@ -1,19 +1,26 @@
-.PHONY: ci gomod init build test dev lint build-docker fly-sqlite3
+.PHONY: ci gomod init build test dev lint build-docker fly-sqlite3 clean sec
+
+GOTOOLCHAIN=auto
 
 init: gomod custom-gcl
 	@echo "Dependencies installed"
 
 gomod:
 	@echo "Installing Go dependencies..."
+	go version
 	go mod tidy
 	go mod download
 
 custom-gcl:
 	@echo "Installing golangci-lint and building custom version for nilaway plugin to ./custom-gcl"
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.62.2
-	golangci-lint custom
+	bin/golangci-lint custom
 
-ci: init build lint test
+sec:
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+	govulncheck -show verbose ./...
+
+ci: init build lint test sec
 
 build:
 	@echo "Building..."
@@ -39,3 +46,8 @@ build-docker:
 fly-sqlite3:
 	@echo "Connecting to sqlite3 database on deployed Fly machine"
 	fly ssh console --pty --user sheerluck -C "/usr/bin/sqlite3 /data/sheerluck.sqlite3"
+
+clean:
+	@echo "Cleaning up..."
+	rm -rf bin
+	rm -rf custom-gcl
