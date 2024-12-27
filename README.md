@@ -4,15 +4,19 @@ AI-powered murder mystery game
 
 ## Quickstart
 
+### Install dependencies and configure linting
+
+```
+make init
+```
+
 ### Start go server
 
-Make sure you're using the go version configured in `go.mod`. To start the server, run the following:
-
 ```
-go run ./cmd/web/
+make dev
 ```
 
-Navigate to http://localhost:4000 to see the service in action.
+Navigate to http://localhost:4000 to see the service in action. You can [attach a debugger](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html) to it.
 
 ## Operations
 
@@ -25,7 +29,7 @@ This project uses [Fly.io](https://fly.io/) for infrastructure and [Litestream](
 The container image contains sqlite3 binary to make it easy to manipulate the live production database.
 
 ```sh
-fly ssh console --pty -C "/usr/bin/sqlite3 /data/sheerluck.sqlite3"
+make fly-sqlite3
 ```
 
 ### Recovering database
@@ -34,11 +38,11 @@ One way to recover a lost or broken database is to restore it with Litestream. T
 
 ```
 # list databases
-fly ssh console -C "/dist/litestream databases"
+fly ssh console --user sheerluck -C "/dist/litestream databases"
 # list snapshot generations of selected database
-fly ssh console -C "/dist/litestream snapshots /data/sheerluck.sqlite3"
+fly ssh console --user sheerluck -C "/dist/litestream snapshots /data/sheerluck.sqlite3"
 # restore latest snapshot to /data/sheerluck4.sqlite
-fly ssh console -C "/dist/litestream restore -o /data/sheerluck4.sqlite -generation db5b998e60a203a3 /data/sheerluck.sqlite3"
+fly ssh console --user sheerluck -C "/dist/litestream restore -o /data/sheerluck4.sqlite -generation db5b998e60a203a3 /data/sheerluck.sqlite3"
 
 # Edit fly.toml env SHEERLUCK_SQLITE_URL = "/data/sheerluck.sqlite3" before deploying to take new database into use
 vim fly.toml
@@ -61,6 +65,12 @@ Capture a CPU profile of the running app.
 
 ```sh
 go tool pprof --http=: "http://localhost:6060/debug/pprof/profile?seconds=30"
+```
+
+Capture a goroutine stack traces.
+
+```sh
+go tool pprof -top "http://localhost:6060/debug/pprof/goroutine"
 ```
 
 ## Attribution

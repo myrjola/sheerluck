@@ -45,4 +45,4 @@ node_modules
 # Development files
 /wireguard.conf
 /custom-gcl
-/bin/golangci-lint
+/bin/

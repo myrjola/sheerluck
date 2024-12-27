@@ -20,5 +20,14 @@ lint:
 	./custom-gcl run
 
 dev:
-	@echo "Running dev server..."
-	go run github.com/myrjola/sheerluck/cmd/web
+	@echo "Running dev server with debug build..."
+	go build -gcflags="all=-N -l" -o bin/sheerluck github.com/myrjola/sheerluck/cmd/web
+	./bin/sheerluck
+
+build-docker:
+	@echo "Building Docker image..."
+	docker build --tag sheerluck .
+
+fly-sqlite3:
+	@echo "Connecting to sqlite3 database on deployed Fly machine"
+	fly ssh console --pty --user sheerluck -C "/usr/bin/sqlite3 /data/sheerluck.sqlite3"

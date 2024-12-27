@@ -16,12 +16,3 @@ func (app *application) serverError(w http.ResponseWriter, r *http.Request, err 
 		slog.String("method", method), slog.String("uri", uri), errors.SlogError(err))
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
-
-func (app *application) clientError(w http.ResponseWriter, r *http.Request, status int) {
-	app.logger.Debug(http.StatusText(status), slog.Any("formdata", r.Form))
-	http.Error(w, http.StatusText(status), status)
-}
-
-func (app *application) notFound(w http.ResponseWriter, r *http.Request) {
-	app.clientError(w, r, http.StatusNotFound)
-}
