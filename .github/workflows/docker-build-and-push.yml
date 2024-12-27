@@ -28,7 +28,7 @@ jobs:
           CGO_ENABLED: 1
           GOOS: linux
           GOARCH: amd64
-        run: go build -ldflags='-s -w -extldflags "-static"' -o build/sheerluck ./cmd/web
+        run: go build -ldflags='-s -w -extldflags "-static"' -o bin/sheerluck.linux_amd64 ./cmd/web
 
       - name: Login to Fly Container Registry
         uses: docker/login-action@v3
