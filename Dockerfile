@@ -1,24 +1,13 @@
-# --------------------------------------------------------------------------------
-#  Build stage for compiling the binary and preparing files for the scratch image.
-# --------------------------------------------------------------------------------
-FROM --platform=linux/amd64 golang:1.23.4-alpine3.21 AS build
-
-ENV CGO_ENABLED=1
-ENV GOOS=linux
-ENV GOARCH=amd64
-ENV GOCACHE=/workspace/.cache
+# -------------------------------------------------------
+#  Build stage for preparing files for the scratch image.
+# -------------------------------------------------------
+FROM --platform=linux/amd64 alpine:3.21.0 AS build
 
 RUN apk add --no-cache \
-    # Important: required for go-sqlite3
-    gcc \
-    # Required for Alpine
-    musl-dev \
     # Update CA certificates
     ca-certificates \
     # Add time zone data
-    tzdata \
-    # Required for fetching and running Tailwind standalone
-    curl
+    tzdata
 
 RUN adduser \
   --disabled-password \
@@ -31,24 +20,11 @@ RUN adduser \
 
 WORKDIR /workspace/
 
-COPY /go.mod .
-COPY /go.sum .
-
-RUN go mod download
-RUN go mod verify
-
-COPY /cmd ./cmd
-COPY /internal ./internal
-
-# Build a statically linked binary.
-RUN go build -ldflags='-s -w -extldflags "-static"' -o /dist/sheerluck ./cmd/web
-
-# Minimize CSS and copy UI files to dist
+# Hash CSS for cache busting and copy UI files to dist.
 COPY /ui ./ui
 RUN filehash=`md5sum ./ui/static/main.css | awk '{ print $1 }'` && \
     sed -i "s/\/main.css/\/main.${filehash}.css/g" ui/templates/base.gohtml && \
     mv ./ui/static/main.css ui/static/main.${filehash}.css
-RUN cp -r ./ui /dist/ui
 
 # -----------------------------------------------------------------------------
 #  Dependency images including binaries we can copy over to the scratch image.
@@ -65,7 +41,7 @@ COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /etc/passwd /etc/passwd
 COPY --from=build /etc/group /etc/group
-COPY --from=build /dist /dist
+COPY --from=build /workspace/ui /dist/ui
 
 # Configure Litestream for backups to object storage.
 COPY /litestream.yml /etc/litestream.yml
@@ -87,4 +63,8 @@ ENV SHEERLUCK_TEMPLATE_PATH="/dist/ui/templates"
 EXPOSE 4000 6060 9090
 
 WORKDIR /dist
+
+# Copy the cross-compiled binary created with 'make cross-compile' or other means.
+COPY /bin/sheerluck.linux_amd64 sheerluck
+
 ENTRYPOINT [ "./litestream", "replicate", "-exec", "./sheerluck" ]
