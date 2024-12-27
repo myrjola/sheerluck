@@ -3,6 +3,7 @@ package webauthnhandler
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
@@ -22,8 +23,8 @@ type WebAuthnHandler struct {
 }
 
 func New(
+	addr string,
 	fqdn string,
-	rpOrigins []string,
 	logger *slog.Logger,
 	sessionManager *scs.SessionManager,
 	dbs *db.DBs,
@@ -32,6 +33,13 @@ func New(
 		err     error
 		timeout = time.Minute * 5
 	)
+
+	rpOrigins := []string{fmt.Sprintf("https://%s", fqdn)}
+	if fqdn == "localhost" {
+		//goland:noinspection HttpUrlsUsage // This is a local server.
+		rpOrigins = []string{fmt.Sprintf("http://%s", addr)}
+	}
+
 	var webauthnConfig = &webauthn.Config{
 		RPID:                        fqdn,
 		RPDisplayName:               "Sheerluck",

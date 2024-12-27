@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 	"github.com/myrjola/sheerluck/internal/ai"
@@ -33,7 +32,7 @@ type application struct {
 type config struct {
 	// Addr is the address to listen on.
 	Addr string `env:"SHEERLUCK_ADDR" envDefault:"localhost:4000"`
-	// FQDN is the fully qualified domain name of the server used for WebAuthn relying party configuration.
+	// FQDN is the fully qualified domain name of the server used for WebAuthn Relying Party configuration.
 	FQDN string `env:"SHEERLUCK_FQDN" envDefault:"localhost"`
 	// SqliteURL is the URL to the SQLite database. You can use ":memory:" for an ethereal in-memory database.
 	SqliteURL string `env:"SHEERLUCK_SQLITE_URL" envDefault:"./sheerluck.sqlite3"`
@@ -66,12 +65,6 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		return errors.Wrap(err, "resolve template path")
 	}
 
-	var addr = cfg.Addr
-	rpOrigins := []string{fmt.Sprintf("http://%s", cfg.Addr)}
-	if cfg.FQDN != "localhost" {
-		rpOrigins = []string{fmt.Sprintf("https://%s", cfg.FQDN)}
-	}
-
 	dbs, err := db.NewDB(cfg.SqliteURL)
 	if err != nil {
 		return errors.Wrap(err, "open db", slog.String("url", cfg.SqliteURL))
@@ -82,10 +75,13 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 	// https://www.sqlite.org/pragma.html#pragma_optimize.
 	go func(ctx context.Context) {
 		for {
-			logger.LogAttrs(ctx, slog.LevelDebug, "optimizing database")
+			start := time.Now()
 			if _, err = dbs.ReadWriteDB.Exec("PRAGMA optimize;"); err != nil {
 				err = errors.Wrap(err, "optimize database")
 				logger.LogAttrs(ctx, slog.LevelError, "failed to optimize database", errors.SlogError(err))
+			} else {
+				logger.LogAttrs(ctx, slog.LevelInfo, "optimized database",
+					slog.Duration("duration", time.Since(start)))
 			}
 			select {
 			case <-ctx.Done():
@@ -99,7 +95,7 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 	sessionManager := initializeSessionManager(dbs)
 
 	var webAuthnHandler *webauthnhandler.WebAuthnHandler
-	if webAuthnHandler, err = webauthnhandler.New(cfg.FQDN, rpOrigins, logger, sessionManager, dbs); err != nil {
+	if webAuthnHandler, err = webauthnhandler.New(cfg.Addr, cfg.FQDN, logger, sessionManager, dbs); err != nil {
 		return errors.Wrap(err, "new webauthn handler")
 	}
 
@@ -114,7 +110,7 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		templateFS:      os.DirFS(htmlTemplatePath),
 	}
 
-	if err = app.configureAndStartServer(ctx, addr); err != nil {
+	if err = app.configureAndStartServer(ctx, cfg.Addr); err != nil {
 		return errors.Wrap(err, "start server")
 	}
 	return nil
@@ -133,7 +129,7 @@ func initializeSessionManager(dbs *db.DBs) *scs.SessionManager {
 
 func main() {
 	ctx := context.Background()
-	loggerHandler := logging.NewContextHandler(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+	loggerHandler := logging.NewContextHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
 		AddSource:   false,
 		Level:       slog.LevelDebug,
 		ReplaceAttr: nil,
