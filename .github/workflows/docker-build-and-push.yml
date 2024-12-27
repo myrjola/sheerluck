@@ -16,7 +16,6 @@ env:
   FLY_ORG: personal
   DOCKER_REGISTRY: registry.fly.io
   DOCKER_TAG: sheerluck:${{ github.sha }}
-  DOCKER_IMAGE: ${{ env.DOCKER_REGISTRY }}/${{ env.DOCKER_TAG }}
 
 jobs:
   build:
@@ -24,6 +23,9 @@ jobs:
     outputs:
         docker_image: ${{ env.DOCKER_IMAGE }}
     steps:
+      - name: Set docker image env var
+        run: echo "DOCKER_IMAGE=${DOCKER_REGISTRY}/${DOCKER_TAG}" >> $GITHUB_ENV
+
       - uses: actions/checkout@v4
 
       - name: Set up Go
