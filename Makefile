@@ -1,4 +1,4 @@
-.PHONY: init test lint
+.PHONY: init test dev lint build-docker fly-sqlite3
 
 init:
 	@echo "Installing Go dependencies..."
