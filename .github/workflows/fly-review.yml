@@ -10,7 +10,6 @@ env:
 
 jobs:
   build_and_push:
-    if: github.event.pull_request.merged == false
     uses: ./.github/workflows/docker-build-and-push.yml
     with:
       docker_tag: 'pr-${{ github.event.number }}'
