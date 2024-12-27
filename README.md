@@ -1,58 +1,83 @@
-# sheerluck
+# Sheerluck
 
 AI-powered murder mystery game
 
-# Quickstart
+## Quickstart
 
-## TailwindCSS
-
-### Standalone executable
-
-This project uses [tailwindcss](https://tailwindcss.com/). You can use it without setting up Node.js using [standalone executables](https://tailwindcss.com/blog/standalone-cli).
-
-Download latest [tailwindcss executable for your platform](https://github.com/tailwindlabs/tailwindcss/releases/tag/v3.3.5).
-
-Start watching for changes in the templates. This generates ui/static/main.css loaded at every page.
+### Install dependencies and configure linting
 
 ```
-./tailwindcss -i input.css -o ui/static/main.css --watch
+make init
 ```
 
-### Jetbrains autocomplete for TailwindCSS and prettier class sorter
-
-Unfortunately, [Jetbrains Tailwind CSS plugin](https://www.jetbrains.com/help/webstorm/tailwind-css.html) may not support the standalone Tailwind executable. To get around this, you have to initialize the NodeJs project and maybe restart the IDE.
+### Start go server
 
 ```
-nvm use
-pnpm i
+make dev
 ```
 
-## Generate templ code
+Navigate to http://localhost:4000 to see the service in action. You can [attach a debugger](https://www.jetbrains.com/help/go/attach-to-running-go-processes-with-debugger.html) to it.
 
-This project uses [Templ](https://templ.guide/) for the HTML templates.
+## Operations
 
-When you do changes to the `.templ` files, you need to run the following:
+### Deploying
 
-```
-templ generate
-```
+This project uses [Fly.io](https://fly.io/) for infrastructure and [Litestream](https://litestream.io/) for [SQLite](https://www.sqlite.org/) database backups. It's a single instance Dockerized application with a persistent volume. Try `fly launch` to configure your own. You might also need to add some secrets to with `fly secrets`.
 
+### Database access
 
-## Start go server
+The container image contains sqlite3 binary to make it easy to manipulate the live production database.
 
-Make sure you're using the go version configured in `go.mod`. To start the server, run the following:
-
-```
-go run ./cmd/web/
+```sh
+make fly-sqlite3
 ```
 
-Navigate to http://localhost:3003 to see the service in action.
+### Recovering database
 
-### Attribution
+One way to recover a lost or broken database is to restore it with Litestream. The process could still use some improvements but at least it works. Notably, you need to have a working machine running so that you can run commands on it. Another alternative is to clone the machine with an empty volume and populate it yourself using the `fly sftp shell` command.
+
+```
+# list databases
+fly ssh console --user sheerluck -C "/dist/litestream databases"
+# list snapshot generations of selected database
+fly ssh console --user sheerluck -C "/dist/litestream snapshots /data/sheerluck.sqlite3"
+# restore latest snapshot to /data/sheerluck4.sqlite
+fly ssh console --user sheerluck -C "/dist/litestream restore -o /data/sheerluck4.sqlite -generation db5b998e60a203a3 /data/sheerluck.sqlite3"
+
+# Edit fly.toml env SHEERLUCK_SQLITE_URL = "/data/sheerluck.sqlite3" before deploying to take new database into use
+vim fly.toml
+
+# Deploy the new configuration
+fly deploy
+```
+
+### Performance investigation
+
+Use [pprof](https://pkg.go.dev/net/http/pprof) for perfomance investigation.
+
+Proxy the pprof server to your local machine.
+
+```sh
+fly proxy 6060:6060
+```
+
+Capture a CPU profile of the running app.
+
+```sh
+go tool pprof --http=: "http://localhost:6060/debug/pprof/profile?seconds=30"
+```
+
+Capture a goroutine stack traces.
+
+```sh
+go tool pprof -top "http://localhost:6060/debug/pprof/goroutine"
+```
+
+## Attribution
 
 Sheerluck logo made by Martin Yrjölä.
 
-Images was created with the assistance of [DALL·E 2](https://openai.com/dall-e-2).
+Images was created with the assistance of [DALL·E 2](https://openai.com/dall-e-2) and [DALL·E 2](https://openai.com/dall-e-3).
 
 HeroIcons made by [steveschoger](https://twitter.com/steveschoger). Available on https://heroicons.dev/.
 

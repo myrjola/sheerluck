@@ -2,24 +2,29 @@ package main
 
 import (
 	"fmt"
-	"github.com/a-h/templ"
+	"github.com/google/uuid"
 	"github.com/justinas/nosurf"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
+	"github.com/myrjola/sheerluck/internal/errors"
+	"github.com/myrjola/sheerluck/internal/logging"
 	"github.com/myrjola/sheerluck/internal/random"
+	"log/slog"
 	"net/http"
 )
 
 func secureHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Generate a random nonce for use in CSP and set it in the context so that it can be added to the script tags.
-		cspNonce, err := random.RandomLetters(24)
+		var nonceLength uint = 24
+		cspNonce, err := random.Letters(nonceLength)
 		if err != nil {
 			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			return
 		}
 		csp := fmt.Sprintf(`script-src 'nonce-%s' 'strict-dynamic' https: http:;
+style-src 'nonce-%s' 'strict-dynamic' https: http:;
 object-src 'none';
-base-uri 'none';`, cspNonce)
+base-uri 'none';`, cspNonce, cspNonce)
 
 		w.Header().Set("Content-Security-Policy", csp)
 		w.Header().Set("Referrer-Policy", "origin-when-cross-origin")
@@ -27,10 +32,9 @@ base-uri 'none';`, cspNonce)
 		w.Header().Set("X-Frame-Options", "deny")
 		w.Header().Set("X-XSS-Protection", "0")
 
-		// Modify context so that Templ is aware of the CSP nonce.
-		ctx := templ.WithNonce(r.Context(), cspNonce)
+		r = contexthelpers.SetCSPNonce(r, cspNonce)
 
-		next.ServeHTTP(w, r.WithContext(ctx))
+		next.ServeHTTP(w, r)
 	})
 }
 
@@ -50,7 +54,18 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 			uri    = r.URL.RequestURI()
 		)
 
-		app.logger.Debug("received request", "proto", proto, "method", method, "uri", uri)
+		ctx := r.Context()
+		requestID := uuid.New()
+		ctx = logging.WithAttrs(
+			ctx,
+			slog.Any("request_id", requestID),
+			slog.String("proto", proto),
+			slog.String("method", method),
+			slog.String("uri", uri),
+		)
+		r = r.WithContext(ctx)
+
+		app.logger.LogAttrs(ctx, slog.LevelDebug, "received request")
 
 		next.ServeHTTP(w, r)
 	})
@@ -59,9 +74,9 @@ func (app *application) logRequest(next http.Handler) http.Handler {
 func (app *application) recoverPanic(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
-			if err := recover(); err != nil {
-				w.Header().Set("Connection", "close")
-				app.serverError(w, r, fmt.Errorf("%s", err))
+			if excp := recover(); excp != nil {
+				err := errors.DecoratePanic(excp)
+				app.serverError(w, r, err)
 			}
 		}()
 
@@ -69,28 +84,13 @@ func (app *application) recoverPanic(next http.Handler) http.Handler {
 	})
 }
 
-func (app *application) authenticate(next http.Handler) http.Handler {
+// mustAuthenticate redirects the user to the home page if they are not authenticated.
+func (app *application) mustAuthenticate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		userID := app.sessionManager.GetBytes(r.Context(), string(userIDSessionKey))
-
-		// User has not yet authenticated
-		if userID == nil {
-			next.ServeHTTP(w, r)
-			return
+		isAuthenticated := contexthelpers.IsAuthenticated(r.Context())
+		if !isAuthenticated {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
 		}
-
-		// If user exists, set context values
-
-		exists, err := app.users.Exists(userID)
-		if err != nil {
-			app.serverError(w, r, err)
-			return
-		}
-
-		if exists {
-			r = contexthelpers.AuthenticateContext(r, userID)
-		}
-
 		next.ServeHTTP(w, r)
 	})
 }
@@ -98,7 +98,7 @@ func (app *application) authenticate(next http.Handler) http.Handler {
 // serverSentMiddleware makes our session library scs work with Server Sent Events (SSE).
 // Use this instead of app.sessionManager.LoadAndSave.
 // See https://github.com/alexedwards/scs/issues/141#issuecomment-1807075358
-func (app *application) serverSentEventMiddleware(next http.Handler) http.Handler {
+func (app *application) streamingAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var token string
 		cookie, err := r.Cookie(app.sessionManager.Cookie.Name)
@@ -131,8 +131,5 @@ func noSurf(next http.Handler) http.Handler {
 		Path:     "/",
 		Secure:   true,
 	})
-	// TODO: Enable CSRF protection for the JSON API endpoints.
-	csrfHandler.ExemptPaths("/api/registration/start", "/api/registration/finish", "/api/login/start", "/api/login/finish")
-
 	return csrfHandler
 }

@@ -6,3 +6,8 @@ dbs:
         bucket: sheerluck-backup
         access-key-id: ${LITESTREAM_ACCESS_KEY}
         secret-access-key: ${LITESTREAM_SECRET_KEY}
+addr: ":9090"
+logging:
+  level: WARN
+  type: json
+  stderr: false

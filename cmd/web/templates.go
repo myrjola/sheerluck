@@ -1,92 +1,68 @@
 package main
 
 import (
-	"context"
-	"github.com/a-h/templ"
-	"github.com/donseba/go-htmx"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
-	"github.com/myrjola/sheerluck/ui/components"
-	"html/template"
-	"io"
+	"github.com/myrjola/sheerluck/internal/errors"
+	"log/slog"
+	"net/http"
+	"os"
+	"path/filepath"
 )
 
-func resolveRoutes(ctx context.Context) []route {
-	currentPath := contexthelpers.CurrentPath(ctx)
-	routes := []route{
-		{
-			Href:  "/question-people",
-			Title: "Question people",
-			Icon:  "/images/talk.svg",
-		},
-		{
-			Href:  "/investigate-scenes",
-			Title: "Investigate scenes",
-			Icon:  "/images/chalk-outline-murder.svg",
-		},
-	}
-
-	for i := range routes {
-		routes[i].Current = currentPath == routes[i].Href
-	}
-	return routes
+type BaseTemplateData struct {
+	Authenticated bool
 }
 
-var templateFuncMap = template.FuncMap{
-	"csrfToken":       contexthelpers.CSRFToken,
-	"isAuthenticated": contexthelpers.IsAuthenticated,
-	"currentPath":     contexthelpers.CurrentPath,
-	"routes":          resolveRoutes,
+func newBaseTemplateData(r *http.Request) BaseTemplateData {
+	return BaseTemplateData{
+		Authenticated: contexthelpers.IsAuthenticated(r.Context()),
+	}
 }
 
-func (app *application) executeTemplate(w io.Writer, name string, data any) error {
-	t, err := app.parseTemplates()
+// findModuleDir locates the directory containing the go.mod file.
+func findModuleDir() (string, error) {
+	var (
+		dir string
+		err error
+	)
+	dir, err = os.Getwd()
 	if err != nil {
-		return err
+		return "", errors.Wrap(err, "get working directory")
 	}
-	return t.ExecuteTemplate(w, name, data)
-}
 
-type baseData struct {
-	Ctx  context.Context
-	Nav  template.HTML
-	Slot template.HTML
-}
-
-type homeData struct {
-	Ctx context.Context
-}
-
-func (app *application) Home(_ context.Context, _ *htmx.HxRequestHeader) templ.Component {
-	return components.Home()
-}
-
-type navData struct {
-	Ctx context.Context
-}
-
-func (app *application) Nav(ctx context.Context, w io.Writer, _ *htmx.HxRequestHeader) error {
-	data := navData{
-		Ctx: ctx,
-	}
-	return app.executeTemplate(w, "nav", data)
-}
-
-func (app *application) QuestionPeople(ctx context.Context, _ *htmx.HxRequestHeader) templ.Component {
-	userID := contexthelpers.AuthenticatedUserID(ctx)
-	investigation, _ := app.investigations.Get(ctx, "le-bon", userID)
-
-	chatResponses := make([]components.ChatResponse, len(investigation.Completions))
-
-	for i, completion := range investigation.Completions {
-		chatResponses[i] = components.ChatResponse{
-			Question: completion.Question,
-			Answer:   completion.Answer,
+	for {
+		if _, err = os.Stat(filepath.Join(dir, "go.mod")); err == nil {
+			return dir, nil
 		}
+
+		parentDir := filepath.Dir(dir)
+		if parentDir == dir { // If we reached the root directory
+			break
+		}
+		dir = parentDir
 	}
 
-	return components.QuestionPeople(chatResponses)
+	return "", os.ErrNotExist
 }
 
-func (app *application) InvestigateScenes(_ context.Context, _ *htmx.HxRequestHeader) templ.Component {
-	return components.InvestigateScenes()
+// resolveAndVerifyTemplatePath resolves the template path and verifies it.
+//
+// If the templatePath is empty, it will attempt to find it from the module root.
+func resolveAndVerifyTemplatePath(templatePath string) (string, error) {
+	var err error
+	if templatePath == "" {
+		var modulePath string
+		if modulePath, err = findModuleDir(); err != nil {
+			return "", errors.Wrap(err, "find module dir")
+		}
+		templatePath = filepath.Join(modulePath, "ui", "templates")
+	}
+	var stat os.FileInfo
+	if stat, err = os.Stat(templatePath); err != nil {
+		return "", errors.Wrap(err, "template path not found", slog.String("path", templatePath))
+	}
+	if !stat.IsDir() {
+		return "", errors.New("template path is not a directory", slog.String("path", templatePath))
+	}
+	return templatePath, nil
 }

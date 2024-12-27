@@ -1,8 +1,9 @@
-package repositories
+package repositories_test
 
 import (
 	"context"
 	"github.com/myrjola/sheerluck/internal/models"
+	"github.com/myrjola/sheerluck/internal/repositories"
 	"github.com/stretchr/testify/require"
 	"io"
 	"log/slog"
@@ -10,9 +11,10 @@ import (
 )
 
 func TestInvestigationRepository_Get(t *testing.T) {
-	readWriteDB, readDB := newTestDB(t)
+	t.Parallel()
+	dbs := newTestDB(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	repo := NewInvestigationRepository(readWriteDB, readDB, logger)
+	repo := repositories.NewInvestigationRepository(dbs, logger)
 
 	tests := []struct {
 		name                  string
@@ -31,7 +33,9 @@ func TestInvestigationRepository_Get(t *testing.T) {
 					Name:      "Rue Morgue Murder Scene",
 					ShortName: "Rue Morgue",
 					Type:      models.InvestigationTargetTypeScene,
+					ImagePath: "https://myrjola.twic.pics/sheerluck/rue-morgue.webp",
 				},
+				Completions: nil,
 			},
 			wantErr: false,
 		},
@@ -45,21 +49,22 @@ func TestInvestigationRepository_Get(t *testing.T) {
 					Name:      "Adolphe Le Bon",
 					ShortName: "Adolphe",
 					Type:      models.InvestigationTargetTypePerson,
+					ImagePath: "https://myrjola.twic.pics/sheerluck/adolphe_le-bon.webp",
 				},
 				Completions: []models.Completion{
-					models.Completion{
+					{
 						ID:       1,
 						Order:    0,
 						Question: "What is your name?",
 						Answer:   "Adolphe Le Bon",
 					},
-					models.Completion{
+					{
 						ID:       2,
 						Order:    1,
 						Question: "What is your occupation?",
 						Answer:   "Bank clerc",
 					},
-					models.Completion{
+					{
 						ID:       3,
 						Order:    2,
 						Question: "What is your address?",
@@ -79,7 +84,9 @@ func TestInvestigationRepository_Get(t *testing.T) {
 					Name:      "Rue Morgue Murder Scene",
 					ShortName: "Rue Morgue",
 					Type:      models.InvestigationTargetTypeScene,
+					ImagePath: "https://myrjola.twic.pics/sheerluck/rue-morgue.webp",
 				},
+				Completions: nil,
 			},
 			wantErr: false,
 		},
@@ -88,10 +95,12 @@ func TestInvestigationRepository_Get(t *testing.T) {
 			investigationTargetID: "nonexistent",
 			userID:                []byte{1},
 			wantErr:               true,
+			wantInvestigation:     models.Investigation{}, //nolint:exhaustruct // expected to be empty
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 			investigation, err := repo.Get(context.TODO(), tt.investigationTargetID, tt.userID)
 
 			if tt.wantErr {
@@ -102,92 +111,108 @@ func TestInvestigationRepository_Get(t *testing.T) {
 
 			require.NoError(t, err, "failed to read investigation")
 			require.NotNilf(t, investigation, "investigation not found")
-			require.Equal(t, investigation.Target, tt.wantInvestigation.Target, "investigation target mismatch")
-			require.Equal(t, investigation.Completions, tt.wantInvestigation.Completions, "completions mismatch")
+			require.Equal(t, tt.wantInvestigation.Target, investigation.Target, "investigation target mismatch")
+			require.Equal(t, tt.wantInvestigation.Completions, investigation.Completions, "completions mismatch")
 		})
 	}
 }
 func TestInvestigationRepository_FinishCompletion(t *testing.T) {
+	t.Parallel()
 	tests := []struct {
 		name                  string
 		investigationTargetID string
 		userID                []byte
-		wantCompletion        models.Completion
+		previousCompletionID  int64
 		wantErr               bool
 	}{
 		{
-			name:                  "First completion",
+			name:                  "first completion",
 			investigationTargetID: "rue-morgue",
 			userID:                []byte{1},
-			wantCompletion: models.Completion{
-				Order: 0,
-			},
-			wantErr: false,
+			previousCompletionID:  -1,
+			wantErr:               false,
 		},
 		{
-			name:                  "Fourth completion",
+			name:                  "second completion for user",
+			investigationTargetID: "rue-morgue",
+			userID:                []byte{2},
+			previousCompletionID:  4,
+			wantErr:               false,
+		},
+		{
+			name:                  "not allowed to target invalid completion",
+			investigationTargetID: "rue-morgue",
+			userID:                []byte{1},
+			previousCompletionID:  0,
+			wantErr:               true,
+		},
+		{
+			name:                  "fourth completion",
 			investigationTargetID: "le-bon",
 			userID:                []byte{1},
-			wantCompletion: models.Completion{
-				Order: 3,
-			},
-			wantErr: false,
+			previousCompletionID:  3,
+			wantErr:               false,
+		},
+		{
+			name:                  "has to target last completion in investigation",
+			investigationTargetID: "le-bon",
+			userID:                []byte{1},
+			previousCompletionID:  2,
+			wantErr:               true,
 		},
 		{
 			name:                  "invalid investigation target",
 			investigationTargetID: "nonexistent",
 			userID:                []byte{1},
+			previousCompletionID:  -1,
 			wantErr:               true,
 		},
 		{
 			name:                  "invalid user",
 			investigationTargetID: "le-bon",
 			userID:                []byte("nonexistent"),
+			previousCompletionID:  -1,
 			wantErr:               true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			readWriteDB, readDB := newTestDB(t)
+			t.Parallel()
+			dbs := newTestDB(t)
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-			repo := NewInvestigationRepository(readWriteDB, readDB, logger)
-
-			completion, err := repo.FinishCompletion(context.TODO(), tt.investigationTargetID, tt.userID, "question", "answer")
-
+			repo := repositories.NewInvestigationRepository(dbs, logger)
+			ctx := context.TODO()
+			var err error
+			err = repo.FinishCompletion(ctx, tt.investigationTargetID, tt.userID, tt.previousCompletionID, "question", "answer")
 			if tt.wantErr {
 				require.Error(t, err, "expected error")
-				require.Nil(t, completion, "completion should be nil")
 				return
 			}
-
 			require.NoError(t, err, "failed to read completion")
-			require.NotNilf(t, completion, "completion not found")
-			require.Equal(t, completion.Order, tt.wantCompletion.Order, "wrong order")
-			require.Equal(t, completion.Question, "question", "question mismatch")
-			require.Equal(t, completion.Answer, "answer", "answer mismatch")
+			var investigation *models.Investigation
+			investigation, err = repo.Get(ctx, tt.investigationTargetID, tt.userID)
+			require.NoError(t, err, "failed to read investigation")
+			numCompletions := len(investigation.Completions)
+			lastCompletion := investigation.Completions[numCompletions-1]
+			require.Equal(t, lastCompletion.Order, int64(numCompletions-1), "wrong order")
+			require.Equal(t, "question", lastCompletion.Question, "question mismatch")
+			require.Equal(t, "answer", lastCompletion.Answer, "answer mismatch")
 		})
 	}
 }
 
 func Benchmark_InvestigationRepository(b *testing.B) {
-	readWriteDB, readDB := newBenchmarkDB(b)
+	dbs := newBenchmarkDB(b)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	repo := NewInvestigationRepository(readWriteDB, readDB, logger)
-	user, err := models.NewUser()
-	require.NoError(b, err)
-	userRepo := NewUserRepository(readWriteDB, readDB, logger)
-	err = userRepo.Upsert(context.Background(), user)
-	require.NoError(b, err)
-
+	repo := repositories.NewInvestigationRepository(dbs, logger)
+	ctx := context.Background()
+	investigationTarget := "le-bon"
+	userID := []byte{1, 2, 3}
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
-		ctx := context.Background()
-		investigationTarget := "le-bon"
 		for pb.Next() {
-			_, _ = repo.FinishCompletion(ctx, investigationTarget, user.ID, "question", "answer")
-			require.NoError(b, err)
-			_, err := repo.Get(ctx, investigationTarget, user.ID)
+			_, err := repo.Get(ctx, investigationTarget, userID)
 			require.NoError(b, err)
 		}
 	})

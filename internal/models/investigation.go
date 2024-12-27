@@ -17,16 +17,17 @@ const (
 
 // InvestigationTarget is a person or a scene that is being investigated.
 type InvestigationTarget struct {
-	ID        string                  `db:"id"`
-	Name      string                  `db:"name"`
-	ShortName string                  `db:"short_name"`
-	Type      InvestigationTargetType `db:"type"`
+	ID        string
+	Name      string
+	ShortName string
+	Type      InvestigationTargetType
+	ImagePath string
 }
 
 // Completion is a question and answer pair that is part of an investigation.
 type Completion struct {
-	ID       int64  `db:"id"`
-	Order    int64  `db:"order"`
-	Question string `db:"question"`
-	Answer   string `db:"answer"`
+	ID       int64
+	Order    int64
+	Question string
+	Answer   string
 }

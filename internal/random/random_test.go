@@ -1,6 +1,9 @@
-package random
+package random_test
 
-import "testing"
+import (
+	"github.com/myrjola/sheerluck/internal/random"
+	"testing"
+)
 
 func TestRandomLetters(t *testing.T) {
 	tests := []struct {
@@ -21,13 +24,13 @@ func TestRandomLetters(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := RandomLetters(tt.length)
+			got, err := random.Letters(tt.length)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("RandomLetters() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Letters() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if uint(len(got)) != tt.length {
-				t.Errorf("RandomLetters() got length = %v, want length %v", len(got), tt.length)
+				t.Errorf("Letters() got length = %v, want length %v", len(got), tt.length)
 			}
 		})
 	}

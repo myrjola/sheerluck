@@ -3,61 +3,71 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"github.com/jmoiron/sqlx"
+	"github.com/myrjola/sheerluck/internal/db"
+	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/models"
 	"log/slog"
 )
 
 type InvestigationRepository struct {
-	readWriteDB *sqlx.DB
-	readDB      *sqlx.DB
-	logger      *slog.Logger
+	dbs    *db.DBs
+	logger *slog.Logger
 }
 
-func NewInvestigationRepository(readWriteDB *sqlx.DB, readDB *sqlx.DB, logger *slog.Logger) *InvestigationRepository {
+func NewInvestigationRepository(dbs *db.DBs, logger *slog.Logger) *InvestigationRepository {
 	return &InvestigationRepository{
-		readWriteDB: readWriteDB,
-		readDB:      readDB,
-		logger:      logger.With("source", "InvestigationRepository"),
+		dbs:    dbs,
+		logger: logger.With("source", "InvestigationRepository"),
 	}
 }
 
-func (r *InvestigationRepository) Get(ctx context.Context, investigationTargetID string, userID []byte) (*models.Investigation, error) {
+func (r *InvestigationRepository) Get(
+	ctx context.Context,
+	investigationTargetID string,
+	userID []byte,
+) (*models.Investigation, error) {
 	var (
 		investigationTarget models.InvestigationTarget
 		completions         []models.Completion
 		err                 error
-		rows                *sqlx.Rows
+		rows                *sql.Rows
 	)
 
-	stmt := `SELECT "id", "name", "short_name", "type" FROM "investigation_targets" WHERE "id" = ?`
-	if err = r.readDB.GetContext(ctx, &investigationTarget, stmt, investigationTargetID); err != nil {
-		return nil, err
+	stmt := `SELECT id, name, short_name, type, image_path FROM investigation_targets WHERE id = ?`
+	if err = r.dbs.ReadDB.QueryRowContext(ctx, stmt, investigationTargetID).Scan(
+		&investigationTarget.ID,
+		&investigationTarget.Name,
+		&investigationTarget.ShortName,
+		&investigationTarget.Type,
+		&investigationTarget.ImagePath,
+	); err != nil {
+		return nil, errors.Wrap(err, "read investigation target")
 	}
 
-	// scan completions for user
-	stmt = `SELECT "id", "order", "question", "answer"
-FROM "completions"
-WHERE "user_id" = ? AND "investigation_target_id" = ?
-ORDER BY "order" ASC`
-	if rows, err = r.readDB.QueryxContext(ctx, stmt, userID, investigationTargetID); err != nil {
-		return nil, err
+	stmt = `SELECT id, "order", question, answer
+	FROM completions
+	WHERE user_id = ? AND investigation_target_id = ?
+	ORDER BY "order"`
+	if rows, err = r.dbs.ReadDB.QueryContext(ctx, stmt, userID, investigationTargetID); err != nil {
+		return nil, errors.Wrap(err, "query completions")
 	}
 	defer func() {
-		err := rows.Close()
-		if err != nil {
-			r.logger.Error("could not close rows", "err", err)
+		if err = rows.Close(); err != nil {
+			err = errors.Wrap(err, "close rows")
+			r.logger.Error("could not close rows", errors.SlogError(err))
 		}
 	}()
-
 	for rows.Next() {
 		var (
 			completion models.Completion
 		)
 		if err = rows.Scan(&completion.ID, &completion.Order, &completion.Question, &completion.Answer); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "scan completion")
 		}
 		completions = append(completions, completion)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows error")
 	}
 
 	investigation := models.Investigation{
@@ -68,39 +78,40 @@ ORDER BY "order" ASC`
 	return &investigation, nil
 }
 
-func (r *InvestigationRepository) FinishCompletion(ctx context.Context, investigationTargetID string, userID []byte, question string, answer string) (*models.Completion, error) {
-	var (
-		err        error
-		completion models.Completion
-		tx         *sqlx.Tx
-		id         int64
-		result     sql.Result
-	)
-	stmt := `WITH "new_order" AS (SELECT COALESCE(MAX("order") + 1, 0) AS "new_order"
-                   FROM "completions"
-                   WHERE "user_id" = ?
-                     AND "investigation_target_id" = ?)
+// FinishCompletion adds a new completion to the investigation for given investigation target and user.
+//
+// The completion is added to the end of the completions list. The order of the completion is determined by the previous
+// completion. If no previous completion exists, set previousCompletionID to -1.
+func (r *InvestigationRepository) FinishCompletion(
+	ctx context.Context,
+	investigationTargetID string,
+	userID []byte,
+	previousCompletionID int64,
+	question string,
+	answer string,
+) error {
+	stmt := `WITH new_order AS (
+SELECT   
+       CASE WHEN @previous_completion_id IS -1
+       THEN 0
+       ELSE MAX("order") + 1
+       END AS "order"
+	   FROM completions
+	   WHERE id = @previous_completion_id
+		 AND investigation_target_id = @investigation_target_id
+		 AND user_id = @user_id)
 INSERT
-INTO "completions" ("user_id", "investigation_target_id", "order", "question", "answer")
-VALUES (?, ?, (SELECT "new_order" FROM "new_order"), ?, ?);`
-	if tx, err = r.readWriteDB.BeginTxx(ctx, nil); err != nil {
-		return nil, err
+INTO completions (user_id, investigation_target_id, question, answer, "order")
+VALUES (@user_id, @investigation_target_id, @question, @answer, (SELECT "order" FROM new_order));`
+	params := []any{
+		sql.Named("user_id", userID),
+		sql.Named("investigation_target_id", investigationTargetID),
+		sql.Named("question", question),
+		sql.Named("answer", answer),
+		sql.Named("previous_completion_id", previousCompletionID),
 	}
-	defer func() {
-		_ = tx.Rollback()
-	}()
-	if result, err = tx.ExecContext(ctx, stmt, userID, investigationTargetID, userID, investigationTargetID, question, answer); err != nil {
-		return nil, err
+	if _, err := r.dbs.ReadWriteDB.ExecContext(ctx, stmt, params...); err != nil {
+		return errors.Wrap(err, "insert completion")
 	}
-	if id, err = result.LastInsertId(); err != nil {
-		return nil, err
-	}
-	stmt = `SELECT "id", "order", "question", "answer" FROM "completions" WHERE "id" = ?`
-	if err = tx.GetContext(ctx, &completion, stmt, id); err != nil {
-		return nil, err
-	}
-	if err = tx.Commit(); err != nil {
-		return nil, err
-	}
-	return &completion, nil
+	return nil
 }

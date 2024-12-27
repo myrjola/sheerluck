@@ -41,3 +41,8 @@ node_modules
 /playwright/.cache/
 /spec/states/
 *_templ.txt
+
+# Development files
+/wireguard.conf
+/custom-gcl
+/bin/

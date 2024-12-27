@@ -1,21 +1,22 @@
-package broker
+package broker_test
 
 import (
+	"github.com/myrjola/sheerluck/internal/broker"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"sync/atomic"
 	"testing"
 )
 
-//nolint:funlen
 func TestChannelBroker(t *testing.T) {
 	type testCase struct {
 		name     string
-		testFunc func(b *ChannelBroker[int, string])
+		testFunc func(b *broker.ChannelBroker[int, string])
 	}
 	tests := []testCase{
 		{
 			name: "subscriber receives content",
-			testFunc: func(b *ChannelBroker[int, string]) {
+			testFunc: func(b *broker.ChannelBroker[int, string]) {
 				id := 1
 				channel := make(chan string)
 				b.Publish(id, channel)
@@ -33,7 +34,7 @@ func TestChannelBroker(t *testing.T) {
 		},
 		{
 			name: "subsequent subscribers block until producer is finished or unpublished",
-			testFunc: func(b *ChannelBroker[int, string]) {
+			testFunc: func(b *broker.ChannelBroker[int, string]) {
 				id := 1
 				channel := make(chan string)
 				b.Publish(id, channel)
@@ -45,9 +46,9 @@ func TestChannelBroker(t *testing.T) {
 				// Next subscriber
 				go func() {
 					nextSubscriptionChan, ok := <-b.Subscribe(id)
-					require.Nil(t, nextSubscriptionChan, "subsequent subscriber received content")
-					require.Falsef(t, ok, "channel not closed to signal producer is finished")
-					require.True(t, producerFinished.Load(), "producer not finished before subsequent subscriber unblocked")
+					assert.Nil(t, nextSubscriptionChan, "subsequent subscriber received content")
+					assert.Falsef(t, ok, "channel not closed to signal producer is finished")
+					assert.True(t, producerFinished.Load(), "producer not finished before subsequent subscriber unblocked")
 				}()
 
 				// Finish producer
@@ -69,12 +70,12 @@ func TestChannelBroker(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			broker := NewChannelBroker[int, string]()
-			go broker.Start()
+			br := broker.NewChannelBroker[int, string]()
+			go br.Start()
 			t.Cleanup(func() {
-				broker.Stop()
+				br.Stop()
 			})
-			tt.testFunc(broker)
+			tt.testFunc(br)
 		})
 	}
 }

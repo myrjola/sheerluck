@@ -1,33 +1,35 @@
 package main
 
 import (
-	goHTMX "github.com/donseba/go-htmx/middleware"
 	"github.com/justinas/alice"
 	"net/http"
 )
 
 func (app *application) routes() http.Handler {
 	mux := http.NewServeMux()
+	common := alice.New(app.recoverPanic, app.logRequest, secureHeaders, noSurf, commonContext)
+	notStreaming := alice.New(timeout, common.Then)
+	session := alice.New(notStreaming.Then, app.sessionManager.LoadAndSave, app.webAuthnHandler.AuthenticateMiddleware)
+	mustSession := alice.New(session.Then, app.mustAuthenticate)
+	mustSessionStreaming := alice.New(common.Then, app.streamingAuthMiddleware,
+		app.webAuthnHandler.AuthenticateMiddleware, app.mustAuthenticate)
 
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
-	mux.Handle("/", cacheForeverHeaders(fileServer))
+	mux.Handle("/", notStreaming.Then(cacheForeverHeaders(fileServer)))
 
-	session := alice.New(app.sessionManager.LoadAndSave, app.authenticate)
-	sessionSSE := alice.New(app.serverSentEventMiddleware, app.authenticate)
+	mux.Handle("GET /{$}", session.ThenFunc(app.home))
+	mux.Handle("GET /cases/{caseID}/investigation-targets/{investigationTargetID}",
+		mustSession.ThenFunc(app.investigateTargetGET))
+	mux.Handle("POST /cases/{caseID}/investigation-targets/{investigationTargetID}",
+		mustSessionStreaming.ThenFunc(app.investigateTargetPOST))
 
-	mux.Handle("GET /{$}", session.Then(app.htmxHandler(app.Home)))
-	mux.Handle("GET /question-people", session.Then(app.htmxHandler(app.QuestionPeople)))
-	mux.Handle("POST /question-target", session.ThenFunc(app.questionTarget))
-	mux.Handle("GET /completions/stream/{completionID}", sessionSSE.ThenFunc(app.streamChat))
-	mux.Handle("GET /investigate-scenes", session.Then(app.htmxHandler(app.InvestigateScenes)))
+	mux.Handle("POST /api/registration/start", session.ThenFunc(app.beginRegistration))
+	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.finishRegistration))
+	mux.Handle("POST /api/login/start", session.ThenFunc(app.beginLogin))
+	mux.Handle("POST /api/login/finish", session.ThenFunc(app.finishLogin))
+	mux.Handle("POST /api/logout", session.ThenFunc(app.logout))
 
-	mux.Handle("POST /api/registration/start", session.ThenFunc(app.BeginRegistration))
-	mux.Handle("POST /api/registration/finish", session.ThenFunc(app.FinishRegistration))
-	mux.Handle("POST /api/login/start", session.ThenFunc(app.BeginLogin))
-	mux.Handle("POST /api/login/finish", session.ThenFunc(app.FinishLogin))
-	mux.Handle("POST /api/logout", session.ThenFunc(app.Logout))
+	mux.Handle("GET /api/healthy", session.ThenFunc(app.healthy))
 
-	common := alice.New(app.recoverPanic, app.logRequest, secureHeaders, goHTMX.MiddleWare, noSurf, commonContext)
-
-	return common.Then(mux)
+	return mux
 }
