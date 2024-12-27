@@ -1,13 +1,9 @@
-# fly.toml app configuration file generated for sheerluck on 2023-12-25T17:12:50+02:00
-#
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
-#
 
 app = "sheerluck"
 primary_region = "arn"
 
 [env]
-SHEERLUCK_FQDN = "sheerluck.fly.dev"
 SHEERLUCK_SQLITE_URL = "/data/sheerluck.sqlite3"
 
 [build]
