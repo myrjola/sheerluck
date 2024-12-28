@@ -43,4 +43,4 @@ jobs:
         run: go build -ldflags='-s -w -extldflags "-static"' -o bin/sheerluck.linux_amd64 ./cmd/web
 
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --remote-only --build-only --push --image registry.fly.io/sheerluck:${{ inputs.docker_tag }}
+      - run: flyctl deploy --app ${{ inputs.fly_app }} --remote-only --build-only --push --image registry.fly.io/sheerluck:${{ inputs.docker_tag }}
