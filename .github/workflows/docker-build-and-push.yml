@@ -8,13 +8,12 @@ on:
     outputs:
       docker_image_uri:
         description: "The URI of the Docker that was pushed by this workflow."
-        value: ${{ env.DOCKER_IMAGE_URI }}
+        value: registry.fly.io/sheerluck:${{ inputs.docker_tag }}
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   FLY_REGION: arn
   FLY_ORG: personal
-  DOCKER_IMAGE_URI: registry.fly.io/sheerluck:${{ inputs.docker_tag }}
 
 jobs:
   build:
@@ -23,10 +22,6 @@ jobs:
     outputs:
         docker_image_uri: ${{ steps.set_docker_image.outputs.DOCKER_IMAGE_URI }}
     steps:
-      - name: Set docker image to output
-        id: set_docker_image
-        run: echo "DOCKER_IMAGE_URI=${DOCKER_REGISTRY}/${DOCKER_TAG}" >> $GITHUB_OUTPUT
-
       - uses: actions/checkout@v4
 
       - name: Set up Go
