@@ -2,6 +2,9 @@ name: Docker build and push
 on:
   workflow_call:
     inputs:
+      fly_app:
+        required: true
+        type: string
       docker_tag:
         required: true
         type: string
