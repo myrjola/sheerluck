@@ -1,10 +1,10 @@
 # See https://fly.io/docs/reference/configuration/ for information about how to use this file.
 
-app = "sheerluck"
 primary_region = "arn"
 
 [env]
 SHEERLUCK_SQLITE_URL = "/data/sheerluck.sqlite3"
+LITESTREAM_REPLICA_TYPE = "s3"
 
 [build]
 dockerfile = "Dockerfile"
@@ -12,6 +12,10 @@ dockerfile = "Dockerfile"
 [mount]
 source="data"
 destination="/data"
+initial_size = "1GB"
+auto_extend_size_threshold = 80
+auto_extend_size_increment = "1GB"
+auto_extend_size_limit = "5GB"
 
 [http_service]
 internal_port = 4000

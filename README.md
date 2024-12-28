@@ -20,6 +20,20 @@ Navigate to http://localhost:4000 to see the service in action. You can [attach 
 
 ## Operations
 
+### Select which Fly app is targeted.
+
+If you get something like the following error when running the below commands:
+
+```
+Error: the config for your app is missing an app name, add an app field to the fly.toml file or specify with the -a flag
+```
+
+Then, you need to select the fly app you have deployed:
+
+```
+export FLY_APP=sheerluck
+```
+
 ### Deploying
 
 This project uses [Fly.io](https://fly.io/) for infrastructure and [Litestream](https://litestream.io/) for [SQLite](https://www.sqlite.org/) database backups. It's a single instance Dockerized application with a persistent volume. Try `fly launch` to configure your own. You might also need to add some secrets to with `fly secrets`.
@@ -77,11 +91,35 @@ go tool pprof -top "http://localhost:6060/debug/pprof/goroutine"
 
 This project uses [GitHub Actions](https://docs.github.com/en/actions) for CI/CD.
 
+
+### Creating new deployment
+
+Prerequisite: Ensure you have [Fly](https://fly.io/docs/) set up correctly with `fly auth whoami`.
+
+Create a new app with a globally unique name.
+
+```sh
+fly apps create sheerluck-staging
+```
+
+Create a bucket for the database backups. This should configure the secrets automatically matching the configuration in litestream.yml.
+
+```sh
+fly storage create --app sheerluck-staging --name sheerluck-staging-backup
+```
+
+Now we are ready to deploy the app.
+
+```sh
+make cross-compile # required for the docker build.
+fly deploy --app sheerluck-staging
+```
+
 ## Attribution
 
 Sheerluck logo made by Martin Yrjölä.
 
-Images was created with the assistance of [DALL·E 2](https://openai.com/dall-e-2) and [DALL·E 2](https://openai.com/dall-e-3).
+Images was created with the assistance of [DALL·E 2](https://openai.com/dall-e-2) and [DALL·E 3](https://openai.com/dall-e-3).
 
 HeroIcons made by [steveschoger](https://twitter.com/steveschoger). Available on https://heroicons.dev/.
 

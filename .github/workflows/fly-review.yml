@@ -12,7 +12,7 @@ jobs:
   build_and_push:
     uses: ./.github/workflows/docker-build-and-push.yml
     with:
-      docker_tag: 'pr-${{ github.event.number }}'
+      docker_tag: ${{ github.sha }}
     secrets: inherit
 
   review_app:
