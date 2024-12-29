@@ -32,7 +32,18 @@ jobs:
       - uses: superfly/flyctl-actions/setup-flyctl@master
       - run: flyctl deploy --app ${{ inputs.fly_app }} --remote-only --image ${{ inputs.docker_image_uri }}
 
+  # Can't pass env vars to reusable workflows directly.
+  # See https://github.com/actions/runner/issues/2372#issuecomment-1591370444
+  get_env_vars:
+    name: Get Environment vars
+    runs-on: some-runner
+    outputs:
+      app_hostname: ${{ env.APP_HOSTNAME }}
+    steps:
+      - run: echo "no-op"
+
   smoke_test:
     uses: ./.github/workflows/smoke-test.yml
+    needs: get_env_vars
     with:
-      hostname: ${{ env.APP_HOSTNAME }}
+      hostname: ${{ needs.get_env_vars.outputs.app_hostname }}
