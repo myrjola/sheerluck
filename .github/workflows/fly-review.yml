@@ -40,4 +40,4 @@ jobs:
         uses: superfly/fly-pr-review-apps@1.3.0
         with:
           image: ${{ needs.build_and_push.outputs.docker_image_uri }}
-          secrets: "LITESTREAM_REPLICA_PATH=/data/backup"
+          secrets: "LITESTREAM_REPLICA_TYPE=file LITESTREAM_REPLICA_PATH=/data/backup"
