@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/myrjola/sheerluck/internal/e2etest"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"log/slog"
 	"net"
@@ -50,7 +51,7 @@ func (app *application) configureAndStartServer(ctx context.Context, addr string
 	if listener, err = net.Listen("tcp", addr); err != nil {
 		return errors.Wrap(err, "TCP listen")
 	}
-	app.logger.LogAttrs(ctx, slog.LevelInfo, "starting server", slog.Any("Addr", listener.Addr().String()))
+	app.logger.LogAttrs(ctx, slog.LevelInfo, "starting server", slog.Any(e2etest.LogAddrKey, listener.Addr().String()))
 	if err = srv.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
 		return errors.Wrap(err, "server serve")
 	}

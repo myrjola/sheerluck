@@ -41,12 +41,15 @@ func New(
 	}
 
 	var webauthnConfig = &webauthn.Config{
-		RPID:                        fqdn,
-		RPDisplayName:               "Sheerluck",
-		RPOrigins:                   rpOrigins,
-		RPTopOrigins:                rpOrigins,
-		RPTopOriginVerificationMode: protocol.TopOriginExplicitVerificationMode,
-		AttestationPreference:       protocol.PreferNoAttestation,
+		RPID:          fqdn,
+		RPDisplayName: "Sheerluck",
+		RPOrigins:     rpOrigins,
+
+		// Top origins are to my understanding used for cross-origin Passkeys. We don't need it here.
+		RPTopOrigins:                nil,
+		RPTopOriginVerificationMode: protocol.TopOriginIgnoreVerificationMode,
+
+		AttestationPreference: protocol.PreferNoAttestation,
 		AuthenticatorSelection: protocol.AuthenticatorSelection{
 			AuthenticatorAttachment: "platform",
 			RequireResidentKey:      ptr.Ref(true),

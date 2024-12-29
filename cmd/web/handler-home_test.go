@@ -1,30 +1,48 @@
 package main
 
 import (
+	"context"
+	"github.com/myrjola/sheerluck/internal/e2etest"
 	"github.com/stretchr/testify/require"
 	"io"
 	"testing"
 )
 
+func testLookupEnv(key string) (string, bool) {
+	switch key {
+	case "SHEERLUCK_ADDR":
+		return "localhost:0", true
+	default:
+		return "", false
+	}
+}
+
 func Test_application_home(t *testing.T) {
-	server := startTestServer(t, io.Discard, testLookupEnv)
-	doc := server.GetDoc(t, "/")
+	ctx := context.Background()
+	server, err := e2etest.StartServer(context.Background(), io.Discard, testLookupEnv, run)
+	require.NoError(t, err)
+	client := server.Client()
+	doc, err := client.GetDoc(ctx, "/")
+	require.NoError(t, err)
 	require.Equal(t, 1, doc.Find("button:contains('Sign in')").Length())
 	require.Equal(t, 1, doc.Find("button:contains('Register')").Length())
 	require.Equal(t, 0, doc.Find("button:contains('Log out')").Length())
 
-	doc = server.Register(t)
+	doc, err = client.Register(ctx)
+	require.NoError(t, err)
 	require.Equal(t, 0, doc.Find("button:contains('Sign in')").Length())
 	require.Equal(t, 0, doc.Find("button:contains('Register')").Length())
 	require.Equal(t, 1, doc.Find("button:contains('Log out')").Length())
 
 	// Log out and log back in
-	doc = server.SubmitForm(t, "/", "/api/logout")
+	doc, err = client.Logout(ctx)
+	require.NoError(t, err)
 	require.Equal(t, 1, doc.Find("button:contains('Sign in')").Length())
 	require.Equal(t, 1, doc.Find("button:contains('Register')").Length())
 	require.Equal(t, 0, doc.Find("button:contains('Log out')").Length())
 
-	doc = server.Login(t)
+	doc, err = client.Login(ctx)
+	require.NoError(t, err)
 	require.Equal(t, 0, doc.Find("button:contains('Sign in')").Length())
 	require.Equal(t, 0, doc.Find("button:contains('Register')").Length())
 	require.Equal(t, 1, doc.Find("button:contains('Log out')").Length())
