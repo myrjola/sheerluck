@@ -36,7 +36,7 @@ jobs:
   # See https://github.com/actions/runner/issues/2372#issuecomment-1591370444
   get_env_vars:
     name: Get Environment vars
-    runs-on: some-runner
+    runs-on: ubuntu-latest
     outputs:
       app_hostname: ${{ env.APP_HOSTNAME }}
     steps:
