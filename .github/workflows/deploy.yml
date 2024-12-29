@@ -1,66 +1,49 @@
-name: Deploy to Staging and Production
+name: Deploy and Smoke Test
 on:
-  push:
-    branches: [main]
+  workflow_call:
+    inputs:
+      env:
+        required: true
+        type: string
+      fly_app:
+        required: true
+        type: string
+      docker_image_uri:
+        required: true
+        type: string
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   FLY_REGION: arn
   FLY_ORG: personal
-  FLY_STAGING_APP_NAME: ${{ vars.FLY_APP_NAME }}-staging
+  APP_HOSTNAME: ${{ inputs.fly_app }}.fly.dev
 
 jobs:
-  build_and_push:
-    uses: ./.github/workflows/docker-build-and-push.yml
-    with:
-      fly_app: ${{ vars.FLY_APP_NAME }}
-      docker_tag: ${{ github.sha }}
-    secrets: inherit
-
-  deploy_staging:
+  deploy:
     runs-on: ubuntu-latest
-    needs: [build_and_push]
     concurrency:
-      group: deploy-staging
-    env:
-      APP_HOSTNAME: ${{ env.FLY_STAGING_APP_NAME }}.fly.dev
+      group: deploy-${{ inputs.fly_app }}
     environment:
-      name: staging
+      name: ${{ inputs.env }}
       url: https://${{ env.APP_HOSTNAME }}
-    outputs:
-      hostname: ${{ env.APP_HOSTNAME }}
     steps:
       - name: Get code
         uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --app ${{ env.FLY_STAGING_APP_NAME }} --remote-only --image ${{ needs.build_and_push.outputs.docker_image_uri }}
+      - run: flyctl deploy --app ${{ inputs.fly_app }} --remote-only --image ${{ inputs.docker_image_uri }}
 
-  smoke_test_staging:
-    uses: ./.github/workflows/smoke-test.yml
-    needs: deploy_staging
-    with:
-      hostname: ${{ needs.deploy_staging.outputs.hostname }}
-
-  deploy_prod:
+  # Can't pass env vars to reusable workflows directly.
+  # See https://github.com/actions/runner/issues/2372#issuecomment-1591370444
+  get_env_vars:
+    name: Get Environment vars
     runs-on: ubuntu-latest
-    needs: [build_and_push, smoke_test_staging]
-    concurrency:
-      group: deploy-prod
-    env:
-      APP_HOSTNAME: ${{ vars.FLY_APP_NAME }}.fly.dev
-    environment:
-      name: staging
-      url: https://${{ env.APP_HOSTNAME }}
     outputs:
-      hostname: ${{ env.APP_HOSTNAME }}
+      app_hostname: ${{ env.APP_HOSTNAME }}
     steps:
-      - name: Get code
-        uses: actions/checkout@v4
-      - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --app ${{ vars.FLY_APP_NAME }} --remote-only --image ${{ needs.build_and_push.outputs.docker_image_uri }}
+      - run: echo "no-op"
 
-  smoke_test_prod:
+  smoke_test:
     uses: ./.github/workflows/smoke-test.yml
-    needs: deploy_prod
+    needs: [deploy, get_env_vars]
     with:
-      hostname: ${{ needs.deploy_prod.outputs.hostname }}
+      hostname: ${{ needs.get_env_vars.outputs.app_hostname }}
