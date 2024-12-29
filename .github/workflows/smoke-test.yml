@@ -1,0 +1,22 @@
+name: Smoke Test
+on:
+  workflow_call:
+    inputs:
+      hostname:
+        description: The hostname of the app to smoke test e.g. "sheerluck.fly.dev".
+        required: true
+        type: string
+
+jobs:
+  smoke_test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Run Smoke Test
+        run: go run ./cmd/smoketest ${{ inputs.hostname }}
