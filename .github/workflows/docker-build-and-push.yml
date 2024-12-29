@@ -1,38 +1,39 @@
-name: Docker build and push
+name: Docker Build and Push
 on:
   workflow_call:
     inputs:
+      fly_app:
+        description: |
+          Mandatory Fly app name that is used in the image registry URI.
+          
+          For example, if the app name is `my-app`, the image URI will be `registry.fly.io/my-app:docker_tag`.
+          Recommended to use the same name as in production and reuse the image URI across environments.
+        required: true
+        type: string
       docker_tag:
         required: true
         type: string
     outputs:
       docker_image_uri:
         description: "The URI of the Docker that was pushed by this workflow."
-        value: ${{ jobs.build.outputs.docker_image_uri }}
+        value: registry.fly.io/${{ inputs.fly_app }}:${{ inputs.docker_tag }}
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   FLY_REGION: arn
   FLY_ORG: personal
-  DOCKER_REGISTRY: registry.fly.io
-  DOCKER_TAG: sheerluck:${{ github.sha }}
 
 jobs:
-  build:
+  build_and_push:
     runs-on: ubuntu-latest
-    outputs:
-        docker_image_uri: ${{ steps.set_docker_image.outputs.DOCKER_IMAGE_URI }}
     steps:
-      - name: Set docker image to output
-        id: set_docker_image
-        run: echo "DOCKER_IMAGE_URI=${DOCKER_REGISTRY}/${DOCKER_TAG}" >> $GITHUB_OUTPUT
-
       - uses: actions/checkout@v4
 
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: go.mod
+          cache-dependency-path: go.mod # This forces a separate cache for cross-compilation.
 
       - name: Install musl-tools
         run: sudo apt-get update && sudo apt-get install -y musl-tools
@@ -45,19 +46,5 @@ jobs:
           GOARCH: amd64
         run: go build -ldflags='-s -w -extldflags "-static"' -o bin/sheerluck.linux_amd64 ./cmd/web
 
-      - name: Login to Fly Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: registry.fly.io
-          username: x
-          password: ${{ env.FLY_API_TOKEN }}
-
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          platforms: linux/amd64
-          push: true
-          tags: ${{ steps.set_docker_image.outputs.DOCKER_IMAGE_URI }}
-          cache-from: type=registry,ref=${{ steps.set_docker_image.outputs.DOCKER_IMAGE_URI }}
-          cache-to: type=inline
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --app ${{ inputs.fly_app }} --remote-only --build-only --push --image-label ${{ inputs.docker_tag }}

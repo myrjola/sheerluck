@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy to Staging and Production
 on:
   push:
     branches: [main]
@@ -7,24 +7,40 @@ env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
   FLY_REGION: arn
   FLY_ORG: personal
+  FLY_STAGING_APP_NAME: ${{ vars.FLY_APP_NAME }}-staging
 
 jobs:
   build_and_push:
     uses: ./.github/workflows/docker-build-and-push.yml
     with:
-      docker_tag: 'latest'
+      fly_app: ${{ vars.FLY_APP_NAME }}
+      docker_tag: ${{ github.sha }}
     secrets: inherit
 
-  deploy_prod:
+  deploy_staging:
     runs-on: ubuntu-latest
     needs: [build_and_push]
     concurrency:
-      group: deploy-prod
+      group: deploy-staging
     environment:
-      name: prod
-      url: sheerluck.fly.dev
+      name: staging
+      url: https://${{ env.FLY_STAGING_APP_NAME }}.fly.dev
     steps:
       - name: Get code
         uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --image ${{ needs.build_and_push.outputs.docker_image_uri }} --remote-only
+      - run: flyctl deploy --app ${{ env.FLY_STAGING_APP_NAME }} --remote-only --image ${{ needs.build_and_push.outputs.docker_image_uri }}
+
+  deploy_prod:
+    runs-on: ubuntu-latest
+    needs: [build_and_push, deploy_staging]
+    concurrency:
+      group: deploy-prod
+    environment:
+      name: prod
+      url: https://${{ vars.FLY_APP_NAME }}.fly.dev
+    steps:
+      - name: Get code
+        uses: actions/checkout@v4
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - run: flyctl deploy --app ${{ vars.FLY_APP_NAME }} --remote-only --image ${{ needs.build_and_push.outputs.docker_image_uri }}

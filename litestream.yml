@@ -3,10 +3,11 @@ dbs:
     replicas:
       - type: ${LITESTREAM_REPLICA_TYPE}
         path: ${LITESTREAM_REPLICA_PATH}
-        endpoint: ${LITESTREAM_URL}
-        bucket: ${LITESTREAM_BUCKET}
-        access-key-id: ${LITESTREAM_ACCESS_KEY}
-        secret-access-key: ${LITESTREAM_SECRET_KEY}
+        endpoint: ${AWS_ENDPOINT_URL_S3}
+        region: ${AWS_REGION}
+        bucket: ${BUCKET_NAME}
+        access-key-id: ${AWS_ACCESS_KEY_ID}
+        secret-access-key: ${AWS_SECRET_ACCESS_KEY}
 addr: ":9090"
 logging:
   level: WARN

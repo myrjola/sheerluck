@@ -1,4 +1,4 @@
-name: Deploy Review App
+name: Create Review App
 on:
   pull_request:
     types: [opened, reopened, synchronize, closed]
@@ -11,12 +11,16 @@ env:
 jobs:
   build_and_push:
     uses: ./.github/workflows/docker-build-and-push.yml
+    # Unnecessary to build and push on PR close, we only want to clean up the review app.
+    if: ${{ github.event.action != 'closed' }}
     with:
-      docker_tag: 'pr-${{ github.event.number }}'
+      docker_tag: ${{ github.sha }}
+      fly_app: ${{ vars.FLY_APP_NAME }}
     secrets: inherit
 
   review_app:
     runs-on: ubuntu-latest
+    if: always() # This is needed so that we don't skip cleanup.
     needs: [build_and_push]
     outputs:
       url: ${{ steps.deploy.outputs.url }}
@@ -36,4 +40,4 @@ jobs:
         uses: superfly/fly-pr-review-apps@1.3.0
         with:
           image: ${{ needs.build_and_push.outputs.docker_image_uri }}
-          secrets: "LITESTREAM_REPLICA_PATH=/data/backup"
+          secrets: "LITESTREAM_REPLICA_TYPE=file LITESTREAM_REPLICA_PATH=/data/backup"
