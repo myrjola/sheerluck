@@ -44,6 +44,6 @@ jobs:
 
   smoke_test:
     uses: ./.github/workflows/smoke-test.yml
-    needs: get_env_vars
+    needs: [deploy, get_env_vars]
     with:
       hostname: ${{ needs.get_env_vars.outputs.app_hostname }}
