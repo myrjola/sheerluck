@@ -37,24 +37,25 @@ func main() {
 	logger := slog.New(loggerHandler)
 	ctx := context.Background()
 
-	if len(os.Args) != 2 { //nolint:mnd // we expect only domain to be passed as argument.
-		logger.Log(ctx, slog.LevelError, "usage: smoketest <domain>")
+	if len(os.Args) != 2 { //nolint:mnd // we expect only hostname to be passed as argument.
+		logger.LogAttrs(ctx, slog.LevelError, "usage: smoketest <hostname>")
 		os.Exit(1)
 	}
 
 	var (
-		domain = os.Args[1]
-		url    = "https://" + domain
-		client *e2etest.Client
-		err    error
+		hostname = os.Args[1]
+		url      = "https://" + hostname
+		client   *e2etest.Client
+		err      error
 	)
+	ctx = logging.WithAttrs(ctx, slog.String("hostname", url))
 
-	if client, err = e2etest.NewClient(url, domain, url); err != nil {
-		logger.Log(ctx, slog.LevelError, "error creating client", errors.SlogError(err))
+	if client, err = e2etest.NewClient(url, hostname, url); err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "error creating client", errors.SlogError(err))
 		os.Exit(1)
 	}
 	if err = TestAuth(client); err != nil {
-		logger.Log(ctx, slog.LevelError, "error testing auth", errors.SlogError(err))
+		logger.LogAttrs(ctx, slog.LevelError, "error testing auth", errors.SlogError(err))
 		os.Exit(1)
 	}
 
