@@ -26,12 +26,12 @@ jobs:
       group: deploy-staging
     environment:
       name: staging
-      url: ${{ FLY_STAGING_APP_NAME }}.fly.dev
+      url: ${{ env.FLY_STAGING_APP_NAME }}.fly.dev
     steps:
       - name: Get code
         uses: actions/checkout@v4
       - uses: superfly/flyctl-actions/setup-flyctl@master
-      - run: flyctl deploy --app ${{ FLY_STAGING_APP_NAME }} --remote-only --image ${{ needs.build_and_push.outputs.docker_image_uri }}
+      - run: flyctl deploy --app ${{ env.FLY_STAGING_APP_NAME }} --remote-only --image ${{ needs.build_and_push.outputs.docker_image_uri }}
 
   deploy_prod:
     runs-on: ubuntu-latest
