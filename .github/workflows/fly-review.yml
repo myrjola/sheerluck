@@ -15,7 +15,7 @@ jobs:
     if: ${{ github.event.action != 'closed' }}
     with:
       docker_tag: ${{ github.sha }}
-      fly_app: ${{ env.FLY_APP_NAME }}
+      fly_app: ${{ vars.FLY_APP_NAME }}
     secrets: inherit
 
   review_app:
