@@ -35,7 +35,7 @@ jobs:
   # Can't pass env vars to reusable workflows directly.
   # See https://github.com/actions/runner/issues/2372#issuecomment-1591370444
   get_env_vars:
-    name: Get Environment vars
+    name: Get environment vars
     runs-on: ubuntu-latest
     outputs:
       app_hostname: ${{ env.APP_HOSTNAME }}
