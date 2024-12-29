@@ -46,3 +46,4 @@ node_modules
 /wireguard.conf
 /custom-gcl
 /bin/
+/dockerdata

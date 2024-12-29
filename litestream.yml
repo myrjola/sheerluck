@@ -2,7 +2,7 @@ dbs:
   - path: ${SHEERLUCK_SQLITE_URL}
     replicas:
       - type: ${LITESTREAM_REPLICA_TYPE}
-        path: ${FLY_APP_NAME}-backup
+        path: ${LITESTREAM_REPLICA_PATH}
         endpoint: ${AWS_ENDPOINT_URL_S3}
         region: ${AWS_REGION}
         bucket: ${BUCKET_NAME}

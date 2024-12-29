@@ -1,8 +1,13 @@
-name: Docker build and push
+name: Docker Build and Push
 on:
   workflow_call:
     inputs:
       fly_app:
+        description: |
+          Mandatory Fly app name that is used in the image registry URI.
+          
+          For example, if the app name is `my-app`, the image URI will be `registry.fly.io/my-app:docker_tag`.
+          Recommended to use the same name as in production and reuse the image URI across environments.
         required: true
         type: string
       docker_tag:

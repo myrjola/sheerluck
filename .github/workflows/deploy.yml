@@ -1,4 +1,4 @@
-name: Deploy
+name: Deploy to Staging and Production
 on:
 #  push:
 #    branches: [main]
