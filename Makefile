@@ -13,7 +13,7 @@ gomod:
 
 custom-gcl:
 	@echo "Installing golangci-lint and building custom version for nilaway plugin to ./custom-gcl"
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.62.2
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.63.4
 	bin/golangci-lint custom
 
 sec:
@@ -25,6 +25,7 @@ ci: init build lint test sec
 build:
 	@echo "Building..."
 	go build -o bin/sheerluck github.com/myrjola/sheerluck/cmd/web
+	go build -o bin/smoketest github.com/myrjola/sheerluck/cmd/smoketest
 
 test:
 	@echo "Running tests..."
