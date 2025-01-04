@@ -5,12 +5,12 @@ import (
 	"github.com/alexedwards/scs/sqlite3store"
 	"github.com/alexedwards/scs/v2"
 	"github.com/myrjola/sheerluck/internal/ai"
-	"github.com/myrjola/sheerluck/internal/db"
 	"github.com/myrjola/sheerluck/internal/envstruct"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/logging"
 	"github.com/myrjola/sheerluck/internal/pprofserver"
 	"github.com/myrjola/sheerluck/internal/repositories"
+	"github.com/myrjola/sheerluck/internal/sqlite"
 	"github.com/myrjola/sheerluck/internal/webauthnhandler"
 	"io/fs"
 	"log/slog"
@@ -67,26 +67,24 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 		return errors.Wrap(err, "resolve template path")
 	}
 
-	dbs, err := db.NewDB(ctx, cfg.SqliteURL)
+	db, err := sqlite.NewDatabase(ctx, cfg.SqliteURL, logger)
 	if err != nil {
 		return errors.Wrap(err, "open db", slog.String("url", cfg.SqliteURL))
 	}
 	logger.LogAttrs(ctx, slog.LevelInfo, "connected to db")
 
-	go db.StartDatabaseOptimizer(ctx, dbs, logger)
-
-	sessionManager := initializeSessionManager(dbs)
+	sessionManager := initializeSessionManager(db)
 
 	fqdn := cfg.FQDN
 	if cfg.FlyAppName != "" {
 		fqdn = cfg.FlyAppName + ".fly.dev"
 	}
 	var webAuthnHandler *webauthnhandler.WebAuthnHandler
-	if webAuthnHandler, err = webauthnhandler.New(cfg.Addr, fqdn, logger, sessionManager, dbs); err != nil {
+	if webAuthnHandler, err = webauthnhandler.New(cfg.Addr, fqdn, logger, sessionManager, db); err != nil {
 		return errors.Wrap(err, "new webauthn handler")
 	}
 
-	investigations := repositories.NewInvestigationRepository(dbs, logger)
+	investigations := repositories.NewInvestigationRepository(db, logger)
 
 	app := application{
 		logger:          logger,
@@ -103,7 +101,7 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 	return nil
 }
 
-func initializeSessionManager(dbs *db.Database) *scs.SessionManager {
+func initializeSessionManager(dbs *sqlite.Database) *scs.SessionManager {
 	sessionManager := scs.New()
 	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWrite, 24*time.Hour) //nolint:mnd // day
 	sessionManager.Lifetime = 12 * time.Hour                                                //nolint:mnd // half a day

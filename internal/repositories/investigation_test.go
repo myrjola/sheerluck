@@ -12,8 +12,8 @@ import (
 
 func TestInvestigationRepository_Get(t *testing.T) {
 	t.Parallel()
-	dbs := newTestDB(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	dbs := newTestDB(t, logger)
 	repo := repositories.NewInvestigationRepository(dbs, logger)
 
 	tests := []struct {
@@ -178,8 +178,8 @@ func TestInvestigationRepository_FinishCompletion(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			dbs := newTestDB(t)
 			logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+			dbs := newTestDB(t, logger)
 			repo := repositories.NewInvestigationRepository(dbs, logger)
 			ctx := context.TODO()
 			var err error
@@ -202,8 +202,8 @@ func TestInvestigationRepository_FinishCompletion(t *testing.T) {
 }
 
 func Benchmark_InvestigationRepository(b *testing.B) {
-	dbs := newBenchmarkDB(b)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	dbs := newBenchmarkDB(b, logger)
 	repo := repositories.NewInvestigationRepository(dbs, logger)
 	ctx := context.Background()
 	investigationTarget := "le-bon"

@@ -4,7 +4,8 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/myrjola/sheerluck/internal/db"
+	"github.com/myrjola/sheerluck/internal/sqlite"
+	"log/slog"
 	"os"
 	"testing"
 )
@@ -13,44 +14,44 @@ import (
 var testFixtures string
 
 // newTestDB creates a new in-memory database for testing purposes.
-func newTestDB(t *testing.T) *db.Database {
+func newTestDB(t *testing.T, logger *slog.Logger) *sqlite.Database {
 	var (
-		dbs *db.Database
-		err error
+		database *sqlite.Database
+		err      error
 	)
 
-	if dbs, err = db.NewDB(context.Background(), ":memory:"); err != nil {
+	if database, err = sqlite.NewDatabase(context.Background(), ":memory:", logger); err != nil {
 		t.Fatal(err)
 	}
 
 	// Add test data
-	if _, err = dbs.ReadWrite.Exec(testFixtures); err != nil {
+	if _, err = database.ReadWrite.Exec(testFixtures); err != nil {
 		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
 		defer func() {
-			if err = dbs.ReadWrite.Close(); err != nil {
+			if err = database.ReadWrite.Close(); err != nil {
 				t.Fatal(err)
 			}
-			if err = dbs.ReadOnly.Close(); err != nil {
+			if err = database.ReadOnly.Close(); err != nil {
 				t.Fatal(err)
 			}
 		}()
 	})
 
-	return dbs
+	return database
 }
 
 // newBenchmarkDB creates database connection pools for benchmarking purposes.
-func newBenchmarkDB(b *testing.B) *db.Database {
+func newBenchmarkDB(b *testing.B, logger *slog.Logger) *sqlite.Database {
 	var (
-		dbs             *db.Database
+		dbs             *sqlite.Database
 		err             error
 		benchmarkDBPath = "./benchmark.sqlite"
 	)
 
-	if dbs, err = db.NewDB(context.Background(), benchmarkDBPath); err != nil {
+	if dbs, err = sqlite.NewDatabase(context.Background(), benchmarkDBPath, logger); err != nil {
 		b.Fatal(err)
 	}
 

@@ -1,4 +1,4 @@
-package db
+package sqlite
 
 import (
 	"context"
@@ -10,23 +10,22 @@ import (
 	"strings"
 	"time"
 
-	_ "embed"
 	_ "github.com/mattn/go-sqlite3" // Enable sqlite3 driver
 )
-
-//go:embed init.sql
-var initialiseSchemaScript string
 
 type Database struct {
 	ReadWrite *sql.DB
 	ReadOnly  *sql.DB
+	logger    *slog.Logger
 }
 
-// NewDB establishes two database connections, one for read/write operations and one for read-only operations.
+// NewDatabase connects to database and synchronizes the schema.
+//
+// It establishes two database connections, one for read/write operations and one for read-only operations.
 // This is a best practice mentioned in https://github.com/mattn/go-sqlite3/issues/1179#issuecomment-1638083995
 //
 // The url parameter is the path to the SQLite database file or ":memory:" for an in-memory database.
-func NewDB(ctx context.Context, url string) (*Database, error) {
+func NewDatabase(ctx context.Context, url string, logger *slog.Logger) (*Database, error) {
 	var (
 		err         error
 		readWriteDB *sql.DB
@@ -82,11 +81,6 @@ func NewDB(ctx context.Context, url string) (*Database, error) {
 	readWriteDB.SetConnMaxLifetime(time.Hour)
 	readWriteDB.SetConnMaxIdleTime(time.Hour)
 
-	// Initialize the database schema
-	if _, err = readWriteDB.ExecContext(ctx, initialiseSchemaScript); err != nil {
-		return nil, errors.Wrap(err, "initialize schema")
-	}
-
 	if readDB, err = sql.Open("sqlite3", readConfig); err != nil {
 		return nil, errors.Wrap(err, "open read database")
 	}
@@ -97,28 +91,18 @@ func NewDB(ctx context.Context, url string) (*Database, error) {
 	readDB.SetConnMaxLifetime(time.Hour)
 	readDB.SetConnMaxIdleTime(time.Hour)
 
-	return &Database{
+	db := Database{
 		ReadWrite: readWriteDB,
 		ReadOnly:  readDB,
-	}, nil
-}
-
-// StartDatabaseOptimizer runs optimize once per hour. See https://www.sqlite.org/pragma.html#pragma_optimize.
-func StartDatabaseOptimizer(ctx context.Context, dbs *Database, logger *slog.Logger) {
-	for {
-		start := time.Now()
-		if _, err := dbs.ReadWrite.ExecContext(ctx, "PRAGMA optimize;"); err != nil {
-			err = errors.Wrap(err, "optimize database")
-			logger.LogAttrs(ctx, slog.LevelError, "failed to optimize database", errors.SlogError(err))
-		} else {
-			logger.LogAttrs(ctx, slog.LevelInfo, "optimized database",
-				slog.Duration("duration", time.Since(start)))
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(time.Hour):
-			continue
-		}
+		logger:    logger,
 	}
+
+	// Initialize the database schema
+	if err = db.synchronizeSchema(ctx); err != nil {
+		return nil, errors.Wrap(err, "synchronize schema")
+	}
+
+	go db.StartDatabaseOptimizer(ctx)
+
+	return &db, nil
 }

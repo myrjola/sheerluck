@@ -7,9 +7,9 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/go-webauthn/webauthn/protocol"
 	"github.com/go-webauthn/webauthn/webauthn"
-	"github.com/myrjola/sheerluck/internal/db"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/ptr"
+	"github.com/myrjola/sheerluck/internal/sqlite"
 	"log/slog"
 	"net/http"
 	"time"
@@ -19,7 +19,7 @@ type WebAuthnHandler struct {
 	logger         *slog.Logger
 	webAuthn       *webauthn.WebAuthn
 	sessionManager *scs.SessionManager
-	dbs            *db.Database
+	database       *sqlite.Database
 }
 
 func New(
@@ -27,7 +27,7 @@ func New(
 	fqdn string,
 	logger *slog.Logger,
 	sessionManager *scs.SessionManager,
-	dbs *db.Database,
+	dbs *sqlite.Database,
 ) (*WebAuthnHandler, error) {
 	var (
 		err     error
@@ -82,7 +82,7 @@ func New(
 		logger:         logger,
 		webAuthn:       webAuthn,
 		sessionManager: sessionManager,
-		dbs:            dbs,
+		database:       dbs,
 	}, nil
 }
 

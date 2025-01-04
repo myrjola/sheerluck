@@ -15,7 +15,7 @@ func (h *WebAuthnHandler) upsertUser(ctx context.Context, user webauthn.User) er
 	stmt := `INSERT INTO users (id, display_name)
 VALUES (:id, :display_name)
 ON CONFLICT (id) DO UPDATE SET display_name = :display_name`
-	if _, err = h.dbs.ReadWriteDB.ExecContext(ctx, stmt, user.WebAuthnID(), user.WebAuthnDisplayName()); err != nil {
+	if _, err = h.database.ReadWrite.ExecContext(ctx, stmt, user.WebAuthnID(), user.WebAuthnDisplayName()); err != nil {
 		return errors.Wrap(
 			err,
 			"db upsert",
@@ -34,7 +34,7 @@ func (h *WebAuthnHandler) getUser(ctx context.Context, id []byte) (*user, error)
 
 	stmt := `SELECT id, display_name FROM users WHERE id = ?`
 	var user user
-	if err = h.dbs.ReadDB.QueryRowContext(ctx, stmt, id).Scan(&user.id, &user.displayName); err != nil {
+	if err = h.database.ReadOnly.QueryRowContext(ctx, stmt, id).Scan(&user.id, &user.displayName); err != nil {
 		return nil, errors.Wrap(err, "read user")
 	}
 
@@ -53,7 +53,7 @@ func (h *WebAuthnHandler) getUser(ctx context.Context, id []byte) (*user, error)
        authenticator_attachment
 FROM credentials
 WHERE user_id = ?`
-	if rows, err = h.dbs.ReadDB.QueryContext(ctx, stmt, id); err != nil {
+	if rows, err = h.database.ReadOnly.QueryContext(ctx, stmt, id); err != nil {
 		return nil, errors.Wrap(err, "query credentials")
 	}
 	defer func() {
@@ -130,7 +130,7 @@ ON CONFLICT (id) DO UPDATE SET attestation_type            = EXCLUDED.attestatio
 	if err != nil {
 		return errors.Wrap(err, "JSON encode transport")
 	}
-	_, err = h.dbs.ReadWriteDB.ExecContext(
+	_, err = h.database.ReadWrite.ExecContext(
 		ctx,
 		stmt,
 		credential.ID,
@@ -159,7 +159,7 @@ ON CONFLICT (id) DO UPDATE SET attestation_type            = EXCLUDED.attestatio
 func (h *WebAuthnHandler) userExists(ctx context.Context, userID []byte) (bool, error) {
 	stmt := `SELECT EXISTS(SELECT 1 FROM users WHERE id = ?)`
 	var exists bool
-	if err := h.dbs.ReadDB.QueryRowContext(ctx, stmt, userID).Scan(&exists); err != nil {
+	if err := h.database.ReadOnly.QueryRowContext(ctx, stmt, userID).Scan(&exists); err != nil {
 		return false, errors.Wrap(err, "query user exists")
 	}
 	return exists, nil
