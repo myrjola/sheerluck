@@ -47,6 +47,7 @@ func main() {
 		url      = "https://" + hostname
 		client   *e2etest.Client
 		err      error
+		start    = time.Now()
 	)
 	ctx = logging.WithAttrs(ctx, slog.String("hostname", url))
 
@@ -54,11 +55,15 @@ func main() {
 		logger.LogAttrs(ctx, slog.LevelError, "error creating client", errors.SlogError(err))
 		os.Exit(1)
 	}
+	if err = client.WaitForReady(ctx, "/api/healthy"); err != nil {
+		logger.LogAttrs(ctx, slog.LevelError, "server not ready in time", errors.SlogError(err))
+		os.Exit(1)
+	}
 	if err = TestAuth(client); err != nil {
 		logger.LogAttrs(ctx, slog.LevelError, "error testing auth", errors.SlogError(err))
 		os.Exit(1)
 	}
 
-	logger.LogAttrs(ctx, slog.LevelInfo, "Smoke test successful 🙌")
+	logger.LogAttrs(ctx, slog.LevelInfo, "Smoke test successful 🙌", slog.Duration("duration", time.Since(start)))
 	os.Exit(0)
 }
