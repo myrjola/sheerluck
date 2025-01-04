@@ -265,7 +265,7 @@ linters:
     - gocritic # provides diagnostics that check for bugs, performance and style issues
     - gocyclo # computes and checks the cyclomatic complexity of functions
     - godot # checks if comments end in a period
-#    - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt
+    #    - goimports # in addition to fixing imports, goimports also formats your code in the same style as gofmt
     - gomoddirectives # manages the use of 'replace', 'retract', and 'excludes' directives in go.mod
     - gomodguard # allow and block lists linter for direct Go module dependencies. This is different from depguard where there are different block types for example version constraints and module recommendations
     - goprintffuncname # checks that printf-like functions are named with f at the end
@@ -316,12 +316,12 @@ linters:
     - ginkgolinter # [if you use ginkgo/gomega] enforces standards of using ginkgo and gomega
     - godox # detects FIXME, TODO and other comment keywords
     - goheader # checks is file header matches to pattern
-#    - inamedparam # [great idea, but too strict, need to ignore a lot of cases by default] reports interfaces with unnamed method parameters
+    #    - inamedparam # [great idea, but too strict, need to ignore a lot of cases by default] reports interfaces with unnamed method parameters
     - interfacebloat # checks the number of methods inside an interface
     - ireturn # accept interfaces, return concrete types
     - prealloc # [premature optimization, but can be used in some cases] finds slice declarations that could potentially be preallocated
     - tagalign # checks that struct tags are well aligned
-#    - varnamelen # [great idea, but too many false positives] checks that the length of a variable's name matches its scope
+    #    - varnamelen # [great idea, but too many false positives] checks that the length of a variable's name matches its scope
     - wrapcheck # checks that errors returned from external packages are wrapped
     - zerologlint # detects the wrong usage of zerolog that a user forgets to dispatch zerolog.Event
 

@@ -19,7 +19,7 @@ type WebAuthnHandler struct {
 	logger         *slog.Logger
 	webAuthn       *webauthn.WebAuthn
 	sessionManager *scs.SessionManager
-	dbs            *db.DBs
+	dbs            *db.Database
 }
 
 func New(
@@ -27,7 +27,7 @@ func New(
 	fqdn string,
 	logger *slog.Logger,
 	sessionManager *scs.SessionManager,
-	dbs *db.DBs,
+	dbs *db.Database,
 ) (*WebAuthnHandler, error) {
 	var (
 		err     error

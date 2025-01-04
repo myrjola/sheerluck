@@ -103,10 +103,10 @@ func run(ctx context.Context, logger *slog.Logger, lookupEnv func(string) (strin
 	return nil
 }
 
-func initializeSessionManager(dbs *db.DBs) *scs.SessionManager {
+func initializeSessionManager(dbs *db.Database) *scs.SessionManager {
 	sessionManager := scs.New()
-	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWriteDB, 24*time.Hour) //nolint:mnd // day
-	sessionManager.Lifetime = 12 * time.Hour                                                  //nolint:mnd // half a day
+	sessionManager.Store = sqlite3store.NewWithCleanupInterval(dbs.ReadWrite, 24*time.Hour) //nolint:mnd // day
+	sessionManager.Lifetime = 12 * time.Hour                                                //nolint:mnd // half a day
 	sessionManager.Cookie.Persist = true
 	sessionManager.Cookie.Secure = true
 	sessionManager.Cookie.HttpOnly = true

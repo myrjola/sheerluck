@@ -13,9 +13,9 @@ import (
 var testFixtures string
 
 // newTestDB creates a new in-memory database for testing purposes.
-func newTestDB(t *testing.T) *db.DBs {
+func newTestDB(t *testing.T) *db.Database {
 	var (
-		dbs *db.DBs
+		dbs *db.Database
 		err error
 	)
 
@@ -24,16 +24,16 @@ func newTestDB(t *testing.T) *db.DBs {
 	}
 
 	// Add test data
-	if _, err = dbs.ReadWriteDB.Exec(testFixtures); err != nil {
+	if _, err = dbs.ReadWrite.Exec(testFixtures); err != nil {
 		t.Fatal(err)
 	}
 
 	t.Cleanup(func() {
 		defer func() {
-			if err = dbs.ReadWriteDB.Close(); err != nil {
+			if err = dbs.ReadWrite.Close(); err != nil {
 				t.Fatal(err)
 			}
-			if err = dbs.ReadDB.Close(); err != nil {
+			if err = dbs.ReadOnly.Close(); err != nil {
 				t.Fatal(err)
 			}
 		}()
@@ -43,9 +43,9 @@ func newTestDB(t *testing.T) *db.DBs {
 }
 
 // newBenchmarkDB creates database connection pools for benchmarking purposes.
-func newBenchmarkDB(b *testing.B) *db.DBs {
+func newBenchmarkDB(b *testing.B) *db.Database {
 	var (
-		dbs             *db.DBs
+		dbs             *db.Database
 		err             error
 		benchmarkDBPath = "./benchmark.sqlite"
 	)
@@ -55,10 +55,10 @@ func newBenchmarkDB(b *testing.B) *db.DBs {
 	}
 
 	b.Cleanup(func() {
-		if err = dbs.ReadWriteDB.Close(); err != nil {
+		if err = dbs.ReadWrite.Close(); err != nil {
 			b.Fatal(err)
 		}
-		if err = dbs.ReadDB.Close(); err != nil {
+		if err = dbs.ReadOnly.Close(); err != nil {
 			b.Fatal(err)
 		}
 		_ = os.Remove(benchmarkDBPath)
