@@ -42,7 +42,6 @@ func NewClient(url, rpID, rpOrigin string) (*Client, error) {
 // response or until the context is cancelled or the 1-second timeout is reached.
 func (c *Client) WaitForReady(ctx context.Context, urlPath string) error {
 	timeout := 1 * time.Second
-	client := http.Client{}
 	startTime := time.Now()
 	var (
 		err  error
@@ -59,7 +58,7 @@ func (c *Client) WaitForReady(ctx context.Context, urlPath string) error {
 			return errors.Wrap(err, "create request")
 		}
 
-		if resp, err = client.Do(req); err == nil {
+		if resp, err = c.client.Do(req); err == nil {
 			if resp.StatusCode == http.StatusOK {
 				if err = resp.Body.Close(); err != nil {
 					return errors.Wrap(err, "close response body")
