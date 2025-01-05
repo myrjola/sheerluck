@@ -4,12 +4,14 @@ import (
 	"context"
 	"github.com/myrjola/sheerluck/internal/e2etest"
 	"github.com/stretchr/testify/require"
-	"io"
+	"os"
 	"testing"
 )
 
 func testLookupEnv(key string) (string, bool) {
 	switch key {
+	case "SHEERLUCK_DB":
+		return ":memory:", true
 	case "SHEERLUCK_ADDR":
 		return "localhost:0", true
 	default:
@@ -19,7 +21,7 @@ func testLookupEnv(key string) (string, bool) {
 
 func Test_application_home(t *testing.T) {
 	ctx := context.Background()
-	server, err := e2etest.StartServer(context.Background(), io.Discard, testLookupEnv, run)
+	server, err := e2etest.StartServer(context.Background(), os.Stdout, testLookupEnv, run)
 	require.NoError(t, err)
 	client := server.Client()
 	doc, err := client.GetDoc(ctx, "/")

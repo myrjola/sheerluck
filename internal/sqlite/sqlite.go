@@ -10,8 +10,15 @@ import (
 	"strings"
 	"time"
 
+	_ "embed"
 	_ "github.com/mattn/go-sqlite3" // Enable sqlite3 driver
 )
+
+//go:embed schema.sql
+var schemaDefinition string
+
+//go:embed fixtures.sql
+var fixtures string
 
 type Database struct {
 	ReadWrite *sql.DB
@@ -97,9 +104,14 @@ func NewDatabase(ctx context.Context, url string, logger *slog.Logger) (*Databas
 		logger:    logger,
 	}
 
-	// Initialize the database schema
-	if err = db.synchronizeSchema(ctx); err != nil {
+	// Initialize the database schema.
+	if err = db.migrate(ctx, schemaDefinition); err != nil {
 		return nil, errors.Wrap(err, "synchronize schema")
+	}
+
+	// Apply fixtures.
+	if _, err = db.ReadWrite.ExecContext(ctx, fixtures); err != nil {
+		return nil, errors.Wrap(err, "apply fixtures")
 	}
 
 	go db.StartDatabaseOptimizer(ctx)
