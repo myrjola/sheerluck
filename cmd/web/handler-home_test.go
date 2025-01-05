@@ -10,7 +10,7 @@ import (
 
 func testLookupEnv(key string) (string, bool) {
 	switch key {
-	case "SHEERLUCK_DB":
+	case "SHEERLUCK_SQLITE_URL":
 		return ":memory:", true
 	case "SHEERLUCK_ADDR":
 		return "localhost:0", true
