@@ -72,6 +72,9 @@ func NewDatabase(ctx context.Context, url string, logger *slog.Logger) (*Databas
 		// Recommended performance enhancement for long-lived connections.
 		// See https://www.sqlite.org/pragma.html#pragma_optimize.
 		"_optimize=0x10002",
+		// Litestream handles checkpoints.
+		// See https://litestream.io/tips/#disable-autocheckpoints-for-high-write-load-servers
+		"_wal_autocheckpoint = 0",
 	}, "&")
 
 	// The options prefixed with underscore '_' are SQLite pragmas documented at https://www.sqlite.org/pragma.html.

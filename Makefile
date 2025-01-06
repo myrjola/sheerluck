@@ -1,4 +1,4 @@
-.PHONY: ci gomod init build test dev lint build-docker fly-sqlite3 clean sec cross-compile
+.PHONY: ci gomod init build test dev lint build-docker fly-sqlite3 clean sec cross-compile migratetest
 
 GOTOOLCHAIN=auto
 
@@ -26,6 +26,7 @@ build:
 	@echo "Building..."
 	go build -o bin/sheerluck github.com/myrjola/sheerluck/cmd/web
 	go build -o bin/smoketest github.com/myrjola/sheerluck/cmd/smoketest
+	go build -o bin/migratetest github.com/myrjola/sheerluck/cmd/migratetest
 
 test:
 	@echo "Running tests..."
@@ -59,3 +60,11 @@ clean:
 	@echo "Cleaning up..."
 	rm -rf bin
 	rm -rf custom-gcl
+
+migratetest: build
+	@echo "Deleting previous restored backup..."
+	rm -rf restored.sqlite3* .restored.sqlite3-litestream/
+	@echo "Restoring database from backup..."
+	litestream restore --config litestream.yml restored.sqlite3
+	@echo "Running migration test..."
+	bin/migratetest

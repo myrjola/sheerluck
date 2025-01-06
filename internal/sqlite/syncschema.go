@@ -10,6 +10,7 @@ import (
 	"os"
 	"strings"
 	"syscall"
+	"time"
 )
 
 // migrate ensures that the db schema matches the target schema defined in schema.sql.
@@ -24,35 +25,8 @@ import (
 func (db *Database) migrate(ctx context.Context, schemaDefinition string) error {
 	var err error
 	// 12-step schema migration starts here. See https://www.sqlite.org/lang_altertable.html#otheralter.
+	start := time.Now()
 
-	// Step 1: Disable foreign key validation temporarily.
-	if _, err = db.ReadWrite.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
-		return errors.Wrap(err, "disable foreign key validation")
-	}
-	// Step 12: Re-enable foreign key validation.
-	defer func() {
-		if _, err = db.ReadWrite.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {
-			err = errors.Wrap(err, "re-enable foreign key validation")
-			db.logger.LogAttrs(ctx, slog.LevelError, "exit to avoid data corruption", errors.SlogError(err))
-			err = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
-			if err != nil {
-				os.Exit(1)
-			}
-		}
-	}()
-
-	// Step 2: Start transaction.
-	var tx *sql.Tx
-	if tx, err = db.ReadWrite.BeginTx(ctx, nil); err != nil {
-		return errors.Wrap(err, "start transaction")
-	}
-	defer func() {
-		if err = tx.Rollback(); err != nil {
-			db.logger.LogAttrs(ctx, slog.LevelError, "failed to rollback transaction")
-		}
-	}()
-
-	// Step 3: Remember schema.
 	// Create schema against a temporary database so that we know what has changed.
 	var (
 		randomID     string
@@ -76,15 +50,45 @@ func (db *Database) migrate(ctx context.Context, schemaDefinition string) error 
 	if _, err = schemaTargetDatabase.ExecContext(ctx, schemaDefinition); err != nil {
 		return errors.Wrap(err, "migrate schema target database")
 	}
-	if _, err = tx.ExecContext(ctx, "ATTACH DATABASE ? AS schemaTarget",
+	if _, err = db.ReadWrite.ExecContext(ctx, "ATTACH DATABASE ? AS schemaTarget",
 		schemaTargetDataSourceName); err != nil {
 		return errors.Wrap(err, "attach schema target database")
 	}
 	defer func() {
-		if _, err = tx.ExecContext(ctx, "DETACH DATABASE schemaTarget"); err != nil {
-			db.logger.LogAttrs(ctx, slog.LevelError, "failed to detach schema target database")
+		if _, err = db.ReadWrite.ExecContext(ctx, "DETACH DATABASE schemaTarget"); err != nil {
+			db.logger.LogAttrs(ctx, slog.LevelError, "failed to detach schema target database", errors.SlogError(err))
 		}
 	}()
+
+	// Step 1: Disable foreign key validation temporarily.
+	if _, err = db.ReadWrite.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
+		return errors.Wrap(err, "disable foreign key validation")
+	}
+	// Step 12: Re-enable foreign key validation.
+	defer func() {
+		if _, err = db.ReadWrite.ExecContext(ctx, "PRAGMA foreign_keys = ON"); err != nil {
+			err = errors.Wrap(err, "re-enable foreign key validation")
+			db.logger.LogAttrs(ctx, slog.LevelError, "exit to avoid data corruption", errors.SlogError(err))
+			err = syscall.Kill(syscall.Getpid(), syscall.SIGINT)
+			if err != nil {
+				os.Exit(1)
+			}
+		}
+	}()
+
+	// Step 2: Start transaction.
+	var tx *sql.Tx
+	if tx, err = db.ReadWrite.BeginTx(ctx, nil); err != nil {
+		return errors.Wrap(err, "start transaction")
+	}
+	defer func() {
+		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
+			err = errors.Wrap(err, "rollback transaction")
+			db.logger.LogAttrs(ctx, slog.LevelError, "failed to rollback transaction", errors.SlogError(err))
+		}
+	}()
+
+	// Step 3: Remember schema.
 
 	// Step 3-7 migrate tables.
 	if err = db.migrateTables(ctx, tx); err != nil {
@@ -102,8 +106,10 @@ func (db *Database) migrate(ctx context.Context, schemaDefinition string) error 
 	if err = tx.Commit(); err != nil {
 		return errors.Wrap(err, "commit transaction")
 	}
+
 	// Step 12: is in defer above.
 
+	db.logger.LogAttrs(ctx, slog.LevelInfo, "migrated tables", slog.Duration("duration", time.Since(start)))
 	return nil
 }
 
@@ -151,6 +157,8 @@ func (db *Database) migrateTables(ctx context.Context, tx *sql.Tx) error {
 		// Step 4: Create tables according to new schema on temporary names.
 		tempName := table.name + "_migration_temp"
 		tempNameSQL := strings.Replace(table.newSQL, table.name, tempName, 1)
+		db.logger.LogAttrs(ctx, slog.LevelInfo, "creating new table to temporary name",
+			slog.String("query", tempNameSQL))
 		if _, err = tx.ExecContext(ctx, tempNameSQL); err != nil {
 			return errors.Wrap(err, "create new table to temporary name", slog.String("query", tempNameSQL))
 		}
@@ -169,12 +177,16 @@ func (db *Database) migrateTables(ctx context.Context, tx *sql.Tx) error {
 		}
 
 		// Step 6: Drop the old table.
-		if _, err = tx.ExecContext(ctx, fmt.Sprintf("DROP TABLE %s;", table.name)); err != nil {
+		dropSQL := fmt.Sprintf("DROP TABLE %s;", table.name)
+		db.logger.LogAttrs(ctx, slog.LevelInfo, "dropping old table", slog.String("query", dropSQL))
+		if _, err = tx.ExecContext(ctx, dropSQL); err != nil {
 			return errors.Wrap(err, "drop old table")
 		}
 
 		// Step 7: Rename new table to old table's name.
-		if _, err = tx.ExecContext(ctx, fmt.Sprintf("ALTER TABLE %s RENAME TO %s;", tempName, table.name)); err != nil {
+		renameSQL := fmt.Sprintf("ALTER TABLE %s RENAME TO %s;", tempName, table.name)
+		db.logger.LogAttrs(ctx, slog.LevelInfo, "renaming new table", slog.String("query", renameSQL))
+		if _, err = tx.ExecContext(ctx, renameSQL); err != nil {
 			return errors.Wrap(err, "rename new table")
 		}
 	}
@@ -189,8 +201,11 @@ func (db *Database) queryDeletedTables(ctx context.Context, tx *sql.Tx) ([]strin
 	)
 	if deletedTables, err = db.queryStringSlice(ctx, tx, `SELECT current.name AS deleted_table
 FROM sqlite_schema AS current
-LEFT JOIN schemaTarget.sqlite_schema AS target ON current.name=target.name AND current.type=target.type
-WHERE current.type = 'table' AND target.type IS NULL AND current.name NOT LIKE 'sqlite_%';`); err != nil {
+         LEFT JOIN schemaTarget.sqlite_schema AS target ON current.name = target.name AND current.type = target.type
+WHERE current.type = 'table'
+  AND target.type IS NULL
+  AND current.name NOT LIKE 'sqlite_%'
+  AND current.name NOT LIKE '_litestream_%'`); err != nil {
 		return nil, errors.Wrap(err, "query string slice")
 	}
 	return deletedTables, nil
@@ -204,9 +219,12 @@ func (db *Database) queryNewTableSQLs(ctx context.Context, tx *sql.Tx) ([]string
 		err          error
 	)
 	if newTableSQLs, err = db.queryStringSlice(ctx, tx, `SELECT target.sql AS sql
-FROM sqlite_schema AS current
-         RIGHT JOIN schemaTarget.sqlite_schema AS target ON CURRENT.name=target.name AND CURRENT.type=target.type
-WHERE target.type = 'table' AND CURRENT.type IS NULL AND target.name NOT LIKE 'sqlite_%';`); err != nil {
+FROM sqlite_schema AS current RIGHT JOIN schemaTarget.sqlite_schema AS target
+ON CURRENT.name=target.name AND CURRENT.type=target.type
+WHERE target.type = 'table'
+  AND CURRENT.type IS NULL
+  AND target.name NOT LIKE 'sqlite_%'
+  AND CURRENT.name NOT LIKE '_litestream_%'`); err != nil {
 		return nil, errors.Wrap(err, "query string slice")
 	}
 	return newTableSQLs, nil
@@ -271,13 +289,17 @@ func (db *Database) queryChangedTables(ctx context.Context, tx *sql.Tx) ([]chang
 		rows          *sql.Rows
 		err           error
 	)
-	if rows, err = tx.QueryContext(ctx, `SELECT
-    current.name AS changed_table,
-    current.sql AS current_sql,
-    target.sql AS new_sql
+	if rows, err = tx.QueryContext(ctx, `SELECT current.name AS changed_table,
+       current.sql  AS current_sql,
+       target.sql   AS new_sql
 FROM sqlite_schema AS current
-         JOIN schemaTarget.sqlite_schema AS target ON current.name=target.name AND current.type=target.type
-WHERE current.type = 'table' AND current.name NOT LIKE 'sqlite_%' AND current.sql <> target.sql;
+         JOIN schemaTarget.sqlite_schema AS target ON current.name = target.name AND current.type = target.type
+WHERE current.type = 'table'
+  AND current.name NOT LIKE 'sqlite_%'
+  AND current.name NOT LIKE '_litestream_%'
+  -- The table rename operation adds double quotes around the table name, so we remove them for this diff.
+  AND REPLACE(current.sql, '"', '')
+    <> REPLACE(target.sql, '"', '')
 `); err != nil {
 		return nil, errors.Wrap(err, "query")
 	}

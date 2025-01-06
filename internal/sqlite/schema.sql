@@ -79,7 +79,7 @@ CREATE TABLE clues
     investigation_target_id TEXT NOT NULL REFERENCES investigation_targets (id) ON DELETE CASCADE
 ) WITHOUT ROWID, STRICT;
 
-CREATE TABLE IF NOT EXISTS completions
+CREATE TABLE completions
 (
     id                      INTEGER PRIMARY KEY,
     "order"                 INTEGER NOT NULL,
