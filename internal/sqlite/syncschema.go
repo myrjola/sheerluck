@@ -19,7 +19,8 @@ import (
 //
 // 1. Deletes deleted tables,
 // 2. Creates new tables,
-// 3. Migrates changed tables using 12-step schema migration https://www.sqlite.org/lang_altertable.html#otheralter.
+// 3. Migrates changed tables using 12-step schema migration https://www.sqlite.org/lang_altertable.html#otheralter,
+// 4. Synchronises triggers and indexes.
 //
 // Inspired by https://david.rothlis.net/declarative-schema-migration-for-sqlite/
 func (db *Database) migrate(ctx context.Context, schemaDefinition string) error {
