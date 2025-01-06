@@ -62,6 +62,9 @@ func (db *Database) migrate(ctx context.Context, schemaDefinition string) error 
 	}
 
 	// Step 8: Recreate indexes and triggers associated with table if needed.
+	if err = db.migrateTriggers(ctx, tx); err != nil {
+		return errors.Wrap(err, "migrate triggers")
+	}
 	// Step 9: Recreate views associated with table.
 	// Step 10: Check foreign key constraints.
 	if _, err = tx.ExecContext(ctx, "PRAGMA foreign_key_check"); err != nil {
@@ -158,7 +161,7 @@ func (db *Database) migrateTables(ctx context.Context, tx *sql.Tx) error {
 	}
 
 	// Identify tables with changed schema and continue the 12-step schema migration with them.
-	var changedTables []changedTable
+	var changedTables []changedSchema
 	if changedTables, err = db.queryChangedTables(ctx, tx); err != nil {
 		return errors.Wrap(err, "query changed tables")
 	}
@@ -291,20 +294,48 @@ func (db *Database) queryStringSlice(ctx context.Context, tx *sql.Tx, query stri
 	return results, nil
 }
 
-type changedTable struct {
+type changedSchema struct {
 	name    string
 	liveSQL string
 	newSQL  string
 }
 
-// queryChangedTables returns a list of tables that have different schema in the live schema and the target schema.
-func (db *Database) queryChangedTables(ctx context.Context, tx *sql.Tx) ([]changedTable, error) {
+// queryChangedSchemas returns a list of entities that have different schema in the live schema and the target schema.
+func (db *Database) queryChangedSchemas(ctx context.Context, tx *sql.Tx, query string) ([]changedSchema, error) {
 	var (
-		changedTables []changedTable
-		rows          *sql.Rows
-		err           error
+		changedSchemas []changedSchema
+		rows           *sql.Rows
+		err            error
 	)
-	if rows, err = tx.QueryContext(ctx, `SELECT live.name AS changed_table,
+	if rows, err = tx.QueryContext(ctx, query); err != nil {
+		return nil, errors.Wrap(err, "query")
+	}
+	defer func() {
+		if err = rows.Close(); err != nil {
+			err = errors.Wrap(err, "close rows")
+			db.logger.Error("could not close rows", errors.SlogError(err))
+		}
+	}()
+	for rows.Next() {
+		var result changedSchema
+		if err = rows.Scan(&result.name, &result.liveSQL, &result.newSQL); err != nil {
+			return nil, errors.Wrap(err, "scan table")
+		}
+		changedSchemas = append(changedSchemas, result)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, errors.Wrap(err, "rows error")
+	}
+	return changedSchemas, nil
+}
+
+// queryChangedTables returns a list of tables that have different schema in the live schema and the target schema.
+func (db *Database) queryChangedTables(ctx context.Context, tx *sql.Tx) ([]changedSchema, error) {
+	var (
+		err           error
+		changedTables []changedSchema
+	)
+	if changedTables, err = db.queryChangedSchemas(ctx, tx, `SELECT live.name AS changed_table,
        live.sql  AS live_sql,
        target.sql   AS new_sql
 FROM sqlite_schema AS live
@@ -315,23 +346,89 @@ WHERE live.type = 'table'
   -- The table rename operation adds double quotes around the table name, so we remove them for this diff.
   AND REPLACE(live.sql, '"', '') <> REPLACE(target.sql, '"', '')
 `); err != nil {
-		return nil, errors.Wrap(err, "query")
-	}
-	defer func() {
-		if err = rows.Close(); err != nil {
-			err = errors.Wrap(err, "close rows")
-			db.logger.Error("could not close rows", errors.SlogError(err))
-		}
-	}()
-	for rows.Next() {
-		var result changedTable
-		if err = rows.Scan(&result.name, &result.liveSQL, &result.newSQL); err != nil {
-			return nil, errors.Wrap(err, "scan table")
-		}
-		changedTables = append(changedTables, result)
-	}
-	if err = rows.Err(); err != nil {
-		return nil, errors.Wrap(err, "rows error")
+		return nil, errors.Wrap(err, "query changed schemas")
 	}
 	return changedTables, nil
+}
+
+// queryChangedTriggers returns a list of triggers that have different sql in the live schema and the target schema.
+func (db *Database) queryChangedTriggers(ctx context.Context, tx *sql.Tx) ([]changedSchema, error) {
+	var (
+		err             error
+		changedTriggers []changedSchema
+	)
+	if changedTriggers, err = db.queryChangedSchemas(ctx, tx, `SELECT live.name  AS changed_trigger,
+       live.sql   AS live_sql,
+       target.sql AS new_sql
+FROM sqlite_schema AS live
+         JOIN schemaTarget.sqlite_schema AS target ON live.name = target.name AND live.type = target.type
+WHERE live.type = 'trigger'
+  AND live.name NOT LIKE 'sqlite_%'
+  AND live.sql <> target.sql`); err != nil {
+		return nil, errors.Wrap(err, "query changed schemas")
+	}
+	return changedTriggers, nil
+}
+
+// migrateTriggers ensures triggers are synchronized between databases.
+func (db *Database) migrateTriggers(ctx context.Context, tx *sql.Tx) error {
+	var err error
+
+	var deleted []string
+	if deleted, err = db.queryStringSlice(ctx, tx, `SELECT live.name AS deleted_trigger
+FROM sqlite_schema AS live
+         LEFT JOIN schemaTarget.sqlite_schema AS target ON live.name = target.name AND live.type = target.type
+WHERE live.type = 'trigger'
+  AND target.type IS NULL
+  AND live.name NOT LIKE 'sqlite_%'`); err != nil {
+		return errors.Wrap(err, "query deleted triggers")
+	}
+	for _, trigger := range deleted {
+		db.logger.LogAttrs(ctx, slog.LevelInfo, "dropping trigger", slog.String("trigger", trigger))
+		if _, err = tx.ExecContext(ctx, "DROP TRIGGER ?;", trigger); err != nil {
+			return errors.Wrap(err, "drop trigger", slog.String("trigger", trigger))
+		}
+	}
+
+	var created []string
+	if created, err = db.queryStringSlice(ctx, tx, `SELECT target.sql AS new_trigger_sql
+FROM sqlite_schema AS live
+         RIGHT JOIN schemaTarget.sqlite_schema AS target ON live.name = target.name AND live.type = target.type
+WHERE target.type = 'trigger'
+  AND live.type IS NULL
+  AND target.name NOT LIKE 'sqlite_%'`); err != nil {
+		return errors.Wrap(err, "query created triggers")
+	}
+	for _, newTriggerSQL := range created {
+		db.logger.LogAttrs(ctx, slog.LevelInfo, "creating trigger", slog.String("query", newTriggerSQL))
+		if _, err = tx.ExecContext(ctx, newTriggerSQL); err != nil {
+			return errors.Wrap(err, "create trigger")
+		}
+	}
+
+	// Identify tables with changed schema and continue the 12-step schema migration with them.
+	var changedTriggers []changedSchema
+	if changedTriggers, err = db.queryChangedTriggers(ctx, tx); err != nil {
+		return errors.Wrap(err, "query changed triggers")
+	}
+
+	for _, trigger := range changedTriggers {
+		db.logger.LogAttrs(ctx, slog.LevelInfo, "migrating trigger",
+			slog.String("trigger", trigger.name),
+			slog.String("live_sql", trigger.liveSQL),
+			slog.String("new_sql", trigger.newSQL))
+
+		dropSQL := fmt.Sprintf("DROP TRIGGER %s;", trigger.name)
+		db.logger.LogAttrs(ctx, slog.LevelInfo, "dropping old trigger", slog.String("query", dropSQL))
+		if _, err = tx.ExecContext(ctx, dropSQL); err != nil {
+			return errors.Wrap(err, "drop old trigger")
+		}
+
+		// Step 7: Rename new trigger to old trigger's name.
+		db.logger.LogAttrs(ctx, slog.LevelInfo, "creating new trigger", slog.String("query", trigger.newSQL))
+		if _, err = tx.ExecContext(ctx, trigger.newSQL); err != nil {
+			return errors.Wrap(err, "create new trigger")
+		}
+	}
+	return nil
 }
