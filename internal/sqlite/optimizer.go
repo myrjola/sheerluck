@@ -7,8 +7,8 @@ import (
 	"time"
 )
 
-// StartDatabaseOptimizer runs optimize once per hour. See https://www.sqlite.org/pragma.html#pragma_optimize.
-func (db *Database) StartDatabaseOptimizer(ctx context.Context) {
+// startDatabaseOptimizer runs optimize once per hour. See https://www.sqlite.org/pragma.html#pragma_optimize.
+func (db *Database) startDatabaseOptimizer(ctx context.Context) {
 	for {
 		start := time.Now()
 		if _, err := db.ReadWrite.ExecContext(ctx, "PRAGMA optimize;"); err != nil {

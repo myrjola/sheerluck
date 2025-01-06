@@ -117,7 +117,7 @@ func NewDatabase(ctx context.Context, url string, logger *slog.Logger) (*Databas
 		return nil, errors.Wrap(err, "apply fixtures")
 	}
 
-	go db.StartDatabaseOptimizer(ctx)
+	go db.startDatabaseOptimizer(ctx)
 
 	return &db, nil
 }
