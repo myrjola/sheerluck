@@ -27,38 +27,11 @@ func (db *Database) migrate(ctx context.Context, schemaDefinition string) error 
 	// 12-step schema migration starts here. See https://www.sqlite.org/lang_altertable.html#otheralter.
 	start := time.Now()
 
-	// Create schema against a temporary database so that we know what has changed.
-	var (
-		randomID     string
-		dbNameLength uint = 20
-	)
-	if randomID, err = random.Letters(dbNameLength); err != nil {
-		return errors.Wrap(err, "generate random ID")
-	}
-	schemaTargetDataSourceName := fmt.Sprintf("file:%s?mode=memory&cache=shared", randomID)
-	schemaTargetDatabase, err := sql.Open("sqlite3", schemaTargetDataSourceName)
+	closeDatabase, err := db.attachSchemaTargetDatabase(ctx, schemaDefinition)
 	if err != nil {
-		return errors.Wrap(err, "open schema target database")
-	}
-	defer func() {
-		if err = schemaTargetDatabase.Close(); err != nil {
-			err = errors.Wrap(err, "close schema target database")
-			db.logger.LogAttrs(ctx, slog.LevelError, "failed to close schema target database",
-				errors.SlogError(err))
-		}
-	}()
-	if _, err = schemaTargetDatabase.ExecContext(ctx, schemaDefinition); err != nil {
-		return errors.Wrap(err, "migrate schema target database")
-	}
-	if _, err = db.ReadWrite.ExecContext(ctx, "ATTACH DATABASE ? AS schemaTarget",
-		schemaTargetDataSourceName); err != nil {
 		return errors.Wrap(err, "attach schema target database")
 	}
-	defer func() {
-		if _, err = db.ReadWrite.ExecContext(ctx, "DETACH DATABASE schemaTarget"); err != nil {
-			db.logger.LogAttrs(ctx, slog.LevelError, "failed to detach schema target database", errors.SlogError(err))
-		}
-	}()
+	defer closeDatabase()
 
 	// Step 1: Disable foreign key validation temporarily.
 	if _, err = db.ReadWrite.ExecContext(ctx, "PRAGMA foreign_keys = OFF"); err != nil {
@@ -81,14 +54,7 @@ func (db *Database) migrate(ctx context.Context, schemaDefinition string) error 
 	if tx, err = db.ReadWrite.BeginTx(ctx, nil); err != nil {
 		return errors.Wrap(err, "start transaction")
 	}
-	defer func() {
-		if err = tx.Rollback(); err != nil && err != sql.ErrTxDone {
-			err = errors.Wrap(err, "rollback transaction")
-			db.logger.LogAttrs(ctx, slog.LevelError, "failed to rollback transaction", errors.SlogError(err))
-		}
-	}()
-
-	// Step 3: Remember schema.
+	defer db.rollback(ctx, tx)()
 
 	// Step 3-7 migrate tables.
 	if err = db.migrateTables(ctx, tx); err != nil {
@@ -110,7 +76,56 @@ func (db *Database) migrate(ctx context.Context, schemaDefinition string) error 
 	// Step 12: is in defer above.
 
 	db.logger.LogAttrs(ctx, slog.LevelInfo, "migrated tables", slog.Duration("duration", time.Since(start)))
+
 	return nil
+}
+
+// attachSchemaTargetDatabase attaches a temporary database initialised with the target schema and returns
+// a function to detach the database that must be called after the migration.
+func (db *Database) attachSchemaTargetDatabase(ctx context.Context, schemaDefinition string) (func(), error) {
+	// Create schema against a temporary database so that we know what has changed.
+	var (
+		randomID     string
+		dbNameLength uint = 20
+		err          error
+	)
+	if randomID, err = random.Letters(dbNameLength); err != nil {
+		return nil, errors.Wrap(err, "generate random ID")
+	}
+	schemaTargetDataSourceName := fmt.Sprintf("file:%s?mode=memory&cache=shared", randomID)
+	schemaTargetDatabase, err := sql.Open("sqlite3", schemaTargetDataSourceName)
+	if err != nil {
+		return nil, errors.Wrap(err, "open schema target database")
+	}
+	defer func() {
+		if err = schemaTargetDatabase.Close(); err != nil {
+			err = errors.Wrap(err, "close schema target database")
+			db.logger.LogAttrs(ctx, slog.LevelError, "failed to close schema target database",
+				errors.SlogError(err))
+		}
+	}()
+	if _, err = schemaTargetDatabase.ExecContext(ctx, schemaDefinition); err != nil {
+		return nil, errors.Wrap(err, "migrate schema target database")
+	}
+	if _, err = db.ReadWrite.ExecContext(ctx, "ATTACH DATABASE ? AS schemaTarget",
+		schemaTargetDataSourceName); err != nil {
+		return nil, errors.Wrap(err, "attach schema target database")
+	}
+	return func() {
+		if _, err = db.ReadWrite.ExecContext(ctx, "DETACH DATABASE schemaTarget"); err != nil {
+			db.logger.LogAttrs(ctx, slog.LevelError, "failed to detach schema target database", errors.SlogError(err))
+		}
+	}, nil
+}
+
+// rollback rolls back given transaction.
+func (db *Database) rollback(ctx context.Context, tx *sql.Tx) func() {
+	return func() {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			err = errors.Wrap(err, "rollback transaction")
+			db.logger.LogAttrs(ctx, slog.LevelError, "failed to rollback transaction", errors.SlogError(err))
+		}
+	}
 }
 
 // migrateTables ensures table schema is synchronized between databases.
@@ -151,7 +166,7 @@ func (db *Database) migrateTables(ctx context.Context, tx *sql.Tx) error {
 	for _, table := range changedTables {
 		db.logger.LogAttrs(ctx, slog.LevelInfo, "migrating table",
 			slog.String("table", table.name),
-			slog.String("current_sql", table.currentSQL),
+			slog.String("live_sql", table.liveSQL),
 			slog.String("new_sql", table.newSQL))
 
 		// Step 4: Create tables according to new schema on temporary names.
@@ -193,38 +208,38 @@ func (db *Database) migrateTables(ctx context.Context, tx *sql.Tx) error {
 	return nil
 }
 
-// queryDeletedTables returns a list of tables that are present in the current schema but not in the target schema.
+// queryDeletedTables returns a list of tables that are present in the live schema but not in the target schema.
 func (db *Database) queryDeletedTables(ctx context.Context, tx *sql.Tx) ([]string, error) {
 	var (
 		deletedTables []string
 		err           error
 	)
-	if deletedTables, err = db.queryStringSlice(ctx, tx, `SELECT current.name AS deleted_table
-FROM sqlite_schema AS current
-         LEFT JOIN schemaTarget.sqlite_schema AS target ON current.name = target.name AND current.type = target.type
-WHERE current.type = 'table'
+	if deletedTables, err = db.queryStringSlice(ctx, tx, `SELECT live.name AS deleted_table
+FROM sqlite_schema AS live
+         LEFT JOIN schemaTarget.sqlite_schema AS target ON live.name = target.name AND live.type = target.type
+WHERE live.type = 'table'
   AND target.type IS NULL
-  AND current.name NOT LIKE 'sqlite_%'
-  AND current.name NOT LIKE '_litestream_%'`); err != nil {
+  AND live.name NOT LIKE 'sqlite_%'
+  AND live.name NOT LIKE '_litestream_%'`); err != nil {
 		return nil, errors.Wrap(err, "query string slice")
 	}
 	return deletedTables, nil
 }
 
 // queryNewTableSQLs returns a list of SQL statements to create new tables that are present in the target schema but not
-// in the current schema.
+// in the live schema.
 func (db *Database) queryNewTableSQLs(ctx context.Context, tx *sql.Tx) ([]string, error) {
 	var (
 		newTableSQLs []string
 		err          error
 	)
 	if newTableSQLs, err = db.queryStringSlice(ctx, tx, `SELECT target.sql AS sql
-FROM sqlite_schema AS current RIGHT JOIN schemaTarget.sqlite_schema AS target
-ON CURRENT.name=target.name AND CURRENT.type=target.type
+FROM sqlite_schema AS live RIGHT JOIN schemaTarget.sqlite_schema AS target
+ON live.name=target.name AND live.type=target.type
 WHERE target.type = 'table'
-  AND CURRENT.type IS NULL
+  AND live.type IS NULL
   AND target.name NOT LIKE 'sqlite_%'
-  AND CURRENT.name NOT LIKE '_litestream_%'`); err != nil {
+  AND target.name NOT LIKE '_litestream_%'`); err != nil {
 		return nil, errors.Wrap(err, "query string slice")
 	}
 	return newTableSQLs, nil
@@ -237,8 +252,8 @@ func (db *Database) queryCommonColumns(ctx context.Context, tx *sql.Tx, table st
 	)
 	// We wrap the column names in with double quotes to handle column names that are SQLite keywords.
 	if commonColumns, err = db.queryStringSlice(ctx, tx, `SELECT '"' || target.name || '"'
-FROM PRAGMA_TABLE_INFO(:table_name) AS current
-JOIN PRAGMA_TABLE_INFO(:table_name, 'schemaTarget') AS target ON target.name = current.name;`,
+FROM PRAGMA_TABLE_INFO(:table_name) AS live
+JOIN PRAGMA_TABLE_INFO(:table_name, 'schemaTarget') AS target ON target.name = live.name`,
 		sql.Named("table_name", table)); err != nil {
 		return nil, errors.Wrap(err, "query string slice")
 	}
@@ -277,29 +292,28 @@ func (db *Database) queryStringSlice(ctx context.Context, tx *sql.Tx, query stri
 }
 
 type changedTable struct {
-	name       string
-	currentSQL string
-	newSQL     string
+	name    string
+	liveSQL string
+	newSQL  string
 }
 
-// queryChangedTables returns a list of tables that have different schema in the current schema and the target schema.
+// queryChangedTables returns a list of tables that have different schema in the live schema and the target schema.
 func (db *Database) queryChangedTables(ctx context.Context, tx *sql.Tx) ([]changedTable, error) {
 	var (
 		changedTables []changedTable
 		rows          *sql.Rows
 		err           error
 	)
-	if rows, err = tx.QueryContext(ctx, `SELECT current.name AS changed_table,
-       current.sql  AS current_sql,
+	if rows, err = tx.QueryContext(ctx, `SELECT live.name AS changed_table,
+       live.sql  AS live_sql,
        target.sql   AS new_sql
-FROM sqlite_schema AS current
-         JOIN schemaTarget.sqlite_schema AS target ON current.name = target.name AND current.type = target.type
-WHERE current.type = 'table'
-  AND current.name NOT LIKE 'sqlite_%'
-  AND current.name NOT LIKE '_litestream_%'
+FROM sqlite_schema AS live
+         JOIN schemaTarget.sqlite_schema AS target ON live.name = target.name AND live.type = target.type
+WHERE live.type = 'table'
+  AND live.name NOT LIKE 'sqlite_%'
+  AND live.name NOT LIKE '_litestream_%'
   -- The table rename operation adds double quotes around the table name, so we remove them for this diff.
-  AND REPLACE(current.sql, '"', '')
-    <> REPLACE(target.sql, '"', '')
+  AND REPLACE(live.sql, '"', '') <> REPLACE(target.sql, '"', '')
 `); err != nil {
 		return nil, errors.Wrap(err, "query")
 	}
@@ -311,7 +325,7 @@ WHERE current.type = 'table'
 	}()
 	for rows.Next() {
 		var result changedTable
-		if err = rows.Scan(&result.name, &result.currentSQL, &result.newSQL); err != nil {
+		if err = rows.Scan(&result.name, &result.liveSQL, &result.newSQL); err != nil {
 			return nil, errors.Wrap(err, "scan table")
 		}
 		changedTables = append(changedTables, result)

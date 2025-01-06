@@ -7,12 +7,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"log/slog"
+	"os"
 	"testing"
 )
 
 func TestInvestigationRepository_Get(t *testing.T) {
 	t.Parallel()
-	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
 	dbs := newTestDB(t, logger)
 	repo := repositories.NewInvestigationRepository(dbs, logger)
 

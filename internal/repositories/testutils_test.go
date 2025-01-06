@@ -19,6 +19,7 @@ func newTestDB(t *testing.T, logger *slog.Logger) *sqlite.Database {
 		database *sqlite.Database
 		err      error
 	)
+	t.Helper()
 
 	if database, err = sqlite.NewDatabase(context.Background(), ":memory:", logger); err != nil {
 		t.Fatal(err)
