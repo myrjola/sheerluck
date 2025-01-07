@@ -1,4 +1,4 @@
-package db
+package sqlite
 
 import (
 	"context"
@@ -14,19 +14,49 @@ import (
 	_ "github.com/mattn/go-sqlite3" // Enable sqlite3 driver
 )
 
-//go:embed init.sql
-var initialiseSchemaScript string
+//go:embed schema.sql
+var schemaDefinition string
 
-type DBs struct {
-	ReadWriteDB *sql.DB
-	ReadDB      *sql.DB
+//go:embed fixtures.sql
+var fixtures string
+
+type Database struct {
+	ReadWrite *sql.DB
+	ReadOnly  *sql.DB
+	logger    *slog.Logger
 }
 
-// NewDB establishes two database connections, one for read/write operations and one for read-only operations.
+// NewDatabase connects to database, migrates the schema, and applies fixtures.
+//
+// It establishes two database connections, one for read/write operations and one for read-only operations.
 // This is a best practice mentioned in https://github.com/mattn/go-sqlite3/issues/1179#issuecomment-1638083995
 //
 // The url parameter is the path to the SQLite database file or ":memory:" for an in-memory database.
-func NewDB(ctx context.Context, url string) (*DBs, error) {
+func NewDatabase(ctx context.Context, url string, logger *slog.Logger) (*Database, error) {
+	var (
+		err error
+		db  *Database
+	)
+
+	if db, err = connect(url, logger); err != nil {
+		return nil, errors.Wrap(err, "connect")
+	}
+
+	if err = db.migrateTo(ctx, schemaDefinition); err != nil {
+		return nil, errors.Wrap(err, "migrateTo")
+	}
+
+	// Apply fixtures.
+	if _, err = db.ReadWrite.ExecContext(ctx, fixtures); err != nil {
+		return nil, errors.Wrap(err, "apply fixtures")
+	}
+
+	go db.startDatabaseOptimizer(ctx)
+
+	return db, nil
+}
+
+func connect(url string, logger *slog.Logger) (*Database, error) {
 	var (
 		err         error
 		readWriteDB *sql.DB
@@ -66,6 +96,9 @@ func NewDB(ctx context.Context, url string) (*DBs, error) {
 		// Recommended performance enhancement for long-lived connections.
 		// See https://www.sqlite.org/pragma.html#pragma_optimize.
 		"_optimize=0x10002",
+		// Litestream handles checkpoints.
+		// See https://litestream.io/tips/#disable-autocheckpoints-for-high-write-load-servers
+		"_wal_autocheckpoint = 0",
 	}, "&")
 
 	// The options prefixed with underscore '_' are SQLite pragmas documented at https://www.sqlite.org/pragma.html.
@@ -82,11 +115,6 @@ func NewDB(ctx context.Context, url string) (*DBs, error) {
 	readWriteDB.SetConnMaxLifetime(time.Hour)
 	readWriteDB.SetConnMaxIdleTime(time.Hour)
 
-	// Initialize the database schema
-	if _, err = readWriteDB.ExecContext(ctx, initialiseSchemaScript); err != nil {
-		return nil, errors.Wrap(err, "initialize schema")
-	}
-
 	if readDB, err = sql.Open("sqlite3", readConfig); err != nil {
 		return nil, errors.Wrap(err, "open read database")
 	}
@@ -97,28 +125,9 @@ func NewDB(ctx context.Context, url string) (*DBs, error) {
 	readDB.SetConnMaxLifetime(time.Hour)
 	readDB.SetConnMaxIdleTime(time.Hour)
 
-	return &DBs{
-		ReadWriteDB: readWriteDB,
-		ReadDB:      readDB,
+	return &Database{
+		ReadWrite: readWriteDB,
+		ReadOnly:  readDB,
+		logger:    logger,
 	}, nil
-}
-
-// Runs optimize once per hour according to suggestion at https://www.sqlite.org/pragma.html#pragma_optimize.
-func StartDatabaseOptimizer(ctx context.Context, dbs *DBs, logger *slog.Logger) {
-	for {
-		start := time.Now()
-		if _, err := dbs.ReadWriteDB.ExecContext(ctx, "PRAGMA optimize;"); err != nil {
-			err = errors.Wrap(err, "optimize database")
-			logger.LogAttrs(ctx, slog.LevelError, "failed to optimize database", errors.SlogError(err))
-		} else {
-			logger.LogAttrs(ctx, slog.LevelInfo, "optimized database",
-				slog.Duration("duration", time.Since(start)))
-		}
-		select {
-		case <-ctx.Done():
-			return
-		case <-time.After(time.Hour):
-			continue
-		}
-	}
 }

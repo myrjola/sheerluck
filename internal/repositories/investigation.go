@@ -3,21 +3,21 @@ package repositories
 import (
 	"context"
 	"database/sql"
-	"github.com/myrjola/sheerluck/internal/db"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/models"
+	"github.com/myrjola/sheerluck/internal/sqlite"
 	"log/slog"
 )
 
 type InvestigationRepository struct {
-	dbs    *db.DBs
-	logger *slog.Logger
+	database *sqlite.Database
+	logger   *slog.Logger
 }
 
-func NewInvestigationRepository(dbs *db.DBs, logger *slog.Logger) *InvestigationRepository {
+func NewInvestigationRepository(dbs *sqlite.Database, logger *slog.Logger) *InvestigationRepository {
 	return &InvestigationRepository{
-		dbs:    dbs,
-		logger: logger.With("source", "InvestigationRepository"),
+		database: dbs,
+		logger:   logger.With("source", "InvestigationRepository"),
 	}
 }
 
@@ -34,7 +34,7 @@ func (r *InvestigationRepository) Get(
 	)
 
 	stmt := `SELECT id, name, short_name, type, image_path FROM investigation_targets WHERE id = ?`
-	if err = r.dbs.ReadDB.QueryRowContext(ctx, stmt, investigationTargetID).Scan(
+	if err = r.database.ReadOnly.QueryRowContext(ctx, stmt, investigationTargetID).Scan(
 		&investigationTarget.ID,
 		&investigationTarget.Name,
 		&investigationTarget.ShortName,
@@ -48,7 +48,7 @@ func (r *InvestigationRepository) Get(
 	FROM completions
 	WHERE user_id = ? AND investigation_target_id = ?
 	ORDER BY "order"`
-	if rows, err = r.dbs.ReadDB.QueryContext(ctx, stmt, userID, investigationTargetID); err != nil {
+	if rows, err = r.database.ReadOnly.QueryContext(ctx, stmt, userID, investigationTargetID); err != nil {
 		return nil, errors.Wrap(err, "query completions")
 	}
 	defer func() {
@@ -110,7 +110,7 @@ VALUES (@user_id, @investigation_target_id, @question, @answer, (SELECT "order" 
 		sql.Named("answer", answer),
 		sql.Named("previous_completion_id", previousCompletionID),
 	}
-	if _, err := r.dbs.ReadWriteDB.ExecContext(ctx, stmt, params...); err != nil {
+	if _, err := r.database.ReadWrite.ExecContext(ctx, stmt, params...); err != nil {
 		return errors.Wrap(err, "insert completion")
 	}
 	return nil

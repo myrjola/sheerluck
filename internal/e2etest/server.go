@@ -51,7 +51,7 @@ func StartServer(
 	}()
 	select {
 	case <-ctx.Done():
-		return nil, errors.Wrap(ctx.Err(), "context cancelled")
+		return nil, errors.Wrap(context.Cause(ctx), "context cancelled")
 	case addr := <-addrCh:
 		var (
 			err    error
