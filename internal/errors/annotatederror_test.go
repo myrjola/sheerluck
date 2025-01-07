@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/myrjola/sheerluck/internal/errors"
+	"github.com/myrjola/sheerluck/internal/testhelpers"
 	"github.com/stretchr/testify/require"
 	"log/slog"
 	"testing"
@@ -34,15 +35,15 @@ func TestAnnotatedError(t *testing.T) {
 	require.Equal(t, "wrap error 2", annotated.Error())
 
 	var buf bytes.Buffer
-	l := slog.New(slog.NewTextHandler(&buf, nil))
+	l := testhelpers.NewLogger(&buf)
 	l.Info("test", errors.SlogError(wrapped))
 	logLine := buf.String()
 	require.Contains(t, logLine, "id=123")
 	require.Contains(t, logLine, "user=johndoe")
 	require.Contains(t, logLine, "duration=1s")
-	require.Contains(t, logLine, "annotatederror_test.go:14")
-	require.Contains(t, logLine, "annotatederror_test.go:26")
+	require.Contains(t, logLine, "annotatederror_test.go:15")
 	require.Contains(t, logLine, "annotatederror_test.go:27")
+	require.Contains(t, logLine, "annotatederror_test.go:28")
 	// Assert we didn't mess up the stack trace skips.
 	require.NotContains(t, logLine, "annotatederror.go")
 

@@ -3,20 +3,15 @@ package main
 import (
 	"context"
 	"github.com/myrjola/sheerluck/internal/errors"
-	"github.com/myrjola/sheerluck/internal/logging"
 	"github.com/myrjola/sheerluck/internal/sqlite"
+	"github.com/myrjola/sheerluck/internal/testhelpers"
 	"log/slog"
 	"os"
 	"time"
 )
 
 func main() {
-	loggerHandler := logging.NewContextHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		AddSource:   false,
-		Level:       slog.LevelDebug,
-		ReplaceAttr: nil,
-	}))
-	logger := slog.New(loggerHandler)
+	logger := testhelpers.NewLogger(os.Stdout)
 	var (
 		err       error
 		start     = time.Now()

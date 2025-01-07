@@ -5,6 +5,7 @@ import (
 	"github.com/myrjola/sheerluck/internal/e2etest"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"github.com/myrjola/sheerluck/internal/logging"
+	"github.com/myrjola/sheerluck/internal/testhelpers"
 	"log/slog"
 	"os"
 	"time"
@@ -29,12 +30,7 @@ func TestAuth(client *e2etest.Client) error {
 }
 
 func main() {
-	loggerHandler := logging.NewContextHandler(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		AddSource:   false,
-		Level:       slog.LevelDebug,
-		ReplaceAttr: nil,
-	}))
-	logger := slog.New(loggerHandler)
+	logger := testhelpers.NewLogger(os.Stdout)
 	ctx := context.Background()
 
 	if len(os.Args) != 2 { //nolint:mnd // we expect only hostname to be passed as argument.

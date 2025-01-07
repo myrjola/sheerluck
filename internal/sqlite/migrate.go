@@ -13,9 +13,9 @@ import (
 	"time"
 )
 
-// migrate ensures that the db schema matches the target schema defined in schema.sql.
+// migrateTo ensures that the db schema matches the target schema defined in schema.sql.
 //
-// We employ a very simple declarative schema migration that:
+// We employ a declarative schema migration that:
 //
 // 1. Deletes deleted tables,
 // 2. Creates new tables,
@@ -23,7 +23,7 @@ import (
 // 4. Synchronises triggers and indexes.
 //
 // Inspired by https://david.rothlis.net/declarative-schema-migration-for-sqlite/
-func (db *Database) migrate(ctx context.Context, schemaDefinition string) error {
+func (db *Database) migrateTo(ctx context.Context, schemaDefinition string) error {
 	var err error
 	// 12-step schema migration starts here. See https://www.sqlite.org/lang_altertable.html#otheralter.
 	start := time.Now()
@@ -148,7 +148,7 @@ func (db *Database) migrateTables(ctx context.Context, tx *sql.Tx) error {
 	}
 	for _, table := range deletedTables {
 		db.logger.LogAttrs(ctx, slog.LevelInfo, "dropping table", slog.String("table", table))
-		if _, err = tx.ExecContext(ctx, "DROP TABLE ?;", table); err != nil {
+		if _, err = tx.ExecContext(ctx, fmt.Sprintf("DROP TABLE %s", table)); err != nil {
 			return errors.Wrap(err, "drop table", slog.String("table", table))
 		}
 	}
@@ -299,7 +299,7 @@ func (db *Database) queryStringSlice(ctx context.Context, tx *sql.Tx, query stri
 	for rows.Next() {
 		var result string
 		if err = rows.Scan(&result); err != nil {
-			return nil, errors.Wrap(err, "scan table")
+			return nil, errors.Wrap(err, "scan row")
 		}
 		results = append(results, result)
 	}
@@ -339,7 +339,7 @@ func (db *Database) queryChangedSchemas(
 	for rows.Next() {
 		var result changedSchema
 		if err = rows.Scan(&result.name, &result.liveSQL, &result.newSQL); err != nil {
-			return nil, errors.Wrap(err, "scan table")
+			return nil, errors.Wrap(err, "scan row")
 		}
 		changedSchemas = append(changedSchemas, result)
 	}

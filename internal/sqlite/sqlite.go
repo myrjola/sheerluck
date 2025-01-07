@@ -26,13 +26,37 @@ type Database struct {
 	logger    *slog.Logger
 }
 
-// NewDatabase connects to database and synchronizes the schema.
+// NewDatabase connects to database, migrates the schema, and applies fixtures.
 //
 // It establishes two database connections, one for read/write operations and one for read-only operations.
 // This is a best practice mentioned in https://github.com/mattn/go-sqlite3/issues/1179#issuecomment-1638083995
 //
 // The url parameter is the path to the SQLite database file or ":memory:" for an in-memory database.
 func NewDatabase(ctx context.Context, url string, logger *slog.Logger) (*Database, error) {
+	var (
+		err error
+		db  *Database
+	)
+
+	if db, err = connect(url, logger); err != nil {
+		return nil, errors.Wrap(err, "connect")
+	}
+
+	if err = db.migrateTo(ctx, schemaDefinition); err != nil {
+		return nil, errors.Wrap(err, "migrateTo")
+	}
+
+	// Apply fixtures.
+	if _, err = db.ReadWrite.ExecContext(ctx, fixtures); err != nil {
+		return nil, errors.Wrap(err, "apply fixtures")
+	}
+
+	go db.startDatabaseOptimizer(ctx)
+
+	return db, nil
+}
+
+func connect(url string, logger *slog.Logger) (*Database, error) {
 	var (
 		err         error
 		readWriteDB *sql.DB
@@ -101,23 +125,9 @@ func NewDatabase(ctx context.Context, url string, logger *slog.Logger) (*Databas
 	readDB.SetConnMaxLifetime(time.Hour)
 	readDB.SetConnMaxIdleTime(time.Hour)
 
-	db := Database{
+	return &Database{
 		ReadWrite: readWriteDB,
 		ReadOnly:  readDB,
 		logger:    logger,
-	}
-
-	// Initialize the database schema.
-	if err = db.migrate(ctx, schemaDefinition); err != nil {
-		return nil, errors.Wrap(err, "synchronize schema")
-	}
-
-	// Apply fixtures.
-	if _, err = db.ReadWrite.ExecContext(ctx, fixtures); err != nil {
-		return nil, errors.Wrap(err, "apply fixtures")
-	}
-
-	go db.startDatabaseOptimizer(ctx)
-
-	return &db, nil
+	}, nil
 }
