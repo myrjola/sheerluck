@@ -3,18 +3,16 @@
         {{ csrf }}
         <button type="submit">Sign in</button>
         <script {{ nonce }}>
-          const loginButton = document.currentScript.parentElement
-          import("webauthn").then(({ loginUser }) =>
-            loginButton.addEventListener("submit", loginUser))
+          withMe((button) => import("webauthn").then(({ loginUser }) =>
+            button.addEventListener("submit", loginUser)))
         </script>
     </form>
     <form action="/api/registration/start">
         {{ csrf }}
         <button type="submit">Register</button>
         <script {{ nonce }}>
-          const registerButton = document.currentScript.parentElement
-          import("webauthn").then(({ registerUser }) =>
-            registerButton.addEventListener("submit", registerUser))
+          withMe((button) => import("webauthn").then(({ registerUser }) =>
+            button.addEventListener("submit", registerUser)))
         </script>
     </form>
 {{ end }}

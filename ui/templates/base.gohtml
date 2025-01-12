@@ -28,8 +28,19 @@
     </head>
     <body>
     <script {{ nonce }}>
+      /**
+       * @returns {HTMLElement}
+       */
       function me() {
         return document.currentScript.parentElement
+      }
+
+      /**
+       * @param {function(HTMLElement): any} callback
+       * @returns {any}
+       */
+      function withMe(callback) {
+        return callback(document.currentScript.parentElement)
       }
     </script>
     {{ template "page" . }}
