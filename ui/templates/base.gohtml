@@ -18,6 +18,13 @@
         <link rel="apple-touch-icon" href="https://myrjola.twic.pics/sheerluck/apple-touch-icon.png"/>
         <link rel="manifest" href="/manifest.json"/>
         <meta name="theme-color" content="#111827"/>
+        <script type="importmap" {{ nonce }}>
+            {
+              "imports": {
+                "webauthn": "/webauthn.js"
+              }
+            }
+        </script>
     </head>
     <body>
     <script {{ nonce }}>
