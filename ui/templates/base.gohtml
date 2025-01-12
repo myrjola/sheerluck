@@ -18,11 +18,29 @@
         <link rel="apple-touch-icon" href="https://myrjola.twic.pics/sheerluck/apple-touch-icon.png"/>
         <link rel="manifest" href="/manifest.json"/>
         <meta name="theme-color" content="#111827"/>
+        <script type="importmap" {{ nonce }}>
+            {
+              "imports": {
+                "webauthn": "/webauthn.js"
+              }
+            }
+        </script>
     </head>
     <body>
     <script {{ nonce }}>
+      /**
+       * @returns {HTMLElement}
+       */
       function me() {
         return document.currentScript.parentElement
+      }
+
+      /**
+       * @param {function(HTMLElement): any} callback
+       * @returns {any}
+       */
+      function withMe(callback) {
+        return callback(document.currentScript.parentElement)
       }
     </script>
     {{ template "page" . }}
