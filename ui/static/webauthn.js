@@ -67,15 +67,11 @@ async function createAttestationResponse(publicKey) {
     id: bufferDecode(excludedCredential.id),
   }))
   const credential = await navigator.credentials.create({ publicKey });
-
-  const attestationObject = credential.response.attestationObject;
-  const clientDataJSON = credential.response.clientDataJSON;
-  const rawId = credential.rawId;
-
+  const {id, rawId, type, response: {attestationObject, clientDataJSON}} = credential;
   return JSON.stringify({
-    id: credential.id,
+    id,
     rawId: bufferEncode(rawId),
-    type: credential.type,
+    type,
     response: {
       attestationObject: bufferEncode(attestationObject),
       clientDataJSON: bufferEncode(clientDataJSON),
@@ -100,7 +96,7 @@ async function finishRegistration(attestationResponse, headers) {
 
 /**
  * Registers a user using Webauthn.
- * @param e {Event}
+ * @param e {SubmitEvent}
  */
 export async function registerUser(e) {
   try {
@@ -153,7 +149,7 @@ async function finishLogin(assertionResponse, headers) {
 
 /**
  * Logs in a user using Webauthn.
- * @param e {Event}
+ * @param e {SubmitEvent}
  */
 export async function loginUser(e) {
   e.preventDefault()
