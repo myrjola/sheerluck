@@ -1,7 +1,7 @@
 name: Pull Request Build
-
+permissions:
+  contents: read
 on: [ pull_request ]
-
 jobs:
   build:
     runs-on: ubuntu-latest
