@@ -2,6 +2,7 @@ package webauthnhandler
 
 import (
 	"context"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"github.com/alexedwards/scs/v2"
@@ -12,6 +13,7 @@ import (
 	"github.com/myrjola/sheerluck/internal/sqlite"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -32,7 +34,13 @@ func New(
 	var (
 		err     error
 		timeout = time.Minute * 5
+		init    sync.Once
 	)
+	// Register the session data struct for encoding to the session.
+	// See https://github.com/alexedwards/scs?tab=readme-ov-file#working-with-session-data.
+	init.Do(func() {
+		gob.Register(webauthn.SessionData{}) //nolint:exhaustruct // only need to register the struct.
+	})
 
 	rpOrigins := []string{fmt.Sprintf("https://%s", fqdn)}
 	if fqdn == "localhost" {

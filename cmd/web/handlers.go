@@ -2,20 +2,13 @@ package main
 
 import (
 	"bytes"
-	"encoding/gob"
 	"fmt"
-	"github.com/go-webauthn/webauthn/webauthn"
 	"github.com/myrjola/sheerluck/internal/contexthelpers"
 	"github.com/myrjola/sheerluck/internal/errors"
 	"html/template"
 	"log/slog"
 	"net/http"
 )
-
-//nolint:gochecknoinits // unsure why not use init for this.
-func init() {
-	gob.Register(webauthn.SessionData{}) //nolint:exhaustruct // only need to register the struct.
-}
 
 // pageTemplate returns a template for the given page name.
 //
